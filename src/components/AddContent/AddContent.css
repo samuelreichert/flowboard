@@ -10,7 +10,7 @@
 }
 
 .add-content-button:hover {
-  background-color: rgba(255,255,255,0.4);
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .add-content-button--save {
@@ -26,7 +26,6 @@
   background-color: #04a0ab;
 }
 
-
 .add-content-button--dark {
   color: #403e3b;
 }
@@ -34,7 +33,6 @@
 .add-content-button--dark:hover {
   background-color: #d1d1d1;
 }
-
 
 .add-content-button--dark,
 .close-button--dark {

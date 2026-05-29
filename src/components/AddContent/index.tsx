@@ -3,6 +3,16 @@ import { useState } from 'react';
 import ContentForm from '../ContentForm';
 import './AddContent.css';
 
+type AddContentProps = {
+  contentType: 'card' | 'column';
+  dark?: boolean;
+  defaultContent?: string;
+  hasContent: boolean;
+  isOpen?: boolean;
+  isTextArea?: boolean;
+  onSaveContent: (content: string) => void;
+};
+
 const AddContent = ({
   contentType,
   dark = false,
@@ -10,11 +20,11 @@ const AddContent = ({
   hasContent,
   isOpen = false,
   isTextArea = false,
-  onSaveContent
-}) => {
+  onSaveContent,
+}: AddContentProps) => {
   const [inputOpen, setInputOpen] = useState(isOpen);
 
-  const onClickSave = (content) => {
+  const onClickSave = (content: string) => {
     onSaveContent(content);
     setInputOpen(false);
   };
