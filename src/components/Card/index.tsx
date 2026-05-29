@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { DragEvent, MouseEvent } from 'react';
 
 import ContentForm from '../ContentForm';
 import DropDown from '../Dropdown';
@@ -12,12 +12,19 @@ import './Card.css';
 
 type CardProps = {
   column: string;
+  moveCard: (cardTitle: string, fromColumn: string, toColumn: string) => void;
   onEditCard: (oldContent: string, newContent: string) => void;
   title: string;
   setColumns: (columns: BoardColumn[]) => void;
 };
 
-const Card = ({ column, onEditCard, title, setColumns }: CardProps) => {
+const Card = ({
+  column,
+  moveCard,
+  onEditCard,
+  title,
+  setColumns,
+}: CardProps) => {
   const data = fetchStorage();
   const options = data.map((option) => option.title);
   const [editCardOpen, setEditCardOpen] = useState(false);
@@ -42,26 +49,14 @@ const Card = ({ column, onEditCard, title, setColumns }: CardProps) => {
   };
 
   const onSelectColumnToMove = (newColumn: string) => {
-    const newColumns = data.map((item) => {
-      if (item.title === column) {
-        return {
-          ...item,
-          cards: item.cards.filter((card) => card !== title),
-        };
-      }
-
-      if (item.title === newColumn) {
-        return {
-          ...item,
-          cards: [...item.cards, title],
-        };
-      }
-
-      return { ...item };
-    });
-
-    setColumns(newColumns);
+    moveCard(title, column, newColumn);
     setIsMoveOpen(false);
+  };
+
+  const onDragStart = (event: DragEvent<HTMLDivElement>) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', title);
+    event.dataTransfer.setData('application/x-column-title', column);
   };
 
   const onUpdateCardContent = (content: string) => {
@@ -71,7 +66,12 @@ const Card = ({ column, onEditCard, title, setColumns }: CardProps) => {
 
   if (editCardOpen === false) {
     return (
-      <div className="card" onClick={() => setEditCardOpen(true)}>
+      <div
+        className="card"
+        draggable
+        onClick={() => setEditCardOpen(true)}
+        onDragStart={onDragStart}
+      >
         {title}
 
         <div className="card__options">

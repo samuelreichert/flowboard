@@ -30,6 +30,36 @@ const Columns = () => {
     updateColumns(newColumns);
   };
 
+  const onMoveCard = (
+    cardTitle: string,
+    fromColumn: string,
+    toColumn: string
+  ) => {
+    if (fromColumn === toColumn) {
+      return;
+    }
+
+    const newColumns = columns.map((column) => {
+      if (column.title === fromColumn) {
+        return {
+          ...column,
+          cards: column.cards.filter((card) => card !== cardTitle),
+        };
+      }
+
+      if (column.title === toColumn) {
+        return {
+          ...column,
+          cards: [...column.cards, cardTitle],
+        };
+      }
+
+      return column;
+    });
+
+    updateColumns(newColumns);
+  };
+
   const updateColumns = (newColumns: BoardColumn[]) => {
     setColumns(newColumns);
     updateStorage(newColumns);
@@ -48,6 +78,7 @@ const Columns = () => {
           position={column.position}
           title={column.title}
           updateCards={onUpdateCards}
+          moveCard={onMoveCard}
           setColumns={updateColumns}
         />
       ))}
