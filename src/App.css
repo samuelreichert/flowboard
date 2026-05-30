@@ -14,8 +14,7 @@
   padding: 0 28px;
 }
 
-.topbar__brand,
-.topbar__actions {
+.topbar__brand {
   align-items: center;
   display: flex;
 }
@@ -35,38 +34,6 @@
   display: flex;
   height: 26px;
   justify-content: center;
-  width: 26px;
-}
-
-.topbar__divider {
-  background-color: #e5e5e8;
-  height: 16px;
-  margin: 0 3px;
-  width: 1px;
-}
-
-.topbar__workspace {
-  color: #9698a1;
-  font-size: 12px;
-  font-weight: 540;
-}
-
-.topbar__actions {
-  gap: 3px;
-}
-
-.topbar__avatar {
-  align-items: center;
-  background-color: #f0effc;
-  border: 1px solid #e2e0f6;
-  border-radius: 50%;
-  color: #6c5aa7;
-  display: flex;
-  font-size: 9px;
-  font-weight: 800;
-  height: 26px;
-  justify-content: center;
-  margin-left: 8px;
   width: 26px;
 }
 
@@ -96,23 +63,6 @@
   font-weight: 560;
   letter-spacing: 0;
   margin: 0 0 7px;
-}
-
-.board__views {
-  border-bottom: 1px solid #eeeeef;
-  display: flex;
-}
-
-.board__view {
-  color: #8b8d95;
-  font-size: 12px;
-  font-weight: 580;
-  padding: 6px 3px 7px;
-}
-
-.board__view--active {
-  border-bottom: 1px solid #5551c9;
-  color: #35363b;
 }
 
 .button {
@@ -216,14 +166,6 @@
 @media (max-width: 640px) {
   .topbar {
     padding: 0 16px;
-  }
-
-  .topbar__workspace {
-    display: none;
-  }
-
-  .topbar__divider {
-    display: none;
   }
 
   .board {
