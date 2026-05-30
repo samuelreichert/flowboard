@@ -12,6 +12,7 @@ import type { CardDialogValues } from '../CardDialog';
 import type { BoardColumn } from '../../types';
 
 import './Column.css';
+import '../IconButton/IconButton.css';
 
 type ColumnProps = {
   column: BoardColumn;
