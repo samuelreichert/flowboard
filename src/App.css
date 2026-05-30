@@ -4,39 +4,6 @@
   min-height: 100vh;
 }
 
-.topbar {
-  align-items: center;
-  background-color: rgb(255 255 255 / 88%);
-  border-bottom: 1px solid #ededf0;
-  display: flex;
-  height: 52px;
-  justify-content: space-between;
-  padding: 0 28px;
-}
-
-.topbar__brand {
-  align-items: center;
-  display: flex;
-}
-
-.topbar__brand {
-  color: #292b31;
-  font-size: 13px;
-  font-weight: 680;
-  gap: 8px;
-}
-
-.topbar__logo {
-  align-items: center;
-  background-color: #26272c;
-  border-radius: 6px;
-  color: #ffffff;
-  display: flex;
-  height: 26px;
-  justify-content: center;
-  width: 26px;
-}
-
 .board {
   overflow: auto;
   padding: 29px 32px 44px;
@@ -164,10 +131,6 @@
 }
 
 @media (max-width: 640px) {
-  .topbar {
-    padding: 0 16px;
-  }
-
   .board {
     padding: 24px 18px 32px;
   }
