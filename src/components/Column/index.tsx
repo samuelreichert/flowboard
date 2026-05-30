@@ -5,8 +5,10 @@ import { useState } from 'react';
 import type { DragEvent } from 'react';
 
 import Card from '../Card';
+import CardDialog from '../CardDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import ContentDialog from '../ContentDialog';
+import type { CardDialogValues } from '../CardDialog';
 import type { BoardColumn } from '../../types';
 
 import './Column.css';
@@ -16,10 +18,14 @@ type ColumnProps = {
   columns: BoardColumn[];
   deleteCard: (columnId: string, cardId: string) => void;
   deleteColumn: (columnId: string) => void;
-  editCard: (columnId: string, cardId: string, title: string) => string | void;
+  editCard: (
+    columnId: string,
+    cardId: string,
+    values: CardDialogValues
+  ) => string | void;
   moveCard: (cardId: string, fromColumnId: string, toColumnId: string) => void;
   renameColumn: (columnId: string, title: string) => string | void;
-  saveCard: (columnId: string, title: string) => string | void;
+  saveCard: (values: CardDialogValues) => string | void;
 };
 
 const Column = ({
@@ -122,14 +128,12 @@ const Column = ({
           Add {column.cards.length > 0 ? 'another' : 'a'} card
         </Button>
       </section>
-      <ContentDialog
-        description={`Create a card in ${column.title}.`}
-        label="Card title"
+      <CardDialog
+        columnId={column.id}
+        columns={columns}
         onOpenChange={setAddCardOpen}
-        onSave={(title) => saveCard(column.id, title)}
+        onSave={saveCard}
         open={addCardOpen}
-        submitLabel="Add card"
-        title="Add card"
       />
       <ContentDialog
         description="Choose a clear name for this workflow stage."

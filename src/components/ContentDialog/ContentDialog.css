@@ -39,6 +39,7 @@
   font-size: 13px;
   font-weight: 600;
   gap: 6px;
+  margin-top: 14px;
 }
 
 .dialog-input {
@@ -48,6 +49,11 @@
   font: inherit;
   padding: 10px;
   resize: vertical;
+}
+
+select.dialog-input {
+  background-color: #ffffff;
+  resize: none;
 }
 
 .dialog-input:focus {
@@ -66,4 +72,14 @@
   gap: 8px;
   justify-content: flex-end;
   margin-top: 18px;
+}
+
+.dialog-actions--spread {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-actions__group {
+  display: flex;
+  gap: 8px;
 }

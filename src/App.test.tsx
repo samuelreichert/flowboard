@@ -29,8 +29,29 @@ test('migrates legacy localStorage data to stable IDs', () => {
   expect(columns[0]).toMatchObject({ title: 'Todo', position: 0 });
   expect(columns[0].id).toBeTruthy();
   expect(columns[0].cards[0]).toMatchObject({ title: 'Ship it' });
+  expect(columns[0].cards[0].description).toBe('');
   expect(columns[0].cards[0].id).toBeTruthy();
   expect(localStorage.getItem('columnsList')).toContain(columns[0].id);
+});
+
+test('migrates stable-ID cards that predate descriptions', () => {
+  localStorage.setItem(
+    'columnsList',
+    JSON.stringify([
+      {
+        id: 'todo',
+        title: 'Todo',
+        cards: [{ id: 'ship-it', title: 'Ship it' }],
+        position: 0,
+      },
+    ])
+  );
+
+  expect(fetchStorage()[0].cards[0]).toEqual({
+    description: '',
+    id: 'ship-it',
+    title: 'Ship it',
+  });
 });
 
 test('creates columns and cards from dialogs', async () => {
@@ -40,9 +61,15 @@ test('creates columns and cards from dialogs', async () => {
   await addColumn(user, 'Todo');
   expect(screen.getByRole('heading', { name: 'Todo' })).toBeInTheDocument();
 
-  await addCard(user, 'Todo', 'Ship it');
+  await addCard(user, 'Todo', 'Ship it', 'Release the new Flowboard build.');
   expect(screen.getByText('Ship it')).toBeInTheDocument();
   expect(readColumns()[0].cards[0].title).toBe('Ship it');
+  expect(readColumns()[0].cards[0].description).toBe(
+    'Release the new Flowboard build.'
+  );
+  expect(
+    screen.queryByText('Release the new Flowboard build.')
+  ).not.toBeInTheDocument();
 });
 
 test('rejects blank and duplicate column titles', async () => {
@@ -63,28 +90,33 @@ test('rejects blank and duplicate column titles', async () => {
   expect(readColumns()).toHaveLength(1);
 });
 
-test('edits only the selected duplicate-title card', async () => {
+test('shows and edits card details in the modal', async () => {
   const user = userEvent.setup();
   render(<App />);
 
   await addColumn(user, 'Todo');
-  await addCard(user, 'Todo', 'Review');
-  await addCard(user, 'Todo', 'Review');
+  await addCard(user, 'Todo', 'Review', 'First description');
+  await addCard(user, 'Todo', 'Review', 'Second description');
 
   const cards = screen.getAllByText('Review');
   await user.click(cards[0]);
   const input = screen.getByLabelText('Card title');
   await user.clear(input);
   await user.type(input, 'Approved');
+  const description = screen.getByLabelText('Description');
+  expect(description).toHaveValue('First description');
+  await user.clear(description);
+  await user.type(description, 'Ready to ship');
   await user.click(screen.getByRole('button', { name: /save changes/i }));
 
   expect(readColumns()[0].cards.map((card) => card.title)).toEqual([
     'Approved',
     'Review',
   ]);
+  expect(readColumns()[0].cards[0].description).toBe('Ready to ship');
 });
 
-test('deletes only the selected duplicate-title card', async () => {
+test('deletes only the selected duplicate-title card from the modal', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -92,14 +124,13 @@ test('deletes only the selected duplicate-title card', async () => {
   await addCard(user, 'Todo', 'Review');
   await addCard(user, 'Todo', 'Review');
 
-  await user.click(
-    screen.getAllByRole('button', { name: /delete review/i })[0]
-  );
+  await user.click(screen.getAllByText('Review')[0]);
+  await user.click(screen.getByRole('button', { name: /delete card/i }));
 
   expect(readColumns()[0].cards).toHaveLength(1);
 });
 
-test('moves a card from the arrow menu', async () => {
+test('moves a card from the modal column select', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -107,10 +138,12 @@ test('moves a card from the arrow menu', async () => {
   await addCard(user, 'Todo', 'Ship it');
   await addColumn(user, 'Done');
 
-  fireEvent.mouseDown(screen.getByRole('button', { name: /move ship it/i }), {
-    button: 0,
-  });
-  await user.click(await screen.findByRole('menuitem', { name: 'Done' }));
+  await user.click(screen.getByText('Ship it'));
+  await user.selectOptions(
+    screen.getByLabelText('Column'),
+    screen.getByRole('option', { name: 'Done' })
+  );
+  await user.click(screen.getByRole('button', { name: /save changes/i }));
 
   expect(
     readColumns().find((column) => column.title === 'Done')?.cards[0].title
@@ -132,7 +165,9 @@ test('drags a card from one column to another by ID', async () => {
     .getByRole('heading', { name: 'Done' })
     .closest('section') as HTMLElement;
 
-  fireEvent.dragStart(screen.getByText('Ship it'), { dataTransfer });
+  fireEvent.dragStart(screen.getByRole('button', { name: /drag ship it/i }), {
+    dataTransfer,
+  });
   fireEvent.dragOver(doneColumn, { dataTransfer });
   fireEvent.drop(doneColumn, { dataTransfer });
 
@@ -207,13 +242,17 @@ const addColumn = async (
 const addCard = async (
   user: ReturnType<typeof userEvent.setup>,
   columnTitle: string,
-  title: string
+  title: string,
+  description = ''
 ) => {
   const column = screen
     .getByRole('heading', { name: columnTitle })
     .closest('section') as HTMLElement;
   await user.click(within(column).getByRole('button', { name: /add.*card/i }));
   await user.type(screen.getByLabelText('Card title'), title);
+  if (description) {
+    await user.type(screen.getByLabelText('Description'), description);
+  }
   await user.click(screen.getByRole('button', { name: /add card/i }));
 };
 

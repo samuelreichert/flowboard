@@ -11,6 +11,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 const isBoardCard = (value: unknown): value is BoardCard => {
   return (
     isRecord(value) &&
+    typeof value.description === 'string' &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string'
+  );
+};
+
+const isCardWithoutDescription = (
+  value: unknown
+): value is Omit<BoardCard, 'description'> => {
+  return (
+    isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.title === 'string'
   );
@@ -44,6 +55,21 @@ const isLegacyColumn = (
   );
 };
 
+const isColumnWithoutDescriptions = (
+  value: unknown
+): value is Omit<BoardColumn, 'cards'> & {
+  cards: Omit<BoardCard, 'description'>[];
+} => {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    Array.isArray(value.cards) &&
+    value.cards.every(isCardWithoutDescription) &&
+    typeof value.position === 'number'
+  );
+};
+
 export const updateStorage = (data: BoardColumn[]) => {
   const jsonData = JSON.stringify(data);
   localStorage.setItem(STORAGE_KEY, jsonData);
@@ -63,11 +89,28 @@ export const fetchStorage = (): BoardColumn[] => {
       return parsedData;
     }
 
+    if (
+      Array.isArray(parsedData) &&
+      parsedData.every(isColumnWithoutDescriptions)
+    ) {
+      const migratedColumns = parsedData.map((column) => ({
+        ...column,
+        cards: column.cards.map((card) => ({ ...card, description: '' })),
+      }));
+
+      updateStorage(migratedColumns);
+      return migratedColumns;
+    }
+
     if (Array.isArray(parsedData) && parsedData.every(isLegacyColumn)) {
       const migratedColumns = parsedData.map((column) => ({
         ...column,
         id: createId(),
-        cards: column.cards.map((title) => ({ id: createId(), title })),
+        cards: column.cards.map((title) => ({
+          description: '',
+          id: createId(),
+          title,
+        })),
       }));
 
       updateStorage(migratedColumns);

@@ -1,5 +1,5 @@
 .card {
-  align-items: flex-start;
+  align-items: center;
   background-color: #ffffff;
   border-radius: 4px;
   box-shadow: 0 1px 0 rgb(9 30 66 / 25%);
@@ -7,22 +7,38 @@
   cursor: pointer;
   display: flex;
   gap: 6px;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 8px;
   padding: 8px;
   width: 100%;
 }
 
-.card:active {
+.card__drag-handle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: #7a869a;
+  cursor: grab;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  margin: -4px 0 -4px -4px;
+  padding: 4px 0;
+}
+
+.card__drag-handle:hover {
+  background-color: #f1f2f4;
+  color: #44546f;
+}
+
+.card__drag-handle:active {
   cursor: grabbing;
 }
 
-.card__options {
-  align-items: center;
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
-  position: relative;
+.card__drag-handle:focus-visible {
+  outline: 2px solid #0067a3;
+  outline-offset: 1px;
 }
 
 .card__title {

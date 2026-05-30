@@ -61,11 +61,11 @@ const ContentDialog = ({
               </Dialog.Description>
               <label className="dialog-field">
                 <span>{label}</span>
-                <textarea
+                <input
                   autoFocus
                   className="dialog-input"
                   onChange={(event) => setValue(event.currentTarget.value)}
-                  rows={3}
+                  type="text"
                   value={value}
                 />
               </label>

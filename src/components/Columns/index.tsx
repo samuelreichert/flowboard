@@ -6,7 +6,8 @@ import Column from '../Column';
 import ConfirmDialog from '../ConfirmDialog';
 import ContentDialog from '../ContentDialog';
 import { fetchStorage, updateStorage } from '../../storage';
-import type { BoardCard, BoardColumn } from '../../types';
+import type { CardDialogValues } from '../CardDialog';
+import type { BoardColumn } from '../../types';
 
 import './Columns.css';
 
@@ -67,39 +68,82 @@ const Columns = () => {
     updateColumns(columns.filter((column) => column.id !== columnId));
   };
 
-  const onSaveCard = (columnId: string, title: string) => {
-    if (!title) {
+  const onSaveCard = (values: CardDialogValues) => {
+    if (!values.title) {
       return 'Enter a card title.';
     }
 
     updateColumns(
       columns.map((column) =>
-        column.id === columnId
+        column.id === values.columnId
           ? {
               ...column,
-              cards: [...column.cards, { id: createId(), title }],
+              cards: [
+                ...column.cards,
+                {
+                  description: values.description,
+                  id: createId(),
+                  title: values.title,
+                },
+              ],
             }
           : column
       )
     );
   };
 
-  const onEditCard = (columnId: string, cardId: string, title: string) => {
-    if (!title) {
+  const onEditCard = (
+    sourceColumnId: string,
+    cardId: string,
+    values: CardDialogValues
+  ) => {
+    if (!values.title) {
       return 'Enter a card title.';
     }
 
+    const sourceColumn = columns.find((column) => column.id === sourceColumnId);
+    const existingCard = sourceColumn?.cards.find((card) => card.id === cardId);
+
+    if (!existingCard) {
+      return;
+    }
+
+    const updatedCard = {
+      ...existingCard,
+      description: values.description,
+      title: values.title,
+    };
+
     updateColumns(
-      columns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              cards: column.cards.map((card) =>
-                card.id === cardId ? { ...card, title } : card
-              ),
-            }
-          : column
-      )
+      columns.map((column) => {
+        if (
+          sourceColumnId === values.columnId &&
+          column.id === sourceColumnId
+        ) {
+          return {
+            ...column,
+            cards: column.cards.map((card) =>
+              card.id === cardId ? updatedCard : card
+            ),
+          };
+        }
+
+        if (column.id === sourceColumnId) {
+          return {
+            ...column,
+            cards: column.cards.filter((card) => card.id !== cardId),
+          };
+        }
+
+        if (column.id === values.columnId) {
+          return {
+            ...column,
+            cards: [...column.cards, updatedCard],
+          };
+        }
+
+        return column;
+      })
     );
   };
 
