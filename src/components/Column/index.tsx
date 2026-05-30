@@ -1,14 +1,15 @@
+import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import { Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import type { DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Card from '../Card';
 import CardDialog from '../CardDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import ContentDialog from '../ContentDialog';
 import type { CardDialogValues } from '../CardDialog';
+import { isCardDragData } from '../../dnd';
 import type { BoardColumn } from '../../types';
 
 import './Column.css';
@@ -24,7 +25,6 @@ type ColumnProps = {
     cardId: string,
     values: CardDialogValues
   ) => string | void;
-  moveCard: (cardId: string, fromColumnId: string, toColumnId: string) => void;
   renameColumn: (columnId: string, title: string) => string | void;
   saveCard: (values: CardDialogValues) => string | void;
 };
@@ -35,46 +35,37 @@ const Column = ({
   deleteCard,
   deleteColumn,
   editCard,
-  moveCard,
   renameColumn,
   saveCard,
 }: ColumnProps) => {
+  const columnRef = useRef<HTMLElement | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const onDragOver = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    setIsDragOver(true);
-  };
+  useEffect(() => {
+    const columnElement = columnRef.current;
 
-  const onDragLeave = (event: DragEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      setIsDragOver(false);
+    if (!columnElement) {
+      return;
     }
-  };
 
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDragOver(false);
-
-    const cardId = event.dataTransfer.getData('application/x-card-id');
-    const fromColumnId = event.dataTransfer.getData('application/x-column-id');
-
-    if (cardId && fromColumnId) {
-      moveCard(cardId, fromColumnId, column.id);
-    }
-  };
+    return dropTargetForElements({
+      element: columnElement,
+      canDrop: ({ source }) => isCardDragData(source.data),
+      getData: () => ({ columnId: column.id, type: 'column' }),
+      onDragEnter: () => setIsDragOver(true),
+      onDragLeave: () => setIsDragOver(false),
+      onDrop: () => setIsDragOver(false),
+    });
+  }, [column.id]);
 
   return (
     <>
       <section
         className={`column ${isDragOver ? 'column--drag-over' : ''}`}
-        onDragLeave={onDragLeave}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
+        ref={columnRef}
       >
         <div className="column__header">
           <h2 className="column__title">{column.title}</h2>
@@ -117,10 +108,12 @@ const Column = ({
               deleteCard={deleteCard}
               editCard={editCard}
               key={card.id}
-              moveCard={moveCard}
             />
           ))}
         </div>
+        {isDragOver && column.cards.length === 0 && (
+          <div className="column__empty-drop-indicator">Drop card here</div>
+        )}
         <Button
           className="add-card-button"
           onClick={() => setAddCardOpen(true)}

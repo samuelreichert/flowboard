@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
 
 import App from './App';
+import { reorderCard } from './dnd';
 import { fetchStorage } from './storage';
 import type { BoardColumn } from './types';
 
@@ -151,39 +151,48 @@ test('moves a card from the modal column select', async () => {
   ).toBe('Ship it');
 });
 
-test('drags a card from one column to another by ID', async () => {
-  const user = userEvent.setup();
-  render(<App />);
+test('reorders cards upward and downward in the same column', () => {
+  const columns = createBoardColumns();
 
-  await addColumn(user, 'Todo');
-  await addCard(user, 'Todo', 'Ship it');
-  await addColumn(user, 'Done');
-
-  const storedColumns = readColumns();
-  const card = storedColumns[0].cards[0];
-  const dataTransfer = createDataTransfer();
-  const doneColumn = screen
-    .getByRole('heading', { name: 'Done' })
-    .closest('section') as HTMLElement;
-
-  const dragHandle = screen.getByRole('button', { name: /drag ship it/i });
-  const sourceCard = dragHandle.closest('article');
-
-  fireEvent.dragStart(dragHandle, {
-    dataTransfer,
+  const movedUp = reorderCard(columns, {
+    cardId: 'third',
+    closestEdge: 'top',
+    fromColumnId: 'todo',
+    targetCardId: 'first',
+    toColumnId: 'todo',
   });
-  expect(sourceCard).toHaveClass('card--dragging');
-  expect(dataTransfer.setDragImage).toHaveBeenCalled();
+  expect(movedUp[0].cards.map((card) => card.id)).toEqual([
+    'third',
+    'first',
+    'second',
+  ]);
 
-  fireEvent.dragOver(doneColumn, { dataTransfer });
-  fireEvent.drop(doneColumn, { dataTransfer });
-  fireEvent.dragEnd(dragHandle, { dataTransfer });
+  const movedDown = reorderCard(movedUp, {
+    cardId: 'third',
+    closestEdge: 'bottom',
+    fromColumnId: 'todo',
+    targetCardId: 'second',
+    toColumnId: 'todo',
+  });
+  expect(movedDown[0].cards.map((card) => card.id)).toEqual([
+    'first',
+    'second',
+    'third',
+  ]);
+});
 
-  expect(
-    readColumns().find((column) => column.title === 'Done')?.cards[0].id
-  ).toBe(card.id);
-  expect(sourceCard).not.toHaveClass('card--dragging');
-  expect(document.querySelector('.card--drag-preview')).not.toBeInTheDocument();
+test('moves a card to a precise position in another column', () => {
+  const columns = createBoardColumns();
+  const moved = reorderCard(columns, {
+    cardId: 'second',
+    closestEdge: 'top',
+    fromColumnId: 'todo',
+    targetCardId: 'done',
+    toColumnId: 'complete',
+  });
+
+  expect(moved[0].cards.map((card) => card.id)).toEqual(['first', 'third']);
+  expect(moved[1].cards.map((card) => card.id)).toEqual(['second', 'done']);
 });
 
 test('renames and deletes a column with confirmation', async () => {
@@ -279,16 +288,21 @@ const openColumnActions = async (
 const readColumns = () =>
   JSON.parse(localStorage.getItem('columnsList') ?? '[]') as BoardColumn[];
 
-const createDataTransfer = () => {
-  const store = new Map<string, string>();
-
-  return {
-    dropEffect: 'none',
-    effectAllowed: 'all',
-    getData: (type: string) => store.get(type) ?? '',
-    setDragImage: vi.fn(),
-    setData: (type: string, value: string) => {
-      store.set(type, value);
-    },
-  };
-};
+const createBoardColumns = (): BoardColumn[] => [
+  {
+    cards: [
+      { description: '', id: 'first', title: 'First' },
+      { description: '', id: 'second', title: 'Second' },
+      { description: '', id: 'third', title: 'Third' },
+    ],
+    id: 'todo',
+    position: 0,
+    title: 'Todo',
+  },
+  {
+    cards: [{ description: '', id: 'done', title: 'Done' }],
+    id: 'complete',
+    position: 10,
+    title: 'Complete',
+  },
+];

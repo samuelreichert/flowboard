@@ -1,10 +1,18 @@
+import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { Button } from '@base-ui/react/button';
 import { Plus, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Column from '../Column';
 import ConfirmDialog from '../ConfirmDialog';
 import ContentDialog from '../ContentDialog';
+import {
+  isCardDragData,
+  isCardDropTargetData,
+  isColumnDropTargetData,
+  reorderCard,
+} from '../../dnd';
 import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
 import type { BoardColumn } from '../../types';
@@ -160,39 +168,47 @@ const Columns = () => {
     );
   };
 
-  const onMoveCard = (
-    cardId: string,
-    fromColumnId: string,
-    toColumnId: string
-  ) => {
-    if (fromColumnId === toColumnId) {
-      return;
-    }
+  useEffect(
+    () =>
+      monitorForElements({
+        canMonitor: ({ source }) => isCardDragData(source.data),
+        onDrop: ({ location, source }) => {
+          if (!isCardDragData(source.data)) {
+            return;
+          }
 
-    const sourceColumn = columns.find((column) => column.id === fromColumnId);
-    const card = sourceColumn?.cards.find((item) => item.id === cardId);
+          const target = location.current.dropTargets[0];
 
-    if (!card) {
-      return;
-    }
+          if (!target) {
+            return;
+          }
 
-    updateColumns(
-      columns.map((column) => {
-        if (column.id === fromColumnId) {
-          return {
-            ...column,
-            cards: column.cards.filter((item) => item.id !== cardId),
-          };
-        }
+          if (isCardDropTargetData(target.data)) {
+            updateColumns(
+              reorderCard(columns, {
+                cardId: source.data.cardId,
+                closestEdge: extractClosestEdge(target.data),
+                fromColumnId: source.data.columnId,
+                targetCardId: target.data.cardId,
+                toColumnId: target.data.columnId,
+              })
+            );
+          }
 
-        if (column.id === toColumnId) {
-          return { ...column, cards: [...column.cards, card] };
-        }
-
-        return column;
-      })
-    );
-  };
+          if (isColumnDropTargetData(target.data)) {
+            updateColumns(
+              reorderCard(columns, {
+                cardId: source.data.cardId,
+                closestEdge: null,
+                fromColumnId: source.data.columnId,
+                toColumnId: target.data.columnId,
+              })
+            );
+          }
+        },
+      }),
+    [columns]
+  );
 
   const sortedColumns = [...columns].sort(
     (first, second) => first.position - second.position
@@ -227,7 +243,6 @@ const Columns = () => {
             deleteColumn={onDeleteColumn}
             editCard={onEditCard}
             key={column.id}
-            moveCard={onMoveCard}
             renameColumn={onRenameColumn}
             saveCard={onSaveCard}
           />

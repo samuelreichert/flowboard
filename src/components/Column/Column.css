@@ -54,3 +54,17 @@
   background-color: #e6e9ef;
   color: #172b4d;
 }
+
+.column__empty-drop-indicator {
+  align-items: center;
+  background-color: #eaf2ff;
+  border: 1px dashed #0c66e4;
+  border-radius: 7px;
+  color: #0c66e4;
+  display: flex;
+  font-size: 12px;
+  font-weight: 680;
+  justify-content: center;
+  margin-top: 4px;
+  min-height: 54px;
+}

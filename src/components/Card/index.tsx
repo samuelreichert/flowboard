@@ -1,9 +1,20 @@
+import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
+import {
+  draggable,
+  dropTargetForElements,
+} from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { GripVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { DragEvent, MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
+import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 
 import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
+import { isCardDragData } from '../../dnd';
 import type { BoardCard, BoardColumn } from '../../types';
 
 import './Card.css';
@@ -18,48 +29,48 @@ type CardProps = {
     cardId: string,
     values: CardDialogValues
   ) => string | void;
-  moveCard: (cardId: string, fromColumnId: string, toColumnId: string) => void;
 };
 
 const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
+  const cardRef = useRef<HTMLElement | null>(null);
+  const dragHandleRef = useRef<HTMLButtonElement | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const draggedCardRef = useRef<Element | null>(null);
-  const dragPreviewRef = useRef<HTMLElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
 
-  const clearDragState = () => {
-    draggedCardRef.current?.classList.remove('card--dragging');
-    draggedCardRef.current = null;
-    dragPreviewRef.current?.remove();
-    dragPreviewRef.current = null;
-  };
+  useEffect(() => {
+    const cardElement = cardRef.current;
+    const dragHandle = dragHandleRef.current;
 
-  useEffect(() => clearDragState, []);
-
-  const onDragStart = (event: DragEvent<HTMLButtonElement>) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('application/x-card-id', card.id);
-    event.dataTransfer.setData('application/x-column-id', columnId);
-
-    const cardElement = event.currentTarget.closest('.card');
-
-    if (cardElement && typeof event.dataTransfer.setDragImage === 'function') {
-      const dragPreview = cardElement.cloneNode(true) as HTMLElement;
-      const { width } = cardElement.getBoundingClientRect();
-
-      dragPreview.classList.add('card--drag-preview');
-      dragPreview.style.width = `${width}px`;
-      document.body.append(dragPreview);
-      event.dataTransfer.setDragImage(dragPreview, 18, 18);
-      dragPreviewRef.current = dragPreview;
+    if (!cardElement || !dragHandle) {
+      return;
     }
 
-    cardElement?.classList.add('card--dragging');
-    draggedCardRef.current = cardElement;
-  };
-
-  const onDragEnd = () => {
-    clearDragState();
-  };
+    return combine(
+      draggable({
+        element: cardElement,
+        dragHandle,
+        getInitialData: () => ({ cardId: card.id, columnId, type: 'card' }),
+        onDragStart: () => setIsDragging(true),
+        onDrop: () => setIsDragging(false),
+      }),
+      dropTargetForElements({
+        element: cardElement,
+        canDrop: ({ source }) =>
+          isCardDragData(source.data) && source.data.cardId !== card.id,
+        getData: ({ element, input }) =>
+          attachClosestEdge(
+            { cardId: card.id, columnId, type: 'card' },
+            { allowedEdges: ['top', 'bottom'], element, input }
+          ),
+        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDragEnter: ({ self }) =>
+          setClosestEdge(extractClosestEdge(self.data)),
+        onDragLeave: () => setClosestEdge(null),
+        onDrop: () => setClosestEdge(null),
+      })
+    );
+  }, [card.id, columnId]);
 
   const stopCardClick = (event: MouseEvent) => {
     event.stopPropagation();
@@ -67,14 +78,21 @@ const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
 
   return (
     <>
-      <article className="card" onClick={() => setDetailsOpen(true)}>
+      <article
+        className={`card ${isDragging ? 'card--dragging' : ''}`}
+        onClick={() => setDetailsOpen(true)}
+        ref={cardRef}
+      >
+        {closestEdge && (
+          <span
+            className={`card__drop-indicator card__drop-indicator--${closestEdge}`}
+          />
+        )}
         <button
           aria-label={`Drag ${card.title}`}
           className="card__drag-handle"
-          draggable
           onClick={stopCardClick}
-          onDragEnd={onDragEnd}
-          onDragStart={onDragStart}
+          ref={dragHandleRef}
           type="button"
         >
           <GripVertical size={16} />
