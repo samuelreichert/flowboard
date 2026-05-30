@@ -1,0 +1,102 @@
+.dialog-backdrop {
+  backdrop-filter: blur(6px);
+  background-color: rgb(29 30 36 / 38%);
+  inset: 0;
+  position: fixed;
+}
+
+.dialog-viewport {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+}
+
+.dialog-popup {
+  background-color: #ffffff;
+  border: 1px solid #e8e8eb;
+  border-radius: 9px;
+  box-shadow:
+    0 24px 56px rgb(31 33 40 / 18%),
+    0 5px 14px rgb(31 33 40 / 8%);
+  color: #303139;
+  max-height: min(720px, calc(100vh - 40px));
+  max-width: 480px;
+  overflow: auto;
+  padding: 22px;
+  width: 100%;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: 680;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.dialog-description {
+  color: #878992;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 7px 0 17px;
+}
+
+.dialog-field {
+  display: grid;
+  font-size: 12px;
+  font-weight: 620;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.dialog-input {
+  background-color: #fcfcfd;
+  border: 1px solid #dddde2;
+  border-radius: 6px;
+  color: #3f4149;
+  font: inherit;
+  line-height: 1.4;
+  padding: 10px 11px;
+  resize: vertical;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+select.dialog-input {
+  background-color: #ffffff;
+  resize: none;
+}
+
+.dialog-input:focus {
+  background-color: #ffffff;
+  border-color: #7771db;
+  box-shadow: 0 0 0 3px rgb(98 91 219 / 14%);
+  outline: 0;
+}
+
+.dialog-error {
+  color: #b74545;
+  font-size: 12px;
+  margin: 9px 0 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.dialog-actions--spread {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-actions__group {
+  display: flex;
+  gap: 8px;
+}

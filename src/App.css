@@ -1,13 +1,137 @@
 .app {
-  padding: 32px 64px;
-  height: 100vh;
+  background-color: #fbfbfc;
+  color: #292b31;
+  min-height: 100vh;
 }
 
-.app__header {
-  padding-bottom: 32px;
-  text-align: left;
+.board {
+  overflow: auto;
+  padding: 29px 32px 44px;
+}
+
+.board__header {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 22px;
 }
 
 .app__title {
+  color: #25262b;
+  font-size: 22px;
+  font-weight: 690;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.app__eyebrow {
+  color: #a0a2aa;
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0;
+  margin: 0 0 7px;
+}
+
+.button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.button:focus-visible,
+.add-card-button:focus-visible {
+  outline: 3px solid rgb(98 91 219 / 18%);
+  outline-offset: 2px;
+}
+
+.button--primary {
+  background-color: #5e5bd7;
+  box-shadow: 0 1px 2px rgb(61 56 157 / 16%);
   color: #ffffff;
+}
+
+.button--primary:hover {
+  background-color: #514ec7;
+  box-shadow: 0 3px 7px rgb(61 56 157 / 16%);
+  transform: translateY(-1px);
+}
+
+.button--subtle {
+  background-color: transparent;
+  border-color: #e6e6e9;
+  color: #7c7e87;
+}
+
+.button--subtle:hover {
+  background-color: #f5f5f7;
+  border-color: #dddddf;
+  color: #4e5058;
+}
+
+.button--danger {
+  background-color: #d85454;
+  box-shadow: 0 1px 2px rgb(177 51 51 / 12%);
+  color: #ffffff;
+}
+
+.button--danger:hover {
+  background-color: #c84747;
+}
+
+.menu-popup {
+  background-color: #ffffff;
+  border: 1px solid #e6e6e9;
+  border-radius: 7px;
+  box-shadow:
+    0 14px 28px rgb(31 33 40 / 10%),
+    0 2px 5px rgb(31 33 40 / 5%);
+  color: #363840;
+  min-width: 186px;
+  padding: 4px;
+  z-index: 5;
+}
+
+.menu-item {
+  align-items: center;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.menu-item[data-highlighted] {
+  background-color: #f2f1fc;
+  color: #5650bd;
+  outline: 0;
+}
+
+.menu-item--danger {
+  color: #b74545;
+}
+
+.menu-item--danger[data-highlighted] {
+  background-color: #fff1f1;
+  color: #b74545;
+}
+
+@media (max-width: 640px) {
+  .board {
+    padding: 24px 18px 32px;
+  }
 }

@@ -1,0 +1,33 @@
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #8f9199;
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  outline: none;
+  padding: 0;
+  width: 28px;
+}
+
+.icon-button:hover {
+  background-color: #f3f3f5;
+  color: #62646c;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid #625bdb;
+  outline-offset: 2px;
+}
+
+.tooltip-popup {
+  background-color: #33343a;
+  border-radius: 6px;
+  box-shadow: 0 6px 14px rgb(31 33 40 / 16%);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 6px 8px;
+}

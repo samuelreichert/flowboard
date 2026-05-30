@@ -1,4 +1,87 @@
 .cards {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.column__header,
+.column__heading {
+  align-items: center;
+  display: flex;
+}
+
+.column__header {
+  justify-content: space-between;
+  margin-bottom: 9px;
+  min-height: 28px;
+}
+
+.column__heading {
+  gap: 7px;
+  min-width: 0;
+}
+
+.column__marker {
+  background-color: #a4a5ad;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.column__title {
+  color: #5a5c65;
+  font-size: 12px;
+  font-weight: 640;
+  line-height: 1.35;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.column__count {
+  color: #b0b1b7;
+  font-size: 11px;
+  font-weight: 580;
+}
+
+.column--drag-over {
+  background-color: rgb(98 91 219 / 4%);
+}
+
+.add-card-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  color: #a0a2a9;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 540;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 7px 3px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+  width: 100%;
+}
+
+.add-card-button:hover {
+  background-color: #f4f4f6;
+  color: #6a6c74;
+}
+
+.column__empty-drop-indicator {
+  align-items: center;
+  background-color: rgb(98 91 219 / 4%);
+  border: 1px dashed rgb(98 91 219 / 42%);
+  border-radius: 6px;
+  color: #6b65c7;
+  display: flex;
+  font-size: 12px;
+  font-weight: 580;
+  justify-content: center;
+  margin-top: 4px;
+  min-height: 52px;
 }

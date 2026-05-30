@@ -1,42 +1,36 @@
-# Simple Trello Board
+# Flowboard
 
-<img src="./screenshot-trello-board.png" />
+Flowboard comes with the ability to:
 
-<br />
-
-This Trello board comes with the ability to:
-* create columns
-* create cards
-* edit and move cards
-* remove cards
+- create columns
+- create cards
+- edit and move cards
+- remove cards
 
 ## Setup
 
 Dependencies:
-* Node 12.2
-* Yarn
 
-Installing packages: `yarn install`
+- Node 24
+- npm
 
-### `yarn start`
+Installing packages: `npm install`
+
+### `npm run dev`
 
 Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Open the local URL printed by Vite to view it in the browser.
 
 The page will reload if you make edits.\
-You will also see any lint errors in the console.
 
-### `yarn test`
+### `npm run test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Launches the Vitest runner in watch mode.
 
-### `yarn build`
+### `npm run test:run`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Runs the test suite once.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### `npm run build`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Type-checks the app and builds it for production to the `dist` folder.

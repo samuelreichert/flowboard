@@ -1,18 +1,123 @@
 .card {
+  align-items: center;
   background-color: #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 1px 0 rgb(9 30 66 / 25%);
-  color: #403e3b;
+  border: 1px solid #ededf0;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgb(31 33 40 / 4%),
+    0 2px 5px rgb(31 33 40 / 2%);
+  color: #4a4c54;
   cursor: pointer;
-  margin-bottom: 8px;
-  padding: 8px;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  padding: 9px 8px;
+  position: relative;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
   width: 100%;
 }
 
-.card__options {
+.card:hover {
+  border-color: #dedee3;
+  box-shadow:
+    0 3px 7px rgb(31 33 40 / 6%),
+    0 7px 13px rgb(31 33 40 / 3%);
+  transform: translateY(-1px);
+}
+
+.card--dragging {
+  background-color: rgb(255 255 255 / 72%);
+  border-color: #b9b5f0;
+  box-shadow:
+    0 0 0 2px rgb(98 91 219 / 12%),
+    0 5px 12px rgb(31 33 40 / 6%);
+  opacity: 0.58;
+  transform: scale(0.985);
+}
+
+.card__drag-handle {
   align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #c0c1c7;
+  cursor: grab;
   display: flex;
-  justify-content: space-between;
-  padding-top: 8px;
-  position: relative;
+  flex: 0 0 auto;
+  justify-content: center;
+  margin: -4px 0 -4px -3px;
+  padding: 4px 1px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.card__drag-handle:hover {
+  background-color: #f3f3f5;
+  color: #7c7e87;
+}
+
+.card__drag-handle:active {
+  cursor: grabbing;
+}
+
+.card__drag-handle:focus-visible {
+  outline: 2px solid #625bdb;
+  outline-offset: 1px;
+}
+
+.card__title {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.card__description-icon {
+  color: #b8b9bf;
+  flex: 0 0 auto;
+}
+
+.card__drop-indicator {
+  background-color: #625bdb;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 92%);
+  height: 3px;
+  left: 3px;
+  pointer-events: none;
+  position: absolute;
+  right: 3px;
+  z-index: 2;
+}
+
+.card__drop-indicator::before,
+.card__drop-indicator::after {
+  background-color: #625bdb;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  content: '';
+  height: 8px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+}
+
+.card__drop-indicator::before {
+  left: -5px;
+}
+
+.card__drop-indicator::after {
+  right: -5px;
+}
+
+.card__drop-indicator--top {
+  top: -5px;
+}
+
+.card__drop-indicator--bottom {
+  bottom: -5px;
 }
