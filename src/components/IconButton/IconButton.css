@@ -2,7 +2,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #41516a;
   cursor: pointer;
   display: inline-flex;
@@ -13,7 +13,7 @@
 }
 
 .icon-button:hover {
-  background-color: rgb(9 30 66 / 10%);
+  background-color: rgb(9 30 66 / 8%);
 }
 
 .icon-button:focus-visible {
@@ -23,8 +23,9 @@
 
 .tooltip-popup {
   background-color: #172b4d;
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 0 6px 14px rgb(9 30 66 / 20%);
   color: #ffffff;
   font-size: 12px;
-  padding: 5px 8px;
+  padding: 6px 8px;
 }

@@ -1,5 +1,6 @@
 .dialog-backdrop {
-  background-color: rgb(9 30 66 / 46%);
+  backdrop-filter: blur(8px);
+  background-color: rgb(8 27 61 / 52%);
   inset: 0;
   position: fixed;
 }
@@ -15,40 +16,54 @@
 
 .dialog-popup {
   background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 16px 40px rgb(9 30 66 / 30%);
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 12px;
+  box-shadow:
+    0 24px 56px rgb(9 30 66 / 30%),
+    0 5px 14px rgb(9 30 66 / 12%);
   color: #172b4d;
-  max-width: 440px;
-  padding: 20px;
+  max-height: min(720px, calc(100vh - 40px));
+  max-width: 480px;
+  overflow: auto;
+  padding: 22px;
   width: 100%;
 }
 
 .dialog-title {
-  font-size: 20px;
+  font-size: 19px;
+  font-weight: 760;
+  line-height: 1.2;
   margin: 0;
 }
 
 .dialog-description {
   color: #5e6c84;
-  font-size: 14px;
-  margin: 8px 0 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 7px 0 17px;
 }
 
 .dialog-field {
   display: grid;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 6px;
-  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 7px;
+  margin-top: 15px;
 }
 
 .dialog-input {
-  border: 1px solid #b3bac5;
-  border-radius: 4px;
+  background-color: #fbfcfe;
+  border: 1px solid #c7d0dd;
+  border-radius: 7px;
   color: #172b4d;
   font: inherit;
-  padding: 10px;
+  line-height: 1.4;
+  padding: 10px 11px;
   resize: vertical;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 select.dialog-input {
@@ -57,21 +72,23 @@ select.dialog-input {
 }
 
 .dialog-input:focus {
-  border-color: #0067a3;
-  outline: 2px solid rgb(0 103 163 / 18%);
+  background-color: #ffffff;
+  border-color: #0c66e4;
+  box-shadow: 0 0 0 3px rgb(12 102 228 / 16%);
+  outline: 0;
 }
 
 .dialog-error {
   color: #ae2a19;
-  font-size: 13px;
-  margin: 8px 0 0;
+  font-size: 12px;
+  margin: 9px 0 0;
 }
 
 .dialog-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .dialog-actions--spread {

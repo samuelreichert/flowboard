@@ -1,102 +1,145 @@
 .app {
-  min-height: 100vh;
-  overflow-x: auto;
-  padding: 32px 48px;
   height: 100vh;
+  min-height: 100vh;
+  overflow: auto;
+  padding: 32px 48px 48px;
 }
 
 .app__header {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  padding-bottom: 24px;
+  padding-bottom: 20px;
   text-align: left;
 }
 
 .app__title {
   color: #ffffff;
-  font-size: 32px;
+  font-size: 34px;
+  font-weight: 750;
+  line-height: 1;
   margin: 0;
+  text-shadow: 0 1px 12px rgb(5 28 65 / 22%);
 }
 
 .app__eyebrow {
-  color: rgb(255 255 255 / 72%);
-  font-size: 12px;
+  color: rgb(255 255 255 / 76%);
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
-  margin: 0 0 2px;
+  margin: 0 0 6px;
   text-transform: uppercase;
 }
 
 .button {
   align-items: center;
-  border: 0;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 7px;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  gap: 6px;
+  font-size: 13px;
+  font-weight: 680;
+  gap: 7px;
   justify-content: center;
-  padding: 9px 12px;
+  min-height: 36px;
+  padding: 8px 12px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .button:focus-visible,
 .add-card-button:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
+  outline: 3px solid rgb(255 255 255 / 68%);
+  outline-offset: 3px;
 }
 
 .button--primary {
   background-color: #0c66e4;
+  box-shadow: 0 3px 10px rgb(5 52 122 / 20%);
   color: #ffffff;
 }
 
 .button--primary:hover {
   background-color: #0055cc;
+  box-shadow: 0 5px 14px rgb(5 52 122 / 28%);
+  transform: translateY(-1px);
 }
 
 .button--subtle {
-  background-color: rgb(255 255 255 / 18%);
+  background-color: rgb(255 255 255 / 14%);
+  border-color: rgb(255 255 255 / 18%);
+  backdrop-filter: blur(10px);
   color: #ffffff;
 }
 
+.button--subtle:hover {
+  background-color: rgb(255 255 255 / 22%);
+}
+
 .dialog-popup .button--subtle {
-  background-color: #f1f2f4;
-  color: #172b4d;
+  background-color: #f3f5f8;
+  border-color: #e2e7ee;
+  color: #354764;
 }
 
 .button--danger {
   background-color: #c9372c;
+  box-shadow: 0 3px 8px rgb(174 42 25 / 16%);
   color: #ffffff;
+}
+
+.button--danger:hover {
+  background-color: #ae2a19;
 }
 
 .menu-popup {
   background-color: #ffffff;
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgb(9 30 66 / 24%);
+  border: 1px solid rgb(196 205 218 / 62%);
+  border-radius: 8px;
+  box-shadow:
+    0 14px 32px rgb(9 30 66 / 18%),
+    0 2px 6px rgb(9 30 66 / 8%);
   color: #172b4d;
   min-width: 190px;
-  padding: 6px;
-  z-index: 2;
+  padding: 5px;
+  z-index: 5;
 }
 
 .menu-item {
   align-items: center;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   display: flex;
-  font-size: 14px;
+  font-size: 13px;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 9px;
 }
 
 .menu-item[data-highlighted] {
-  background-color: #f1f2f4;
+  background-color: #edf4ff;
+  color: #0747a6;
   outline: 0;
 }
 
 .menu-item--danger {
   color: #ae2a19;
+}
+
+.menu-item--danger[data-highlighted] {
+  background-color: #fff1ef;
+  color: #ae2a19;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 24px 18px 36px;
+  }
+
+  .app__title {
+    font-size: 30px;
+  }
 }

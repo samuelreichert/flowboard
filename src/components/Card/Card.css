@@ -1,34 +1,51 @@
 .card {
   align-items: center;
   background-color: #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 1px 0 rgb(9 30 66 / 25%);
-  color: #403e3b;
+  border: 1px solid rgb(220 225 233 / 74%);
+  border-radius: 7px;
+  box-shadow:
+    0 1px 2px rgb(9 30 66 / 10%),
+    0 3px 8px rgb(9 30 66 / 5%);
+  color: #263b5b;
   cursor: pointer;
   display: flex;
-  gap: 6px;
+  gap: 7px;
   justify-content: flex-start;
-  margin-bottom: 8px;
-  padding: 8px;
+  padding: 9px 8px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
   width: 100%;
+}
+
+.card:hover {
+  border-color: #b7c7dc;
+  box-shadow:
+    0 3px 8px rgb(9 30 66 / 11%),
+    0 7px 18px rgb(9 30 66 / 7%);
+  transform: translateY(-1px);
 }
 
 .card__drag-handle {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 3px;
-  color: #7a869a;
+  border-radius: 4px;
+  color: #97a0af;
   cursor: grab;
   display: flex;
   flex: 0 0 auto;
   justify-content: center;
-  margin: -4px 0 -4px -4px;
-  padding: 4px 0;
+  margin: -4px 0 -4px -3px;
+  padding: 4px 1px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .card__drag-handle:hover {
-  background-color: #f1f2f4;
+  background-color: #edf1f6;
   color: #44546f;
 }
 
@@ -42,7 +59,7 @@
 }
 
 .card__title {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

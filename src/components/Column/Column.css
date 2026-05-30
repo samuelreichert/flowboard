@@ -1,43 +1,56 @@
 .cards {
   display: flex;
   flex-direction: column;
+  gap: 7px;
 }
 
 .column__header {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  min-height: 32px;
+  margin-bottom: 6px;
+  min-height: 34px;
 }
 
 .column__title {
   color: #172b4d;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 740;
+  line-height: 1.35;
   margin: 0;
   overflow-wrap: anywhere;
-  padding: 0 6px;
+  padding: 0 7px;
 }
 
 .column--drag-over {
-  background-color: rgb(80 180 255 / 18%);
+  background-color: #e5f2ff;
+  border-color: #579dff;
+  box-shadow:
+    0 0 0 3px rgb(87 157 255 / 20%),
+    0 8px 24px rgb(10 42 91 / 14%);
 }
 
 .add-card-button {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #44546f;
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 14px;
-  gap: 5px;
+  font-size: 13px;
+  font-weight: 560;
+  gap: 6px;
+  margin-top: 6px;
   padding: 8px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   width: 100%;
 }
 
 .add-card-button:hover {
-  background-color: #dcdfe4;
+  background-color: #e6e9ef;
+  color: #172b4d;
 }
