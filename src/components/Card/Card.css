@@ -27,6 +27,26 @@
   transform: translateY(-1px);
 }
 
+.card--dragging {
+  background-color: rgb(255 255 255 / 72%);
+  border-color: #85b8ff;
+  box-shadow:
+    0 0 0 2px rgb(87 157 255 / 16%),
+    0 5px 12px rgb(9 30 66 / 8%);
+  opacity: 0.58;
+  transform: scale(0.985);
+}
+
+.card--drag-preview {
+  left: -1000px;
+  opacity: 0.96;
+  pointer-events: none;
+  position: fixed;
+  top: -1000px;
+  transform: rotate(1.5deg);
+  z-index: 1000;
+}
+
 .card__drag-handle {
   align-items: center;
   background: transparent;
