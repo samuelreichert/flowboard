@@ -1,10 +1,6 @@
-# Simple Trello Board
+# Flowboard
 
-<img src="./screenshot-trello-board.png" />
-
-<br />
-
-This Trello board comes with the ability to:
+Flowboard comes with the ability to:
 
 - create columns
 - create cards

@@ -3,6 +3,41 @@
   flex-direction: column;
 }
 
+.column__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  min-height: 32px;
+}
+
+.column__title {
+  color: #172b4d;
+  font-size: 14px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 0 6px;
+}
+
 .column--drag-over {
   background-color: rgb(80 180 255 / 18%);
+}
+
+.add-card-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #44546f;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 14px;
+  gap: 5px;
+  padding: 8px;
+  width: 100%;
+}
+
+.add-card-button:hover {
+  background-color: #dcdfe4;
 }

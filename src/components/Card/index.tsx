@@ -1,112 +1,104 @@
+import { Button } from '@base-ui/react/button';
+import { Menu } from '@base-ui/react/menu';
+import { ArrowRight, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { DragEvent, MouseEvent } from 'react';
 
-import ContentForm from '../ContentForm';
-import DropDown from '../Dropdown';
-import DeleteIcon from '../../svgs/delete-icon';
-import RightIcon from '../../svgs/right-icon';
-import { fetchStorage } from '../../storage';
-import type { BoardColumn } from '../../types';
+import ContentDialog from '../ContentDialog';
+import IconButton from '../IconButton';
+import type { BoardCard, BoardColumn } from '../../types';
 
 import './Card.css';
 
 type CardProps = {
-  column: string;
-  moveCard: (cardTitle: string, fromColumn: string, toColumn: string) => void;
-  onEditCard: (oldContent: string, newContent: string) => void;
-  title: string;
-  setColumns: (columns: BoardColumn[]) => void;
+  card: BoardCard;
+  columnId: string;
+  columns: BoardColumn[];
+  deleteCard: (columnId: string, cardId: string) => void;
+  editCard: (columnId: string, cardId: string, title: string) => string | void;
+  moveCard: (cardId: string, fromColumnId: string, toColumnId: string) => void;
 };
 
 const Card = ({
-  column,
+  card,
+  columnId,
+  columns,
+  deleteCard,
+  editCard,
   moveCard,
-  onEditCard,
-  title,
-  setColumns,
 }: CardProps) => {
-  const data = fetchStorage();
-  const options = data.map((option) => option.title);
-  const [editCardOpen, setEditCardOpen] = useState(false);
-  const [isMoveOpen, setIsMoveOpen] = useState(false);
-
-  const onDeleteCard = (e: MouseEvent<HTMLSpanElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const newColumns = data.map((item) => {
-      if (item.title === column) {
-        return {
-          ...item,
-          cards: item.cards.filter((card) => card !== title),
-        };
-      }
-
-      return { ...item };
-    });
-
-    setColumns(newColumns);
-  };
-
-  const onSelectColumnToMove = (newColumn: string) => {
-    moveCard(title, column, newColumn);
-    setIsMoveOpen(false);
-  };
+  const [editOpen, setEditOpen] = useState(false);
 
   const onDragStart = (event: DragEvent<HTMLDivElement>) => {
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', title);
-    event.dataTransfer.setData('application/x-column-title', column);
+    event.dataTransfer.setData('application/x-card-id', card.id);
+    event.dataTransfer.setData('application/x-column-id', columnId);
   };
 
-  const onUpdateCardContent = (content: string) => {
-    onEditCard(title, content);
-    setEditCardOpen(false);
+  const stopCardClick = (event: MouseEvent) => {
+    event.stopPropagation();
   };
-
-  if (editCardOpen === false) {
-    return (
-      <div
-        className="card"
-        draggable
-        onClick={() => setEditCardOpen(true)}
-        onDragStart={onDragStart}
-      >
-        {title}
-
-        <div className="card__options">
-          <span onClick={onDeleteCard}>
-            <DeleteIcon size={14} />
-          </span>
-          <span
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsMoveOpen(true);
-            }}
-          >
-            <RightIcon size={16} />
-          </span>
-          <DropDown
-            isOpen={isMoveOpen}
-            onSelectOption={onSelectColumnToMove}
-            options={options}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <ContentForm
-      contentType="card"
-      dark
-      defaultContent={title}
-      isEdit
-      isTextArea
-      onClose={() => setEditCardOpen(false)}
-      onSaveContent={onUpdateCardContent}
-    />
+    <>
+      <article
+        className="card"
+        draggable
+        onClick={() => setEditOpen(true)}
+        onDragStart={onDragStart}
+      >
+        <span className="card__title">{card.title}</span>
+        <div className="card__options" onClick={stopCardClick}>
+          <IconButton
+            label={`Delete ${card.title}`}
+            onClick={() => deleteCard(columnId, card.id)}
+          >
+            <Trash2 size={15} />
+          </IconButton>
+          <Menu.Root>
+            <Menu.Trigger
+              aria-label={`Move ${card.title}`}
+              className="icon-button"
+              render={<Button />}
+            >
+              <ArrowRight size={16} />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner sideOffset={4}>
+                <Menu.Popup className="menu-popup">
+                  {columns
+                    .filter((column) => column.id !== columnId)
+                    .map((column) => (
+                      <Menu.Item
+                        className="menu-item"
+                        key={column.id}
+                        onClick={() => moveCard(card.id, columnId, column.id)}
+                      >
+                        {column.title}
+                      </Menu.Item>
+                    ))}
+                  {columns.length === 1 && (
+                    <Menu.Item className="menu-item" disabled>
+                      Add another column to move this card
+                    </Menu.Item>
+                  )}
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        </div>
+      </article>
+      <ContentDialog
+        description="Update the card title."
+        initialValue={card.title}
+        label="Card title"
+        onOpenChange={setEditOpen}
+        onSave={(title) => editCard(columnId, card.id, title)}
+        open={editOpen}
+        submitLabel="Save changes"
+        title="Edit card"
+      />
+    </>
   );
 };
 

@@ -1,5 +1,11 @@
-export type BoardColumn = {
+export type BoardCard = {
+  id: string;
   title: string;
-  cards: string[];
+};
+
+export type BoardColumn = {
+  id: string;
+  title: string;
+  cards: BoardCard[];
   position: number;
 };

@@ -1,13 +1,102 @@
 .app {
-  padding: 32px 64px;
+  min-height: 100vh;
+  overflow-x: auto;
+  padding: 32px 48px;
   height: 100vh;
 }
 
 .app__header {
-  padding-bottom: 32px;
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 24px;
   text-align: left;
 }
 
 .app__title {
   color: #ffffff;
+  font-size: 32px;
+  margin: 0;
+}
+
+.app__eyebrow {
+  color: rgb(255 255 255 / 72%);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+}
+
+.button {
+  align-items: center;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  padding: 9px 12px;
+}
+
+.button:focus-visible,
+.add-card-button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.button--primary {
+  background-color: #0c66e4;
+  color: #ffffff;
+}
+
+.button--primary:hover {
+  background-color: #0055cc;
+}
+
+.button--subtle {
+  background-color: rgb(255 255 255 / 18%);
+  color: #ffffff;
+}
+
+.dialog-popup .button--subtle {
+  background-color: #f1f2f4;
+  color: #172b4d;
+}
+
+.button--danger {
+  background-color: #c9372c;
+  color: #ffffff;
+}
+
+.menu-popup {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(9 30 66 / 24%);
+  color: #172b4d;
+  min-width: 190px;
+  padding: 6px;
+  z-index: 2;
+}
+
+.menu-item {
+  align-items: center;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.menu-item[data-highlighted] {
+  background-color: #f1f2f4;
+  outline: 0;
+}
+
+.menu-item--danger {
+  color: #ae2a19;
 }
