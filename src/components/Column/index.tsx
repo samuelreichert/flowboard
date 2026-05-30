@@ -68,7 +68,11 @@ const Column = ({
         ref={columnRef}
       >
         <div className="column__header">
-          <h2 className="column__title">{column.title}</h2>
+          <div className="column__heading">
+            <span className="column__marker" />
+            <h2 className="column__title">{column.title}</h2>
+            <span className="column__count">{column.cards.length}</span>
+          </div>
           <Menu.Root>
             <Menu.Trigger
               aria-label={`Open ${column.title} column actions`}

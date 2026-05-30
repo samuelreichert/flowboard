@@ -1,17 +1,17 @@
 .card {
   align-items: center;
   background-color: #ffffff;
-  border: 1px solid #e0e4eb;
+  border: 1px solid #ededf0;
   border-radius: 6px;
   box-shadow:
-    0 1px 2px rgb(29 39 58 / 6%),
-    0 2px 4px rgb(29 39 58 / 3%);
-  color: #344055;
+    0 1px 2px rgb(31 33 40 / 4%),
+    0 2px 5px rgb(31 33 40 / 2%);
+  color: #4a4c54;
   cursor: pointer;
   display: flex;
   gap: 6px;
   justify-content: flex-start;
-  padding: 9px 7px;
+  padding: 9px 8px;
   position: relative;
   transition:
     border-color 140ms ease,
@@ -21,19 +21,19 @@
 }
 
 .card:hover {
-  border-color: #c9d2df;
+  border-color: #dedee3;
   box-shadow:
-    0 3px 7px rgb(29 39 58 / 8%),
-    0 7px 13px rgb(29 39 58 / 5%);
+    0 3px 7px rgb(31 33 40 / 6%),
+    0 7px 13px rgb(31 33 40 / 3%);
   transform: translateY(-1px);
 }
 
 .card--dragging {
   background-color: rgb(255 255 255 / 72%);
-  border-color: #85b8ff;
+  border-color: #b9b5f0;
   box-shadow:
-    0 0 0 2px rgb(87 157 255 / 16%),
-    0 5px 12px rgb(9 30 66 / 8%);
+    0 0 0 2px rgb(98 91 219 / 12%),
+    0 5px 12px rgb(31 33 40 / 6%);
   opacity: 0.58;
   transform: scale(0.985);
 }
@@ -43,7 +43,7 @@
   background: transparent;
   border: 0;
   border-radius: 4px;
-  color: #97a0af;
+  color: #c0c1c7;
   cursor: grab;
   display: flex;
   flex: 0 0 auto;
@@ -56,8 +56,8 @@
 }
 
 .card__drag-handle:hover {
-  background-color: #edf1f6;
-  color: #44546f;
+  background-color: #f3f3f5;
+  color: #7c7e87;
 }
 
 .card__drag-handle:active {
@@ -65,7 +65,7 @@
 }
 
 .card__drag-handle:focus-visible {
-  outline: 2px solid #0067a3;
+  outline: 2px solid #625bdb;
   outline-offset: 1px;
 }
 
@@ -77,12 +77,12 @@
 }
 
 .card__description-icon {
-  color: #9aa3b2;
+  color: #b8b9bf;
   flex: 0 0 auto;
 }
 
 .card__drop-indicator {
-  background-color: #0c66e4;
+  background-color: #625bdb;
   border-radius: 999px;
   box-shadow: 0 0 0 2px rgb(255 255 255 / 92%);
   height: 3px;
@@ -95,7 +95,7 @@
 
 .card__drop-indicator::before,
 .card__drop-indicator::after {
-  background-color: #0c66e4;
+  background-color: #625bdb;
   border: 2px solid #ffffff;
   border-radius: 50%;
   content: '';

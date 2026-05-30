@@ -3,7 +3,7 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: #41516a;
+  color: #8f9199;
   cursor: pointer;
   display: inline-flex;
   height: 28px;
@@ -14,18 +14,19 @@
 }
 
 .icon-button:hover {
-  background-color: rgb(9 30 66 / 8%);
+  background-color: #f3f3f5;
+  color: #62646c;
 }
 
 .icon-button:focus-visible {
-  outline: 2px solid #0067a3;
+  outline: 2px solid #625bdb;
   outline-offset: 2px;
 }
 
 .tooltip-popup {
-  background-color: #172b4d;
+  background-color: #33343a;
   border-radius: 6px;
-  box-shadow: 0 6px 14px rgb(9 30 66 / 20%);
+  box-shadow: 0 6px 14px rgb(31 33 40 / 16%);
   color: #ffffff;
   font-size: 12px;
   padding: 6px 8px;
