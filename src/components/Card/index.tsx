@@ -7,7 +7,7 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-import { GripVertical } from 'lucide-react';
+import { AlignLeft, GripVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
@@ -98,6 +98,13 @@ const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
           <GripVertical size={16} />
         </button>
         <span className="card__title">{card.title}</span>
+        {card.description && (
+          <AlignLeft
+            aria-label="Has description"
+            className="card__description-icon"
+            size={13}
+          />
+        )}
       </article>
       <CardDialog
         card={card}

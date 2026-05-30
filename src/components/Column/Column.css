@@ -1,21 +1,21 @@
 .cards {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .column__header {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
-  min-height: 34px;
+  margin-bottom: 5px;
+  min-height: 32px;
 }
 
 .column__title {
-  color: #172b4d;
-  font-size: 13px;
-  font-weight: 740;
+  color: #344055;
+  font-size: 12px;
+  font-weight: 780;
   line-height: 1.35;
   margin: 0;
   overflow-wrap: anywhere;
@@ -23,11 +23,11 @@
 }
 
 .column--drag-over {
-  background-color: #e5f2ff;
-  border-color: #579dff;
+  background-color: #eaf2ff;
+  border-color: #8ab4f8;
   box-shadow:
-    0 0 0 3px rgb(87 157 255 / 20%),
-    0 8px 24px rgb(10 42 91 / 14%);
+    0 0 0 3px rgb(30 100 213 / 10%),
+    0 8px 18px rgb(30 64 122 / 8%);
 }
 
 .add-card-button {
@@ -35,12 +35,12 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: #44546f;
+  color: #657085;
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 13px;
-  font-weight: 560;
+  font-size: 12px;
+  font-weight: 670;
   gap: 6px;
   margin-top: 6px;
   padding: 8px;
@@ -51,8 +51,8 @@
 }
 
 .add-card-button:hover {
-  background-color: #e6e9ef;
-  color: #172b4d;
+  background-color: #e2e7ee;
+  color: #344055;
 }
 
 .column__empty-drop-indicator {

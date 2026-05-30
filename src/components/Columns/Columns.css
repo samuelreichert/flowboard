@@ -2,26 +2,27 @@
   align-items: flex-start;
   display: flex;
   flex-direction: row;
-  gap: 14px;
+  gap: 12px;
   min-width: max-content;
   padding-bottom: 8px;
 }
 
 .column {
-  background-color: rgb(246 248 251 / 96%);
-  border: 1px solid rgb(255 255 255 / 64%);
-  border-radius: 10px;
-  box-shadow:
-    0 8px 24px rgb(10 42 91 / 14%),
-    inset 0 1px 0 rgb(255 255 255 / 76%);
-  color: #354764;
+  background-color: #eef1f5;
+  border: 1px solid #e3e7ed;
+  border-radius: 9px;
+  color: #43516a;
   height: auto;
-  padding: 8px;
-  width: 292px;
+  padding: 7px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+  width: 286px;
 }
 
 .board-toolbar {
   display: flex;
   gap: 8px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
