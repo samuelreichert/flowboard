@@ -23,6 +23,11 @@ Open the local URL printed in the terminal to view the app.
 
 The page will reload if you make frontend edits.
 
+### `npm run dev:static`
+
+Runs Vite without the local API. This matches the static Vercel deployment:
+each visitor's board is saved in their browser storage.
+
 ### SQLite storage
 
 When using `npm run dev`, the complete board state is also saved locally in
@@ -48,3 +53,13 @@ Runs the test suite once.
 ### `npm run build`
 
 Type-checks the app and builds it for production to the `dist` folder.
+
+## Deploying to Vercel
+
+Import the repository in Vercel and deploy it with the included `vercel.json`.
+Vercel runs `npm run build` and publishes the static `dist` folder.
+
+The hosted portfolio version intentionally uses browser storage only. SQLite
+depends on a persistent local filesystem, which Vercel Functions do not
+provide. If shared cross-device storage is needed later, connect an
+authenticated hosted database API and set `VITE_BOARD_API_URL` at build time.

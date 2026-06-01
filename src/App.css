@@ -161,6 +161,16 @@
 
 @media (max-width: 640px) {
   .board {
-    padding: 24px 18px 32px;
+    overflow-x: hidden;
+    padding: 20px 14px 28px;
+  }
+
+  .app--image-background {
+    background-attachment: scroll;
+  }
+
+  .button {
+    min-height: 44px;
+    padding: 9px 12px;
   }
 }

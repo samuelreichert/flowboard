@@ -86,6 +86,7 @@ const CardDialog = ({
                 <input
                   autoFocus
                   className="dialog-input"
+                  maxLength={120}
                   onChange={(event) => setTitle(event.currentTarget.value)}
                   type="text"
                   value={title}
@@ -95,6 +96,7 @@ const CardDialog = ({
                 <span>Description</span>
                 <textarea
                   className="dialog-input"
+                  maxLength={2000}
                   onChange={(event) =>
                     setDescription(event.currentTarget.value)
                   }
