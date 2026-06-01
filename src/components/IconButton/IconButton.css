@@ -31,3 +31,10 @@
   font-size: 12px;
   padding: 6px 8px;
 }
+
+@media (max-width: 640px) {
+  .icon-button {
+    height: 40px;
+    width: 40px;
+  }
+}

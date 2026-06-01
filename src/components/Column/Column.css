@@ -85,3 +85,9 @@
   margin-top: 4px;
   min-height: 52px;
 }
+
+@media (max-width: 640px) {
+  .add-card-button {
+    min-height: 44px;
+  }
+}

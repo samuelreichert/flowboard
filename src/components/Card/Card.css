@@ -121,3 +121,15 @@
 .card__drop-indicator--bottom {
   bottom: -5px;
 }
+
+@media (max-width: 640px) {
+  .card {
+    min-height: 44px;
+    padding: 10px 8px;
+  }
+
+  .card__drag-handle {
+    min-height: 32px;
+    min-width: 28px;
+  }
+}

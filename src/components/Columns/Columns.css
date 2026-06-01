@@ -26,3 +26,29 @@
   gap: 8px;
   margin-bottom: 24px;
 }
+
+@media (max-width: 640px) {
+  .board-toolbar {
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .columns-list {
+    gap: 12px;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 2px 2px 16px;
+    scrollbar-width: none;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .columns-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .column {
+    flex: 0 0 min(292px, calc(100vw - 42px));
+  }
+}

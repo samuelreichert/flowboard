@@ -64,6 +64,7 @@ const ContentDialog = ({
                 <input
                   autoFocus
                   className="dialog-input"
+                  maxLength={80}
                   onChange={(event) => setValue(event.currentTarget.value)}
                   type="text"
                   value={value}

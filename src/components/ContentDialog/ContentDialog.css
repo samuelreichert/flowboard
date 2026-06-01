@@ -100,3 +100,24 @@ select.dialog-input {
   display: flex;
   gap: 8px;
 }
+
+@media (max-width: 640px) {
+  .dialog-viewport {
+    padding: 14px;
+  }
+
+  .dialog-popup {
+    max-height: calc(100dvh - 28px);
+    padding: 18px;
+  }
+
+  .dialog-actions,
+  .dialog-actions__group {
+    flex-wrap: wrap;
+  }
+
+  .dialog-actions--spread {
+    align-items: stretch;
+    gap: 10px;
+  }
+}
