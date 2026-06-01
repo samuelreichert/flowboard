@@ -21,6 +21,11 @@
   margin-bottom: 22px;
 }
 
+.board__actions {
+  display: flex;
+  gap: 8px;
+}
+
 .app__title {
   color: #25262b;
   font-size: 22px;
@@ -53,6 +58,19 @@
   border-color: rgb(255 255 255 / 42%);
 }
 
+.app--image-background .add-column-placeholder {
+  backdrop-filter: blur(14px);
+  background-color: rgb(250 251 255 / 58%);
+  border-color: rgb(255 255 255 / 52%);
+  color: #666873;
+}
+
+.app--image-background .add-column-placeholder:hover {
+  background-color: rgb(250 251 255 / 74%);
+  border-color: rgb(255 255 255 / 72%);
+  color: #5650bd;
+}
+
 .app__eyebrow {
   color: #a0a2aa;
   font-size: 11px;
@@ -82,6 +100,7 @@
 }
 
 .button:focus-visible,
+.add-column-placeholder:focus-visible,
 .add-card-button:focus-visible {
   outline: 3px solid rgb(98 91 219 / 18%);
   outline-offset: 2px;

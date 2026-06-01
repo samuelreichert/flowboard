@@ -1,12 +1,17 @@
+import { Button } from '@base-ui/react/button';
 import { Tooltip } from '@base-ui/react/tooltip';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import BackgroundPicker from './components/BackgroundPicker';
 import Columns from './components/Columns';
+import ConfirmDialog from './components/ConfirmDialog';
 import {
   fetchBackgroundStorage,
+  fetchStorage,
   hydrateStorageFromDatabase,
   updateBackgroundStorage,
+  updateStorage,
 } from './storage';
 import type { BoardBackground } from './types';
 
@@ -24,6 +29,8 @@ const getBackgroundStyle = (background: BoardBackground) => {
 
 const App = () => {
   const [background, setBackground] = useState(fetchBackgroundStorage);
+  const [columnCount, setColumnCount] = useState(() => fetchStorage().length);
+  const [clearBoardOpen, setClearBoardOpen] = useState(false);
   const [storageVersion, setStorageVersion] = useState(0);
 
   useEffect(() => {
@@ -35,6 +42,7 @@ const App = () => {
       }
 
       setBackground(state.background);
+      setColumnCount(state.columns.length);
       setStorageVersion((version) => version + 1);
     });
 
@@ -48,6 +56,12 @@ const App = () => {
     updateBackgroundStorage(newBackground);
   };
 
+  const clearBoard = () => {
+    updateStorage([]);
+    setColumnCount(0);
+    setStorageVersion((version) => version + 1);
+  };
+
   return (
     <Tooltip.Provider>
       <main
@@ -59,13 +73,32 @@ const App = () => {
             <div>
               <h1 className="app__title">Flowboard</h1>
             </div>
-            <BackgroundPicker
-              background={background}
-              onChange={updateBackground}
-            />
+            <div className="board__actions">
+              <BackgroundPicker
+                background={background}
+                onChange={updateBackground}
+              />
+              {columnCount > 0 && (
+                <Button
+                  className="button button--subtle"
+                  onClick={() => setClearBoardOpen(true)}
+                >
+                  <RotateCcw size={16} />
+                  Clear board
+                </Button>
+              )}
+            </div>
           </header>
-          <Columns key={storageVersion} />
+          <Columns key={storageVersion} onColumnCountChange={setColumnCount} />
         </section>
+        <ConfirmDialog
+          confirmLabel="Clear board"
+          description={`This will permanently delete ${columnCount} columns and all of their cards.`}
+          onConfirm={clearBoard}
+          onOpenChange={setClearBoardOpen}
+          open={clearBoardOpen}
+          title="Clear this board?"
+        />
       </main>
     </Tooltip.Provider>
   );

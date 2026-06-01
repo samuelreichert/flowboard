@@ -1,11 +1,10 @@
 import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { Button } from '@base-ui/react/button';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import Column from '../Column';
-import ConfirmDialog from '../ConfirmDialog';
 import ContentDialog from '../ContentDialog';
 import {
   isCardDragData,
@@ -21,14 +20,18 @@ import './Columns.css';
 
 const createId = () => crypto.randomUUID();
 
-const Columns = () => {
+type ColumnsProps = {
+  onColumnCountChange: (count: number) => void;
+};
+
+const Columns = ({ onColumnCountChange }: ColumnsProps) => {
   const [columns, setColumns] = useState<BoardColumn[]>(fetchStorage);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const [clearBoardOpen, setClearBoardOpen] = useState(false);
 
   const updateColumns = (newColumns: BoardColumn[]) => {
     setColumns(newColumns);
     updateStorage(newColumns);
+    onColumnCountChange(newColumns.length);
   };
 
   const onSaveColumn = (title: string) => {
@@ -216,24 +219,6 @@ const Columns = () => {
 
   return (
     <>
-      <div className="board-toolbar">
-        <Button
-          className="button button--primary"
-          onClick={() => setAddColumnOpen(true)}
-        >
-          <Plus size={16} />
-          Add another column
-        </Button>
-        {columns.length > 0 && (
-          <Button
-            className="button button--subtle"
-            onClick={() => setClearBoardOpen(true)}
-          >
-            <RotateCcw size={16} />
-            Clear board
-          </Button>
-        )}
-      </div>
       <div className="columns-list">
         {sortedColumns.map((column) => (
           <Column
@@ -247,6 +232,13 @@ const Columns = () => {
             saveCard={onSaveCard}
           />
         ))}
+        <Button
+          className="add-column-placeholder"
+          onClick={() => setAddColumnOpen(true)}
+        >
+          <Plus size={16} />
+          Add another column
+        </Button>
       </div>
       <ContentDialog
         description="Give the next stage of your workflow a clear name."
@@ -256,14 +248,6 @@ const Columns = () => {
         open={addColumnOpen}
         submitLabel="Add column"
         title="Add column"
-      />
-      <ConfirmDialog
-        confirmLabel="Clear board"
-        description={`This will permanently delete ${columns.length} columns and all of their cards.`}
-        onConfirm={() => updateColumns([])}
-        onOpenChange={setClearBoardOpen}
-        open={clearBoardOpen}
-        title="Clear this board?"
       />
     </>
   );

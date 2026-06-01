@@ -157,6 +157,18 @@ test('creates columns and cards from dialogs', async () => {
   ).not.toBeInTheDocument();
 });
 
+test('renders column creation as a placeholder in the columns list', () => {
+  render(<App />);
+
+  const addColumn = screen.getByRole('button', {
+    name: /add another column/i,
+  });
+
+  expect(addColumn).toHaveClass('add-column-placeholder');
+  expect(addColumn.parentElement).toHaveClass('columns-list');
+  expect(document.querySelector('.board-toolbar')).not.toBeInTheDocument();
+});
+
 test('rejects blank and duplicate column titles', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -312,6 +324,9 @@ test('clears the board only after confirmation', async () => {
   render(<App />);
 
   await addColumn(user, 'Todo');
+  expect(
+    screen.getByRole('button', { name: /clear board/i }).parentElement
+  ).toHaveClass('board__actions');
   await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
