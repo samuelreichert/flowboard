@@ -1,11 +1,58 @@
-import type { BoardCard, BoardColumn } from '../types';
+import type {
+  BoardBackground,
+  BoardCard,
+  BoardColumn,
+  BoardState,
+} from '../types';
 
 const STORAGE_KEY = 'columnsList';
+const BACKGROUND_STORAGE_KEY = 'boardBackground';
+const BOARD_API_URL = import.meta.env.VITE_BOARD_API_URL?.trim();
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+export const DEFAULT_BACKGROUND: BoardBackground = {
+  type: 'image',
+  value: '/flowboard-background.png',
+};
 
 const createId = () => crypto.randomUUID();
+let databaseReady = false;
+let pendingDatabaseWrite = Promise.resolve();
+
+const readStorage = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeStorage = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // The board remains usable when storage is unavailable or full.
+  }
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return Boolean(value) && typeof value === 'object';
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+};
+
+export const isSafeImageUrl = (value: string) => {
+  if (value.length > 2048) {
+    return false;
+  }
+
+  if (value.startsWith('/') && !value.startsWith('//')) {
+    return true;
+  }
+
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
 };
 
 const isBoardCard = (value: unknown): value is BoardCard => {
@@ -43,6 +90,24 @@ const isBoardColumn = (value: unknown): value is BoardColumn => {
   );
 };
 
+const isBoardBackground = (value: unknown): value is BoardBackground => {
+  return (
+    isRecord(value) &&
+    typeof value.value === 'string' &&
+    ((value.type === 'color' && HEX_COLOR_PATTERN.test(value.value)) ||
+      (value.type === 'image' && isSafeImageUrl(value.value)))
+  );
+};
+
+const isBoardState = (value: unknown): value is BoardState => {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.columns) &&
+    value.columns.every(isBoardColumn) &&
+    isBoardBackground(value.background)
+  );
+};
+
 const isLegacyColumn = (
   value: unknown
 ): value is { title: string; cards: string[]; position: number } => {
@@ -70,13 +135,108 @@ const isColumnWithoutDescriptions = (
   );
 };
 
-export const updateStorage = (data: BoardColumn[]) => {
+const updateStorageCache = (data: BoardColumn[]) => {
   const jsonData = JSON.stringify(data);
-  localStorage.setItem(STORAGE_KEY, jsonData);
+  writeStorage(STORAGE_KEY, jsonData);
 };
 
+const updateBackgroundStorageCache = (background: BoardBackground) => {
+  writeStorage(BACKGROUND_STORAGE_KEY, JSON.stringify(background));
+};
+
+export const fetchBackgroundStorage = (): BoardBackground => {
+  const data = readStorage(BACKGROUND_STORAGE_KEY);
+
+  if (!data) {
+    return DEFAULT_BACKGROUND;
+  }
+
+  try {
+    const parsedData: unknown = JSON.parse(data);
+
+    return isBoardBackground(parsedData) ? parsedData : DEFAULT_BACKGROUND;
+  } catch {
+    return DEFAULT_BACKGROUND;
+  }
+};
+
+const fetchBoardCache = (): BoardState => ({
+  background: fetchBackgroundStorage(),
+  columns: fetchStorage(),
+});
+
+const persistBoardState = (state = fetchBoardCache()) => {
+  if (!BOARD_API_URL || !databaseReady || typeof fetch !== 'function') {
+    return Promise.resolve();
+  }
+
+  pendingDatabaseWrite = pendingDatabaseWrite
+    .catch(() => undefined)
+    .then(async () => {
+      const response = await fetch(BOARD_API_URL, {
+        body: JSON.stringify(state),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to save board state.');
+      }
+    });
+
+  pendingDatabaseWrite.catch((error) => console.error(error));
+  return pendingDatabaseWrite;
+};
+
+export const updateStorage = (data: BoardColumn[]) => {
+  updateStorageCache(data);
+  void persistBoardState();
+};
+
+export const updateBackgroundStorage = (background: BoardBackground) => {
+  updateBackgroundStorageCache(background);
+  void persistBoardState();
+};
+
+export const hydrateStorageFromDatabase =
+  async (): Promise<BoardState | null> => {
+    if (!BOARD_API_URL || typeof fetch !== 'function') {
+      return null;
+    }
+
+    try {
+      const response = await fetch(BOARD_API_URL);
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload: unknown = await response.json();
+
+      if (
+        !isRecord(payload) ||
+        (payload.state !== null && !isBoardState(payload.state))
+      ) {
+        return null;
+      }
+
+      databaseReady = true;
+
+      if (payload.state === null) {
+        await persistBoardState();
+        return null;
+      }
+
+      updateStorageCache(payload.state.columns);
+      updateBackgroundStorageCache(payload.state.background);
+      return payload.state;
+    } catch {
+      return null;
+    }
+  };
+
 export const fetchStorage = (): BoardColumn[] => {
-  const data = localStorage.getItem(STORAGE_KEY);
+  const data = readStorage(STORAGE_KEY);
 
   if (!data) {
     return [];
