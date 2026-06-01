@@ -10,3 +10,18 @@ export type BoardColumn = {
   cards: BoardCard[];
   position: number;
 };
+
+export type BoardBackground =
+  | {
+      type: 'color';
+      value: string;
+    }
+  | {
+      type: 'image';
+      value: string;
+    };
+
+export type BoardState = {
+  background: BoardBackground;
+  columns: BoardColumn[];
+};

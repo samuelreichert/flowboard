@@ -18,10 +18,24 @@ Installing packages: `npm install`
 
 ### `npm run dev`
 
-Runs the app in the development mode.\
-Open the local URL printed by Vite to view it in the browser.
+Runs the local Node server, the SQLite database and Vite in development mode.
+Open the local URL printed in the terminal to view the app.
 
-The page will reload if you make edits.\
+The page will reload if you make frontend edits.
+
+### SQLite storage
+
+When using `npm run dev`, the complete board state is also saved locally in
+`data/flowboard.db`: columns, card order, card content and the selected
+background. Existing browser storage is migrated automatically when the
+database is empty.
+
+To create a backup, stop the server and copy `data/flowboard.db`.
+
+### `npm start`
+
+Serves the production build and the SQLite API locally. To create a build that
+connects to that local API, run `npm run build:local` first.
 
 ### `npm run test`
 

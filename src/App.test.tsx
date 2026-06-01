@@ -19,6 +19,90 @@ test('renders the Flowboard identity', () => {
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
 });
 
+test('uses the original image as the default board background', () => {
+  render(<App />);
+
+  expect(screen.getByRole('main')).toHaveClass('app--image-background');
+  expect(screen.getByRole('main').style.backgroundImage).toContain(
+    '/flowboard-background.png'
+  );
+});
+
+test('changes and persists a solid board background', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /background/i }));
+  await user.click(
+    screen.getByRole('button', { name: /use lavender background/i })
+  );
+
+  expect(screen.getByRole('main')).toHaveStyle({
+    backgroundColor: '#f3f0ff',
+  });
+  expect(localStorage.getItem('boardBackground')).toBe(
+    JSON.stringify({ type: 'color', value: '#f3f0ff' })
+  );
+});
+
+test('restores the original image as a board background preset', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /background/i }));
+  await user.click(
+    screen.getByRole('button', { name: /use northern lights background/i })
+  );
+
+  expect(screen.getByRole('main')).toHaveClass('app--image-background');
+  expect(screen.getByRole('main').style.backgroundImage).toContain(
+    '/flowboard-background.png'
+  );
+  expect(localStorage.getItem('boardBackground')).toBe(
+    JSON.stringify({ type: 'image', value: '/flowboard-background.png' })
+  );
+});
+
+test('applies and persists a custom background image URL', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /background/i }));
+  await user.type(
+    screen.getByLabelText(/image url/i),
+    'https://images.example.com/cover.jpg'
+  );
+  await user.click(screen.getByRole('button', { name: /apply/i }));
+
+  expect(screen.getByRole('main')).toHaveClass('app--image-background');
+  expect(screen.getByRole('main').style.backgroundImage).toContain(
+    'https://images.example.com/cover.jpg'
+  );
+  expect(localStorage.getItem('boardBackground')).toBe(
+    JSON.stringify({
+      type: 'image',
+      value: 'https://images.example.com/cover.jpg',
+    })
+  );
+});
+
+test('rejects an insecure custom background image URL', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /background/i }));
+  await user.type(
+    screen.getByLabelText(/image url/i),
+    'http://images.example.com/cover.jpg'
+  );
+  await user.click(screen.getByRole('button', { name: /apply/i }));
+
+  expect(
+    screen.getByText('Enter a secure HTTPS image URL.')
+  ).toBeInTheDocument();
+  expect(localStorage.getItem('boardBackground')).toBeNull();
+});
+
 test('migrates legacy localStorage data to stable IDs', () => {
   localStorage.setItem(
     'columnsList',
