@@ -11,20 +11,46 @@
   background-color: transparent;
   border: 0;
   border-radius: 0;
+  box-sizing: border-box;
   color: #585b65;
+  flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
   height: auto;
   padding: 0;
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
     box-shadow 140ms ease;
-  width: 276px;
+  width: clamp(288px, calc((100vw - 118px) / 4), 320px);
 }
 
-.board-toolbar {
+.add-column-placeholder {
+  align-items: center;
+  background-color: rgb(255 255 255 / 36%);
+  border: 1px dashed rgb(124 126 135 / 42%);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #858790;
+  cursor: pointer;
   display: flex;
+  flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
   gap: 8px;
-  margin-bottom: 24px;
+  justify-content: center;
+  min-height: 82px;
+  padding: 16px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+  width: clamp(288px, calc((100vw - 118px) / 4), 320px);
+}
+
+.add-column-placeholder:hover {
+  background-color: rgb(255 255 255 / 58%);
+  border-color: rgb(98 91 219 / 52%);
+  color: #625bdb;
 }
 
 @media (max-width: 640px) {
