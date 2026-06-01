@@ -4,10 +4,12 @@
   background-size: cover;
   color: #292b31;
   min-height: 100vh;
+  min-height: 100dvh;
   transition: background-color 180ms ease;
 }
 
 .board {
+  min-height: inherit;
   overflow: auto;
   padding: 29px 32px 44px;
 }
