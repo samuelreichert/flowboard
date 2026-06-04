@@ -39,6 +39,9 @@ const upsertBoard = database.prepare(`
 
 const isRecord = (value) =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const CARD_CONTENT_LIMIT = 100_000;
+const isValidDateString = (value) =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value));
 
 const isSafeImageUrl = (value) => {
   if (value.length > 2048) {
@@ -58,8 +61,9 @@ const isSafeImageUrl = (value) => {
 
 const isBoardCard = (value) =>
   isRecord(value) &&
-  typeof value.description === 'string' &&
-  value.description.length <= 2000 &&
+  typeof value.content === 'string' &&
+  value.content.length <= CARD_CONTENT_LIMIT &&
+  isValidDateString(value.createdAt) &&
   typeof value.id === 'string' &&
   value.id.length > 0 &&
   value.id.length <= 100 &&
@@ -94,6 +98,63 @@ const isBoardState = (value) =>
   value.columns.every(isBoardColumn) &&
   isBoardBackground(value.background);
 
+const normalizeCard = (card, migratedCreatedAt) => {
+  if (!isRecord(card)) {
+    return card;
+  }
+
+  if (typeof card.content === 'string') {
+    return {
+      ...card,
+      createdAt: isValidDateString(card.createdAt)
+        ? card.createdAt
+        : migratedCreatedAt,
+    };
+  }
+
+  if (typeof card.description === 'string') {
+    return {
+      content: card.description,
+      createdAt: isValidDateString(card.createdAt)
+        ? card.createdAt
+        : migratedCreatedAt,
+      id: card.id,
+      title: card.title,
+    };
+  }
+
+  return {
+    content: '',
+    createdAt: isValidDateString(card.createdAt)
+      ? card.createdAt
+      : migratedCreatedAt,
+    id: card.id,
+    title: card.title,
+  };
+};
+
+const normalizeBoardState = (value) => {
+  if (!isRecord(value) || !Array.isArray(value.columns)) {
+    return value;
+  }
+
+  const migratedCreatedAt = new Date().toISOString();
+
+  return {
+    ...value,
+    columns: value.columns.map((column) =>
+      isRecord(column) && Array.isArray(column.cards)
+        ? {
+            ...column,
+            cards: column.cards.map((card) =>
+              normalizeCard(card, migratedCreatedAt)
+            ),
+          }
+        : column
+    ),
+  };
+};
+
 const readRequestBody = async (request) => {
   let body = '';
 
@@ -126,9 +187,10 @@ const handleApiRequest = async (request, response) => {
 
   if (request.method === 'GET') {
     const row = selectBoard.get();
+    const state = row ? normalizeBoardState(JSON.parse(row.payload)) : null;
 
     sendJson(response, 200, {
-      state: row ? JSON.parse(row.payload) : null,
+      state: isBoardState(state) ? state : null,
     });
     return true;
   }
@@ -142,6 +204,8 @@ const handleApiRequest = async (request, response) => {
       sendJson(response, 400, { error: 'Invalid JSON payload.' });
       return true;
     }
+
+    body = normalizeBoardState(body);
 
     if (!isBoardState(body)) {
       sendJson(response, 400, { error: 'Invalid board state.' });

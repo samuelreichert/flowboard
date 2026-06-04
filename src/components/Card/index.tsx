@@ -98,10 +98,10 @@ const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
           <GripVertical size={16} />
         </button>
         <span className="card__title">{card.title}</span>
-        {card.description && (
+        {card.content && (
           <AlignLeft
-            aria-label="Has description"
-            className="card__description-icon"
+            aria-label="Has content"
+            className="card__content-icon"
             size={13}
           />
         )}

@@ -72,11 +72,12 @@
 .card__title {
   flex: 1;
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
-.card__description-icon {
+.card__content-icon {
   color: #b8b9bf;
   flex: 0 0 auto;
 }

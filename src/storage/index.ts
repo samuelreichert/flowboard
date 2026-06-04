@@ -9,6 +9,7 @@ const STORAGE_KEY = 'columnsList';
 const BACKGROUND_STORAGE_KEY = 'boardBackground';
 const BOARD_API_URL = import.meta.env.VITE_BOARD_API_URL?.trim();
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const CARD_CONTENT_LIMIT = 100_000;
 
 export const DEFAULT_BACKGROUND: BoardBackground = {
   type: 'image',
@@ -39,6 +40,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 };
 
+const isValidDateString = (value: unknown): value is string => {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+};
+
 export const isSafeImageUrl = (value: string) => {
   if (value.length > 2048) {
     return false;
@@ -58,15 +63,34 @@ export const isSafeImageUrl = (value: string) => {
 const isBoardCard = (value: unknown): value is BoardCard => {
   return (
     isRecord(value) &&
-    typeof value.description === 'string' &&
+    typeof value.content === 'string' &&
+    value.content.length <= CARD_CONTENT_LIMIT &&
+    isValidDateString(value.createdAt) &&
     typeof value.id === 'string' &&
     typeof value.title === 'string'
   );
 };
 
-const isCardWithoutDescription = (
+const isLegacyDescriptionCard = (
   value: unknown
-): value is Omit<BoardCard, 'description'> => {
+): value is Omit<BoardCard, 'content' | 'createdAt'> & {
+  createdAt?: unknown;
+  description: string;
+} => {
+  return (
+    isRecord(value) &&
+    typeof value.description === 'string' &&
+    value.description.length <= CARD_CONTENT_LIMIT &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string'
+  );
+};
+
+const isCardWithoutContent = (
+  value: unknown
+): value is Omit<BoardCard, 'content' | 'createdAt'> & {
+  createdAt?: unknown;
+} => {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
@@ -123,14 +147,39 @@ const isLegacyColumn = (
 const isColumnWithoutDescriptions = (
   value: unknown
 ): value is Omit<BoardColumn, 'cards'> & {
-  cards: Omit<BoardCard, 'description'>[];
+  cards: (Omit<BoardCard, 'content' | 'createdAt'> & {
+    createdAt?: unknown;
+  })[];
 } => {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.title === 'string' &&
     Array.isArray(value.cards) &&
-    value.cards.every(isCardWithoutDescription) &&
+    value.cards.every(isCardWithoutContent) &&
+    typeof value.position === 'number'
+  );
+};
+
+const isColumnWithLegacyDescriptions = (
+  value: unknown
+): value is Omit<BoardColumn, 'cards'> & {
+  cards: (
+    | BoardCard
+    | (Omit<BoardCard, 'content' | 'createdAt'> & {
+        createdAt?: unknown;
+        description: string;
+      })
+  )[];
+} => {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    Array.isArray(value.cards) &&
+    value.cards.every(
+      (card) => isBoardCard(card) || isLegacyDescriptionCard(card)
+    ) &&
     typeof value.position === 'number'
   );
 };
@@ -244,9 +293,39 @@ export const fetchStorage = (): BoardColumn[] => {
 
   try {
     const parsedData: unknown = JSON.parse(data);
+    const migratedCreatedAt = new Date().toISOString();
 
     if (Array.isArray(parsedData) && parsedData.every(isBoardColumn)) {
       return parsedData;
+    }
+
+    if (
+      Array.isArray(parsedData) &&
+      parsedData.every(isColumnWithLegacyDescriptions)
+    ) {
+      const migratedColumns = parsedData.map((column) => ({
+        ...column,
+        cards: column.cards.map((card) =>
+          'content' in card
+            ? {
+                ...card,
+                createdAt: isValidDateString(card.createdAt)
+                  ? card.createdAt
+                  : migratedCreatedAt,
+              }
+            : {
+                content: card.description,
+                createdAt: isValidDateString(card.createdAt)
+                  ? card.createdAt
+                  : migratedCreatedAt,
+                id: card.id,
+                title: card.title,
+              }
+        ),
+      }));
+
+      updateStorage(migratedColumns);
+      return migratedColumns;
     }
 
     if (
@@ -255,7 +334,13 @@ export const fetchStorage = (): BoardColumn[] => {
     ) {
       const migratedColumns = parsedData.map((column) => ({
         ...column,
-        cards: column.cards.map((card) => ({ ...card, description: '' })),
+        cards: column.cards.map((card) => ({
+          ...card,
+          content: '',
+          createdAt: isValidDateString(card.createdAt)
+            ? card.createdAt
+            : migratedCreatedAt,
+        })),
       }));
 
       updateStorage(migratedColumns);
@@ -267,7 +352,8 @@ export const fetchStorage = (): BoardColumn[] => {
         ...column,
         id: createId(),
         cards: column.cards.map((title) => ({
-          description: '',
+          content: '',
+          createdAt: migratedCreatedAt,
           id: createId(),
           title,
         })),
