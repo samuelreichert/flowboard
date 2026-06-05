@@ -29,6 +29,24 @@
   width: 100%;
 }
 
+.dialog-popup--card {
+  max-height: min(860px, calc(100vh - 40px));
+  max-width: 860px;
+  padding: 24px;
+}
+
+.dialog-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.dialog-close {
+  flex: 0 0 auto;
+}
+
 .dialog-title {
   font-size: 18px;
   font-weight: 680;
@@ -43,12 +61,79 @@
   margin: 7px 0 17px;
 }
 
+.dialog-description--compact {
+  margin-top: -10px;
+}
+
 .dialog-field {
   display: grid;
   font-size: 12px;
   font-weight: 620;
   gap: 7px;
   margin-top: 15px;
+}
+
+.card-title-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 18px;
+}
+
+.card-title-field {
+  flex: 1 1 280px;
+  margin: 0;
+  min-width: 0;
+}
+
+.card-title-field__display,
+.card-title-field__input {
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #25262b;
+  display: block;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 720;
+  letter-spacing: 0;
+  line-height: 1.14;
+  margin: 0;
+  min-height: 42px;
+  padding: 4px 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.card-created-at {
+  color: #858791;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.card-title-field__display {
+  cursor: text;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.card-title-field__display:hover {
+  background-color: #f8f8fa;
+  border-color: #ededf0;
+}
+
+.card-title-field__display:focus-visible,
+.card-title-field__input:focus {
+  background-color: #ffffff;
+  border-color: #7771db;
+  box-shadow: 0 0 0 3px rgb(98 91 219 / 14%);
+  outline: 0;
 }
 
 .dialog-input {
@@ -69,6 +154,32 @@
 select.dialog-input {
   background-color: #ffffff;
   resize: none;
+}
+
+.dialog-select {
+  display: grid;
+  position: relative;
+}
+
+.dialog-input--select {
+  appearance: none;
+  cursor: pointer;
+  padding: 11px 38px 11px 12px;
+  width: 100%;
+}
+
+.dialog-select__icon {
+  color: #747681;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: color 140ms ease;
+}
+
+.dialog-select:focus-within .dialog-select__icon {
+  color: #5650bd;
 }
 
 .dialog-input:focus {
@@ -109,6 +220,11 @@ select.dialog-input {
   .dialog-popup {
     max-height: calc(100dvh - 28px);
     padding: 18px;
+  }
+
+  .dialog-popup--card {
+    max-height: calc(100dvh - 28px);
+    max-width: 100%;
   }
 
   .dialog-actions,

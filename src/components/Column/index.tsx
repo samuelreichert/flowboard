@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import Card from '../Card';
 import CardDialog from '../CardDialog';
+import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
-import ContentDialog from '../ContentDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
 import type { BoardColumn } from '../../types';
@@ -123,7 +123,7 @@ const Column = ({
           onClick={() => setAddCardOpen(true)}
         >
           <Plus size={16} />
-          Add {column.cards.length > 0 ? 'another' : 'a'} card
+          Create card
         </Button>
       </section>
       <CardDialog
@@ -133,15 +133,11 @@ const Column = ({
         onSave={saveCard}
         open={addCardOpen}
       />
-      <ContentDialog
-        description="Choose a clear name for this workflow stage."
+      <ColumnRenameDialog
         initialValue={column.title}
-        label="Column title"
         onOpenChange={setRenameOpen}
         onSave={(title) => renameColumn(column.id, title)}
         open={renameOpen}
-        submitLabel="Save changes"
-        title="Rename column"
       />
       <ConfirmDialog
         confirmLabel="Delete column"

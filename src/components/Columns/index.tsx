@@ -92,7 +92,8 @@ const Columns = ({ onColumnCountChange }: ColumnsProps) => {
               cards: [
                 ...column.cards,
                 {
-                  description: values.description,
+                  content: values.content,
+                  createdAt: new Date().toISOString(),
                   id: createId(),
                   title: values.title,
                 },
@@ -121,7 +122,7 @@ const Columns = ({ onColumnCountChange }: ColumnsProps) => {
 
     const updatedCard = {
       ...existingCard,
-      description: values.description,
+      content: values.content,
       title: values.title,
     };
 

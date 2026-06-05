@@ -1,5 +1,6 @@
 export type BoardCard = {
-  description: string;
+  content: string;
+  createdAt: string;
   id: string;
   title: string;
 };
