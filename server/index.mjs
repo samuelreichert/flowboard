@@ -40,8 +40,12 @@ const upsertBoard = database.prepare(`
 const isRecord = (value) =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const CARD_CONTENT_LIMIT = 100_000;
+const CARD_PRIORITIES = new Set(['low', 'medium', 'high']);
+const DEFAULT_CARD_PRIORITY = 'medium';
 const isValidDateString = (value) =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value));
+const isCardPriority = (value) =>
+  typeof value === 'string' && CARD_PRIORITIES.has(value);
 
 const isSafeImageUrl = (value) => {
   if (value.length > 2048) {
@@ -67,9 +71,22 @@ const isBoardCard = (value) =>
   typeof value.id === 'string' &&
   value.id.length > 0 &&
   value.id.length <= 100 &&
+  isCardPriority(value.priority) &&
+  Array.isArray(value.tagIds) &&
+  value.tagIds.length <= 50 &&
+  value.tagIds.every((tagId) => typeof tagId === 'string') &&
   typeof value.title === 'string' &&
   value.title.trim().length > 0 &&
   value.title.length <= 120;
+
+const isBoardTag = (value) =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  value.id.length > 0 &&
+  value.id.length <= 100 &&
+  typeof value.name === 'string' &&
+  value.name.trim().length > 0 &&
+  value.name.length <= 60;
 
 const isBoardColumn = (value) =>
   isRecord(value) &&
@@ -96,7 +113,20 @@ const isBoardState = (value) =>
   Array.isArray(value.columns) &&
   value.columns.length <= 50 &&
   value.columns.every(isBoardColumn) &&
-  isBoardBackground(value.background);
+  isBoardBackground(value.background) &&
+  Array.isArray(value.tags) &&
+  value.tags.length <= 200 &&
+  value.tags.every(isBoardTag);
+
+const normalizeCardMetadata = (card) => ({
+  ...card,
+  priority: isCardPriority(card.priority)
+    ? card.priority
+    : DEFAULT_CARD_PRIORITY,
+  tagIds: Array.isArray(card.tagIds)
+    ? card.tagIds.filter((tagId) => typeof tagId === 'string')
+    : [],
+});
 
 const normalizeCard = (card, migratedCreatedAt) => {
   if (!isRecord(card)) {
@@ -104,33 +134,34 @@ const normalizeCard = (card, migratedCreatedAt) => {
   }
 
   if (typeof card.content === 'string') {
-    return {
+    return normalizeCardMetadata({
       ...card,
       createdAt: isValidDateString(card.createdAt)
         ? card.createdAt
         : migratedCreatedAt,
-    };
+    });
   }
 
   if (typeof card.description === 'string') {
-    return {
+    return normalizeCardMetadata({
       content: card.description,
       createdAt: isValidDateString(card.createdAt)
         ? card.createdAt
         : migratedCreatedAt,
       id: card.id,
+      priority: card.priority,
+      tagIds: card.tagIds,
       title: card.title,
-    };
+    });
   }
 
-  return {
+  return normalizeCardMetadata({
+    ...card,
     content: '',
     createdAt: isValidDateString(card.createdAt)
       ? card.createdAt
       : migratedCreatedAt,
-    id: card.id,
-    title: card.title,
-  };
+  });
 };
 
 const normalizeBoardState = (value) => {
@@ -152,6 +183,7 @@ const normalizeBoardState = (value) => {
           }
         : column
     ),
+    tags: Array.isArray(value.tags) ? value.tags.filter(isBoardTag) : [],
   };
 };
 

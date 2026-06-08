@@ -1,5 +1,5 @@
 .card {
-  align-items: center;
+  align-items: flex-start;
   background-color: #ffffff;
   border: 1px solid #ededf0;
   border-radius: 6px;
@@ -77,9 +77,68 @@
   overflow-wrap: anywhere;
 }
 
+.card__body {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+  min-width: 0;
+}
+
+.card__title-row {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
 .card__content-icon {
   color: #b8b9bf;
   flex: 0 0 auto;
+}
+
+.card__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.card__priority,
+.card__tag {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  max-width: 100%;
+  min-height: 19px;
+  overflow-wrap: anywhere;
+  padding: 4px 7px;
+}
+
+.card__priority--low {
+  background-color: #edf7f1;
+  color: #3f7a55;
+}
+
+.card__priority--medium {
+  background-color: #f4f1ff;
+  color: #5d55bd;
+}
+
+.card__priority--high {
+  background-color: #fff0ec;
+  color: #b9533b;
+}
+
+.card__tag {
+  background-color: #f1f2f5;
+  color: #6a6c75;
+  font-weight: 650;
+}
+
+.card__tag--overflow {
+  color: #858791;
 }
 
 .card__drop-indicator {

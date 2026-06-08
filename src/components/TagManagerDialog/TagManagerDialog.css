@@ -1,0 +1,84 @@
+.tag-manager__create {
+  border-bottom: 1px solid #eeeef1;
+  margin-bottom: 13px;
+  padding-bottom: 15px;
+}
+
+.tag-manager__create-row,
+.tag-manager__item,
+.tag-manager__actions,
+.tag-manager__edit {
+  align-items: center;
+  display: flex;
+}
+
+.tag-manager__create-row {
+  gap: 8px;
+}
+
+.tag-manager__create-row .dialog-input,
+.tag-manager__edit .dialog-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.tag-manager__list {
+  display: grid;
+  gap: 7px;
+}
+
+.tag-manager__item {
+  background-color: #fbfbfc;
+  border: 1px solid #ededf0;
+  border-radius: 7px;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px 9px;
+}
+
+.tag-manager__name {
+  color: #3f4149;
+  display: block;
+  font-size: 13px;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+
+.tag-manager__usage {
+  color: #9b9da5;
+  display: block;
+  font-size: 11px;
+  font-weight: 550;
+  margin-top: 2px;
+}
+
+.tag-manager__actions {
+  gap: 3px;
+}
+
+.tag-manager__delete {
+  color: #b74545;
+}
+
+.tag-manager__edit {
+  flex: 1;
+  gap: 7px;
+}
+
+.tag-manager__edit-error {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.tag-manager__empty {
+  color: #8b8d96;
+  font-size: 13px;
+  margin: 3px 0 0;
+}
+
+@media (max-width: 640px) {
+  .tag-manager__create-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

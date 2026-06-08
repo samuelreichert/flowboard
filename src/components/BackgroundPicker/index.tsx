@@ -11,6 +11,9 @@ import './BackgroundPicker.css';
 type BackgroundPickerProps = {
   background: BoardBackground;
   onChange: (background: BoardBackground) => void;
+  onOpenChange?: (open: boolean) => void;
+  open?: boolean;
+  showTrigger?: boolean;
 };
 
 const COLOR_BACKGROUNDS = [
@@ -34,10 +37,29 @@ const isSelected = (
   value: string
 ) => background.type === type && background.value === value;
 
-const BackgroundPicker = ({ background, onChange }: BackgroundPickerProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const BackgroundPicker = ({
+  background,
+  onChange,
+  onOpenChange,
+  open,
+  showTrigger = true,
+}: BackgroundPickerProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = (
+    nextOpen: boolean | ((currentOpen: boolean) => boolean)
+  ) => {
+    const resolvedOpen =
+      typeof nextOpen === 'function' ? nextOpen(isOpen) : nextOpen;
+
+    if (open === undefined) {
+      setInternalOpen(resolvedOpen);
+    }
+
+    onOpenChange?.(resolvedOpen);
+  };
 
   useEffect(() => {
     if (
@@ -68,14 +90,16 @@ const BackgroundPicker = ({ background, onChange }: BackgroundPickerProps) => {
 
   return (
     <div className="background-picker">
-      <Button
-        aria-expanded={isOpen}
-        className="button button--subtle background-picker__trigger"
-        onClick={() => setIsOpen((open) => !open)}
-      >
-        <Palette size={16} />
-        Background
-      </Button>
+      {showTrigger && (
+        <Button
+          aria-expanded={isOpen}
+          className="button button--subtle background-picker__trigger"
+          onClick={() => setIsOpen((currentOpen) => !currentOpen)}
+        >
+          <Palette size={16} />
+          Background
+        </Button>
+      )}
       {isOpen && (
         <div
           aria-label="Choose board background"

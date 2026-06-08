@@ -15,7 +15,7 @@ import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge
 import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
-import type { BoardCard, BoardColumn } from '../../types';
+import type { BoardCard, BoardColumn, BoardTag } from '../../types';
 
 import './Card.css';
 
@@ -29,9 +29,19 @@ type CardProps = {
     cardId: string,
     values: CardDialogValues
   ) => string | void;
+  onTagsChange: (tags: BoardTag[]) => void;
+  tags: BoardTag[];
 };
 
-const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
+const Card = ({
+  card,
+  columnId,
+  columns,
+  deleteCard,
+  editCard,
+  onTagsChange,
+  tags,
+}: CardProps) => {
   const cardRef = useRef<HTMLElement | null>(null);
   const dragHandleRef = useRef<HTMLButtonElement | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -75,6 +85,13 @@ const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
   const stopCardClick = (event: MouseEvent) => {
     event.stopPropagation();
   };
+  const cardTags = card.tagIds
+    .map((tagId) => tags.find((tag) => tag.id === tagId))
+    .filter((tag): tag is BoardTag => Boolean(tag));
+  const visibleTags = cardTags.slice(0, 2);
+  const hiddenTagCount = cardTags.length - visibleTags.length;
+  const priorityLabel =
+    card.priority.charAt(0).toUpperCase() + card.priority.slice(1);
 
   return (
     <>
@@ -97,23 +114,44 @@ const Card = ({ card, columnId, columns, deleteCard, editCard }: CardProps) => {
         >
           <GripVertical size={16} />
         </button>
-        <span className="card__title">{card.title}</span>
-        {card.content && (
-          <AlignLeft
-            aria-label="Has content"
-            className="card__content-icon"
-            size={13}
-          />
-        )}
+        <div className="card__body">
+          <div className="card__title-row">
+            <span className="card__title">{card.title}</span>
+            {card.content && (
+              <AlignLeft
+                aria-label="Has content"
+                className="card__content-icon"
+                size={13}
+              />
+            )}
+          </div>
+          <div className="card__metadata">
+            <span className={`card__priority card__priority--${card.priority}`}>
+              {priorityLabel}
+            </span>
+            {visibleTags.map((tag) => (
+              <span className="card__tag" key={tag.id}>
+                {tag.name}
+              </span>
+            ))}
+            {hiddenTagCount > 0 && (
+              <span className="card__tag card__tag--overflow">
+                +{hiddenTagCount}
+              </span>
+            )}
+          </div>
+        </div>
       </article>
       <CardDialog
         card={card}
         columnId={columnId}
         columns={columns}
         onDelete={() => deleteCard(columnId, card.id)}
+        onTagsChange={onTagsChange}
         onOpenChange={setDetailsOpen}
         onSave={(values) => editCard(columnId, card.id, values)}
         open={detailsOpen}
+        tags={tags}
       />
     </>
   );
