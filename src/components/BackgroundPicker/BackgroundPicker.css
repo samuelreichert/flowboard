@@ -1,9 +1,9 @@
-.background-picker {
-  position: relative;
-}
-
 .background-picker__trigger {
   background-color: rgb(255 255 255 / 66%);
+}
+
+.background-picker__positioner {
+  z-index: 4;
 }
 
 .background-picker__panel {
@@ -15,11 +15,7 @@
     0 3px 8px rgb(31 33 40 / 7%);
   color: #34363e;
   padding: 15px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
   width: min(350px, calc(100vw - 36px));
-  z-index: 4;
 }
 
 .background-picker__header,

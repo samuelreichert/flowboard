@@ -1,6 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Field } from '@base-ui/react/field';
+import { Check, Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
@@ -136,22 +137,28 @@ const TagManagerDialog = ({
                 </Dialog.Close>
               </div>
               <div className="tag-manager__create">
-                <label className="dialog-field">
-                  <span>New tag</span>
+                <Field.Root
+                  className="dialog-field"
+                  invalid={Boolean(createError)}
+                >
+                  <Field.Label>New tag</Field.Label>
                   <div className="tag-manager__create-row">
-                    <input
-                      className="dialog-input"
-                      maxLength={60}
-                      onChange={(event) => {
-                        setNewTagName(event.currentTarget.value);
-                        setCreateError('');
-                      }}
-                      onKeyDown={onCreateKeyDown}
-                      type="text"
-                      value={newTagName}
-                    />
+                    <div className="tag-manager__input">
+                      <Tag size={15} />
+                      <Field.Control
+                        maxLength={60}
+                        onValueChange={(value) => {
+                          setNewTagName(value);
+                          setCreateError('');
+                        }}
+                        onKeyDown={onCreateKeyDown}
+                        placeholder="Design"
+                        type="text"
+                        value={newTagName}
+                      />
+                    </div>
                     <Button
-                      className="button button--primary"
+                      className="button button--primary tag-manager__create-button"
                       onClick={createTag}
                       type="button"
                     >
@@ -159,8 +166,13 @@ const TagManagerDialog = ({
                       Create
                     </Button>
                   </div>
-                </label>
-                {createError && <p className="dialog-error">{createError}</p>}
+                  <Field.Error
+                    className="dialog-error"
+                    match={Boolean(createError)}
+                  >
+                    {createError}
+                  </Field.Error>
+                </Field.Root>
               </div>
               <div className="tag-manager__list">
                 {tags.length > 0 ? (
@@ -170,40 +182,51 @@ const TagManagerDialog = ({
                     return (
                       <div className="tag-manager__item" key={tag.id}>
                         {isEditing ? (
-                          <div className="tag-manager__edit">
-                            <input
-                              aria-label={`Edit ${tag.name} tag`}
-                              className="dialog-input"
-                              maxLength={60}
-                              onChange={(event) => {
-                                setEditingTagName(event.currentTarget.value);
-                                setEditError('');
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  saveRename(tag.id);
-                                }
-
-                                if (event.key === 'Escape') {
-                                  event.preventDefault();
-                                  setEditingTagId(null);
-                                  setEditingTagName('');
+                          <Field.Root
+                            className="tag-manager__edit-field"
+                            invalid={Boolean(editError)}
+                          >
+                            <div className="tag-manager__edit">
+                              <Field.Control
+                                aria-label={`Edit ${tag.name} tag`}
+                                className="dialog-input"
+                                maxLength={60}
+                                onValueChange={(value) => {
+                                  setEditingTagName(value);
                                   setEditError('');
-                                }
-                              }}
-                              type="text"
-                              value={editingTagName}
-                            />
-                            <Button
-                              aria-label={`Save ${tag.name} tag`}
-                              className="icon-button"
-                              onClick={() => saveRename(tag.id)}
-                              type="button"
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    saveRename(tag.id);
+                                  }
+
+                                  if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    setEditingTagId(null);
+                                    setEditingTagName('');
+                                    setEditError('');
+                                  }
+                                }}
+                                type="text"
+                                value={editingTagName}
+                              />
+                              <Button
+                                aria-label={`Save ${tag.name} tag`}
+                                className="icon-button"
+                                onClick={() => saveRename(tag.id)}
+                                type="button"
+                              >
+                                <Check size={16} />
+                              </Button>
+                            </div>
+                            <Field.Error
+                              className="dialog-error tag-manager__edit-error"
+                              match={Boolean(editError)}
                             >
-                              <Check size={16} />
-                            </Button>
-                          </div>
+                              {editError}
+                            </Field.Error>
+                          </Field.Root>
                         ) : (
                           <>
                             <div>
@@ -237,11 +260,6 @@ const TagManagerDialog = ({
                               </Button>
                             </div>
                           </>
-                        )}
-                        {isEditing && editError && (
-                          <p className="dialog-error tag-manager__edit-error">
-                            {editError}
-                          </p>
                         )}
                       </div>
                     );

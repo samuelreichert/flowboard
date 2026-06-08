@@ -1,28 +1,38 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
+import { Field } from '@base-ui/react/field';
+import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import type { ReactNode } from 'react';
 
 import './ContentDialog.css';
+import '../IconButton/IconButton.css';
 
 type ContentDialogProps = {
   description: string;
+  hideCancel?: boolean;
   initialValue?: string;
   label: string;
+  leadingIcon?: ReactNode;
   onOpenChange: (open: boolean) => void;
   onSave: (value: string) => string | void;
   open: boolean;
+  placeholder?: string;
   submitLabel: string;
   title: string;
 };
 
 const ContentDialog = ({
   description,
+  hideCancel = false,
   initialValue = '',
   label,
+  leadingIcon,
   onOpenChange,
   onSave,
   open,
+  placeholder,
   submitLabel,
   title,
 }: ContentDialogProps) => {
@@ -55,29 +65,57 @@ const ContentDialog = ({
         <Dialog.Viewport className="dialog-viewport">
           <Dialog.Popup className="dialog-popup">
             <form onSubmit={onSubmit}>
-              <Dialog.Title className="dialog-title">{title}</Dialog.Title>
-              <Dialog.Description className="dialog-description">
-                {description}
-              </Dialog.Description>
-              <label className="dialog-field">
-                <span>{label}</span>
-                <input
-                  autoFocus
-                  className="dialog-input"
-                  maxLength={80}
-                  onChange={(event) => setValue(event.currentTarget.value)}
-                  type="text"
-                  value={value}
-                />
-              </label>
-              {error && <p className="dialog-error">{error}</p>}
-              <div className="dialog-actions">
+              <div className="dialog-header">
+                <Dialog.Title className="dialog-title">{title}</Dialog.Title>
                 <Dialog.Close
-                  className="button button--subtle"
+                  aria-label="Close dialog"
+                  className="icon-button dialog-close"
                   render={<Button />}
                 >
-                  Cancel
+                  <X size={17} />
                 </Dialog.Close>
+              </div>
+              <Dialog.Description className="dialog-description dialog-description--compact">
+                {description}
+              </Dialog.Description>
+              <Field.Root className="dialog-field" invalid={Boolean(error)}>
+                <Field.Label>{label}</Field.Label>
+                {leadingIcon ? (
+                  <div className="dialog-input-shell">
+                    {leadingIcon}
+                    <Field.Control
+                      autoFocus
+                      maxLength={80}
+                      onValueChange={setValue}
+                      placeholder={placeholder}
+                      type="text"
+                      value={value}
+                    />
+                  </div>
+                ) : (
+                  <Field.Control
+                    autoFocus
+                    className="dialog-input"
+                    maxLength={80}
+                    onValueChange={setValue}
+                    placeholder={placeholder}
+                    type="text"
+                    value={value}
+                  />
+                )}
+                <Field.Error className="dialog-error" match={Boolean(error)}>
+                  {error}
+                </Field.Error>
+              </Field.Root>
+              <div className="dialog-actions">
+                {!hideCancel && (
+                  <Dialog.Close
+                    className="button button--subtle"
+                    render={<Button />}
+                  >
+                    Cancel
+                  </Dialog.Close>
+                )}
                 <Button className="button button--primary" type="submit">
                   {submitLabel}
                 </Button>

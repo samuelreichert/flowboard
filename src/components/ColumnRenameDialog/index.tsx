@@ -1,5 +1,6 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
+import { Field } from '@base-ui/react/field';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -82,18 +83,20 @@ const ColumnRenameDialog = ({
             <Dialog.Description className="dialog-description dialog-description--compact">
               Choose a clear name for this workflow stage.
             </Dialog.Description>
-            <label className="dialog-field">
-              <span>Column title</span>
-              <input
+            <Field.Root className="dialog-field" invalid={Boolean(error)}>
+              <Field.Label>Column title</Field.Label>
+              <Field.Control
                 autoFocus
                 className="dialog-input"
                 maxLength={80}
-                onChange={(event) => onValueChange(event.currentTarget.value)}
+                onValueChange={onValueChange}
                 type="text"
                 value={value}
               />
-            </label>
-            {error && <p className="dialog-error">{error}</p>}
+              <Field.Error className="dialog-error" match={Boolean(error)}>
+                {error}
+              </Field.Error>
+            </Field.Root>
           </Dialog.Popup>
         </Dialog.Viewport>
       </Dialog.Portal>

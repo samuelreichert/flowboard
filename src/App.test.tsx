@@ -118,6 +118,25 @@ test('rejects an insecure custom background image URL', async () => {
   expect(localStorage.getItem('boardBackground')).toBeNull();
 });
 
+test('closes background settings with Escape without changing the background', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await openBackgroundSettings(user);
+  expect(
+    screen.getByLabelText(/choose board background/i)
+  ).toBeInTheDocument();
+
+  await user.keyboard('{Escape}');
+
+  await waitFor(() =>
+    expect(
+      screen.queryByLabelText(/choose board background/i)
+    ).not.toBeInTheDocument()
+  );
+  expect(localStorage.getItem('boardBackground')).toBeNull();
+});
+
 test('migrates legacy localStorage data to stable IDs', () => {
   localStorage.setItem(
     'columnsList',
@@ -242,9 +261,10 @@ test('rejects blank and duplicate column titles', async () => {
   render(<App />);
 
   await user.click(screen.getByRole('button', { name: /add another column/i }));
+  expect(screen.getByPlaceholderText('Ready for review')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /add column/i }));
   expect(screen.getByText('Enter a column title.')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /cancel/i }));
+  await user.click(screen.getByRole('button', { name: /close dialog/i }));
 
   await addColumn(user, 'Todo');
   await user.click(screen.getByRole('button', { name: /add another column/i }));
@@ -333,10 +353,7 @@ test('moves a card from the modal column select', async () => {
   await addColumn(user, 'Done');
 
   await user.click(screen.getByText('Ship it'));
-  await user.selectOptions(
-    screen.getByLabelText('Column'),
-    screen.getByRole('option', { name: 'Done' })
-  );
+  await chooseSelectOption(user, 'Column', 'Done');
 
   expect(
     readColumns().find((column) => column.title === 'Done')?.cards[0].title
@@ -351,7 +368,7 @@ test('edits card priority and displays it on the board', async () => {
   await addCard(user, 'Todo', 'Escalate');
 
   await user.click(screen.getByText('Escalate'));
-  await user.selectOptions(screen.getByLabelText('Priority'), 'high');
+  await chooseSelectOption(user, 'Priority', 'High');
   await user.click(screen.getByRole('button', { name: /close card/i }));
 
   expect(readColumns()[0].cards[0].priority).toBe('high');
@@ -466,6 +483,9 @@ test('exports card content as Markdown', async () => {
   await addCard(user, 'Todo', 'Prompt', '# Context');
 
   await user.click(screen.getByText('Prompt'));
+  expect(
+    screen.getByRole('toolbar', { name: /content formatting/i })
+  ).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /copy markdown/i }));
 
   expect(writeText).toHaveBeenCalledWith('# Context');
@@ -642,6 +662,20 @@ test('clears the board only after confirmation', async () => {
   expect(readColumns()).toEqual([]);
 });
 
+test('board actions trigger is compact and discoverable', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  const trigger = screen.getByRole('button', { name: /open board actions/i });
+
+  expect(trigger).toHaveClass('board-actions__trigger');
+  expect(trigger).toHaveTextContent('');
+
+  await user.hover(trigger);
+
+  expect(await screen.findByText('Board actions')).toBeInTheDocument();
+});
+
 test('closes a create dialog with Escape without saving', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -712,6 +746,15 @@ const openColumnActions = async (
 const openBoardActions = async (_user: ReturnType<typeof userEvent.setup>) => {
   fireEvent.click(screen.getByRole('button', { name: /open board actions/i }));
   await screen.findByRole('menu');
+};
+
+const chooseSelectOption = async (
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  option: string
+) => {
+  await user.click(screen.getByRole('combobox', { name: label }));
+  await user.click(await screen.findByRole('option', { name: option }));
 };
 
 const openBackgroundSettings = async (

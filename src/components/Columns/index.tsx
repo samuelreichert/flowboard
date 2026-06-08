@@ -1,7 +1,7 @@
 import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { Button } from '@base-ui/react/button';
-import { Plus } from 'lucide-react';
+import { Columns3, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import Column from '../Column';
@@ -251,10 +251,13 @@ const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
       </div>
       <ContentDialog
         description="Give the next stage of your workflow a clear name."
+        hideCancel
         label="Column title"
+        leadingIcon={<Columns3 size={15} />}
         onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
+        placeholder="Ready for review"
         submitLabel="Add column"
         title="Add column"
       />
