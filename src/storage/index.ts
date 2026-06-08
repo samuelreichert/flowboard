@@ -56,7 +56,10 @@ const isCardPriority = (value: unknown): value is CardPriority => {
 };
 
 const normalizeCardMetadata = <
-  T extends { priority?: unknown; tagIds?: unknown },
+  T extends Record<string, unknown> & {
+    priority?: unknown;
+    tagIds?: unknown;
+  },
 >(
   card: T
 ) => ({

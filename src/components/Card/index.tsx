@@ -1,3 +1,4 @@
+import { Button } from '@base-ui/react/button';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import {
   draggable,
@@ -105,7 +106,7 @@ const Card = ({
             className={`card__drop-indicator card__drop-indicator--${closestEdge}`}
           />
         )}
-        <button
+        <Button
           aria-label={`Drag ${card.title}`}
           className="card__drag-handle"
           onClick={stopCardClick}
@@ -113,7 +114,7 @@ const Card = ({
           type="button"
         >
           <GripVertical size={16} />
-        </button>
+        </Button>
         <div className="card__body">
           <div className="card__title-row">
             <span className="card__title">{card.title}</span>

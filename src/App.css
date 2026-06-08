@@ -3,14 +3,20 @@
   background-position: center;
   background-size: cover;
   color: #292b31;
+  height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow: hidden;
   transition: background-color 180ms ease;
 }
 
 .board {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: inherit;
   min-height: inherit;
-  overflow: auto;
+  overflow: hidden;
   padding: 29px 32px 44px;
 }
 
@@ -19,11 +25,18 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 44px;
+  position: relative;
+  z-index: 3;
 }
 
 .board__actions {
   display: flex;
   gap: 8px;
+}
+
+.board-actions__trigger {
+  min-width: 32px;
+  padding: 6px;
 }
 
 .app__title {
@@ -191,5 +204,10 @@
   .button {
     min-height: 44px;
     padding: 9px 12px;
+  }
+
+  .board-actions__trigger {
+    min-width: 44px;
+    padding: 9px;
   }
 }

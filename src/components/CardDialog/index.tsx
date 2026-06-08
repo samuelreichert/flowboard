@@ -1,6 +1,8 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
+import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
+import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -36,6 +38,12 @@ export type CardDialogValues = {
 };
 
 const DEFAULT_CARD_PRIORITY: CardPriority = 'medium';
+
+const PRIORITY_OPTIONS: { label: string; value: CardPriority }[] = [
+  { label: 'Low', value: 'low' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'High', value: 'high' },
+];
 
 const formatPriorityLabel = (priority: CardPriority) =>
   priority.charAt(0).toUpperCase() + priority.slice(1);
@@ -306,14 +314,12 @@ const CardDialog = ({
                 <div className="card-title-row">
                   <h2 className="card-title-field">
                     {titleEditing ? (
-                      <input
+                      <Field.Control
                         aria-label="Card title"
                         className="card-title-field__input"
                         maxLength={120}
                         onBlur={onTitleBlur}
-                        onChange={(event) =>
-                          onTitleChange(event.currentTarget.value)
-                        }
+                        onValueChange={onTitleChange}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault();
@@ -325,7 +331,7 @@ const CardDialog = ({
                         value={title}
                       />
                     ) : (
-                      <button
+                      <Button
                         aria-label="Edit card title"
                         className="card-title-field__display"
                         onClick={() => setTitleEditing(true)}
@@ -334,7 +340,7 @@ const CardDialog = ({
                         {title.trim() ||
                           lastValidTitleRef.current ||
                           'Untitled card'}
-                      </button>
+                      </Button>
                     )}
                   </h2>
                   {createdAtLabel && (
@@ -346,52 +352,107 @@ const CardDialog = ({
                     </time>
                   )}
                 </div>
-                <label className="dialog-field">
-                  <span>Column</span>
-                  <span className="dialog-select">
-                    <select
-                      className="dialog-input dialog-input--select"
-                      onChange={(event) =>
-                        onColumnChange(event.currentTarget.value)
-                      }
-                      value={selectedColumnId}
+                <Select.Root
+                  name="column"
+                  onValueChange={(value) => {
+                    if (value) {
+                      onColumnChange(value);
+                    }
+                  }}
+                  value={selectedColumnId}
+                >
+                  <div className="dialog-field">
+                    <Select.Label className="dialog-label">
+                      Column
+                    </Select.Label>
+                    <Select.Trigger className="dialog-input dialog-select__trigger">
+                      <Select.Value>
+                        {(value: string | null) =>
+                          columns.find((column) => column.id === value)
+                            ?.title ?? 'Choose column'
+                        }
+                      </Select.Value>
+                      <Select.Icon>
+                        <ChevronDown size={17} />
+                      </Select.Icon>
+                    </Select.Trigger>
+                  </div>
+                  <Select.Portal>
+                    <Select.Positioner
+                      align="start"
+                      className="dialog-select__positioner"
+                      sideOffset={5}
                     >
-                      {columns.map((column) => (
-                        <option key={column.id} value={column.id}>
-                          {column.title}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className="dialog-select__icon"
-                      size={17}
-                    />
-                  </span>
-                </label>
-                <label className="dialog-field">
-                  <span>Priority</span>
-                  <span className="dialog-select">
-                    <select
-                      className="dialog-input dialog-input--select"
-                      onChange={(event) =>
-                        onPriorityChange(event.currentTarget.value)
-                      }
-                      value={priority}
+                      <Select.Popup className="dialog-select__popup">
+                        <Select.List>
+                          {columns.map((column) => (
+                            <Select.Item
+                              className="dialog-select__item"
+                              key={column.id}
+                              value={column.id}
+                            >
+                              <Select.ItemText>{column.title}</Select.ItemText>
+                              <Select.ItemIndicator>
+                                <Check size={15} />
+                              </Select.ItemIndicator>
+                            </Select.Item>
+                          ))}
+                        </Select.List>
+                      </Select.Popup>
+                    </Select.Positioner>
+                  </Select.Portal>
+                </Select.Root>
+                <Select.Root
+                  name="priority"
+                  onValueChange={(value) => {
+                    if (value) {
+                      onPriorityChange(value);
+                    }
+                  }}
+                  value={priority}
+                >
+                  <div className="dialog-field">
+                    <Select.Label className="dialog-label">
+                      Priority
+                    </Select.Label>
+                    <Select.Trigger className="dialog-input dialog-select__trigger">
+                      <Select.Value>
+                        {(value: CardPriority | null) =>
+                          value ? formatPriorityLabel(value) : 'Choose priority'
+                        }
+                      </Select.Value>
+                      <Select.Icon>
+                        <ChevronDown size={17} />
+                      </Select.Icon>
+                    </Select.Trigger>
+                  </div>
+                  <Select.Portal>
+                    <Select.Positioner
+                      align="start"
+                      className="dialog-select__positioner"
+                      sideOffset={5}
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className="dialog-select__icon"
-                      size={17}
-                    />
-                  </span>
-                </label>
+                      <Select.Popup className="dialog-select__popup">
+                        <Select.List>
+                          {PRIORITY_OPTIONS.map((option) => (
+                            <Select.Item
+                              className="dialog-select__item"
+                              key={option.value}
+                              value={option.value}
+                            >
+                              <Select.ItemText>{option.label}</Select.ItemText>
+                              <Select.ItemIndicator>
+                                <Check size={15} />
+                              </Select.ItemIndicator>
+                            </Select.Item>
+                          ))}
+                        </Select.List>
+                      </Select.Popup>
+                    </Select.Positioner>
+                  </Select.Portal>
+                </Select.Root>
                 <div className="dialog-field">
-                  <span>Tags</span>
+                  <span className="dialog-label">Tags</span>
                   <Popover.Root
                     modal={false}
                     onOpenChange={onTagsOpenChange}
@@ -420,7 +481,7 @@ const CardDialog = ({
                               const selected = selectedTagIds.includes(tag.id);
 
                               return (
-                                <button
+                                <Button
                                   aria-selected={selected}
                                   className="tag-select__option"
                                   key={tag.id}
@@ -430,7 +491,7 @@ const CardDialog = ({
                                 >
                                   <span>{tag.name}</span>
                                   {selected && <Check size={15} />}
-                                </button>
+                                </Button>
                               );
                             })
                           ) : (
@@ -438,13 +499,13 @@ const CardDialog = ({
                           )}
                           <div className="tag-select__create">
                             {creatingTag ? (
-                              <div>
-                                <input
+                              <Field.Root invalid={Boolean(tagError)}>
+                                <Field.Control
                                   aria-label="New tag name"
                                   autoFocus
                                   maxLength={60}
-                                  onChange={(event) => {
-                                    setNewTagName(event.currentTarget.value);
+                                  onValueChange={(value) => {
+                                    setNewTagName(value);
                                     setTagError('');
                                   }}
                                   onKeyDown={(event) => {
@@ -462,14 +523,15 @@ const CardDialog = ({
                                   type="text"
                                   value={newTagName}
                                 />
-                                {tagError && (
-                                  <p className="tag-select__error">
-                                    {tagError}
-                                  </p>
-                                )}
-                              </div>
+                                <Field.Error
+                                  className="tag-select__error"
+                                  match={Boolean(tagError)}
+                                >
+                                  {tagError}
+                                </Field.Error>
+                              </Field.Root>
                             ) : (
-                              <button
+                              <Button
                                 className="tag-select__create-button"
                                 onClick={() => {
                                   setCreatingTag(true);
@@ -479,7 +541,7 @@ const CardDialog = ({
                               >
                                 <Plus size={15} />
                                 Create tag
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </Popover.Popup>
@@ -487,18 +549,22 @@ const CardDialog = ({
                     </Popover.Portal>
                   </Popover.Root>
                 </div>
-                <div className="dialog-field">
-                  <span id={`card-content-label-${card?.id ?? columnId}`}>
+                <Field.Root className="dialog-field" name="content">
+                  <Field.Label id={`card-content-label-${card?.id ?? columnId}`}>
                     Content
-                  </span>
+                  </Field.Label>
                   <CardContentEditor
                     id={`card-content-editor-${card?.id ?? columnId}`}
                     labelId={`card-content-label-${card?.id ?? columnId}`}
                     onChange={onContentChange}
                     value={content}
                   />
-                </div>
-                {error && <p className="dialog-error">{error}</p>}
+                </Field.Root>
+                <Field.Root className="dialog-form-error" invalid={Boolean(error)}>
+                  <Field.Error className="dialog-error" match={Boolean(error)}>
+                    {error}
+                  </Field.Error>
+                </Field.Root>
                 {card ? (
                   <div className="dialog-actions dialog-actions--spread">
                     <div />

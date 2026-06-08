@@ -1,8 +1,8 @@
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import { Tooltip } from '@base-ui/react/tooltip';
-import { Ellipsis, Palette, RotateCcw, Tags } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Palette, RotateCcw, Settings2, Tags } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import BackgroundPicker from './components/BackgroundPicker';
 import Columns from './components/Columns';
@@ -39,6 +39,7 @@ const App = () => {
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [clearBoardOpen, setClearBoardOpen] = useState(false);
   const [storageVersion, setStorageVersion] = useState(0);
+  const boardActionsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -108,53 +109,62 @@ const App = () => {
             <div>
               <h1 className="app__title">Flowboard</h1>
             </div>
-            <div className="board__actions">
+            <div className="board__actions" ref={boardActionsRef}>
               <BackgroundPicker
+                anchor={boardActionsRef}
                 background={background}
                 onOpenChange={setBackgroundOpen}
                 onChange={updateBackground}
                 open={backgroundOpen}
                 showTrigger={false}
               />
-              <Menu.Root>
-                <Menu.Trigger
-                  aria-label="Open board actions"
-                  className="button button--subtle"
-                  render={<Button />}
-                >
-                  <Ellipsis size={16} />
-                  Board
-                </Menu.Trigger>
-                <Menu.Portal>
-                  <Menu.Positioner sideOffset={4}>
-                    <Menu.Popup className="menu-popup">
-                      <Menu.Item
-                        className="menu-item"
-                        onClick={() => setBackgroundOpen(true)}
-                      >
-                        <Palette size={15} />
-                        Background settings
-                      </Menu.Item>
-                      <Menu.Item
-                        className="menu-item"
-                        onClick={() => setTagManagerOpen(true)}
-                      >
-                        <Tags size={15} />
-                        Manage tags
-                      </Menu.Item>
-                      {columnCount > 0 && (
+              <Tooltip.Root>
+                <Menu.Root>
+                  <Tooltip.Trigger
+                    aria-label="Open board actions"
+                    className="button button--subtle board-actions__trigger"
+                    render={<Menu.Trigger render={<Button />} />}
+                  >
+                    <Settings2 size={16} />
+                  </Tooltip.Trigger>
+                  <Menu.Portal>
+                    <Menu.Positioner sideOffset={4}>
+                      <Menu.Popup className="menu-popup">
                         <Menu.Item
-                          className="menu-item menu-item--danger"
-                          onClick={() => setClearBoardOpen(true)}
+                          className="menu-item"
+                          onClick={() => setBackgroundOpen(true)}
                         >
-                          <RotateCcw size={15} />
-                          Clear board
+                          <Palette size={15} />
+                          Background settings
                         </Menu.Item>
-                      )}
-                    </Menu.Popup>
-                  </Menu.Positioner>
-                </Menu.Portal>
-              </Menu.Root>
+                        <Menu.Item
+                          className="menu-item"
+                          onClick={() => setTagManagerOpen(true)}
+                        >
+                          <Tags size={15} />
+                          Manage tags
+                        </Menu.Item>
+                        {columnCount > 0 && (
+                          <Menu.Item
+                            className="menu-item menu-item--danger"
+                            onClick={() => setClearBoardOpen(true)}
+                          >
+                            <RotateCcw size={15} />
+                            Clear board
+                          </Menu.Item>
+                        )}
+                      </Menu.Popup>
+                    </Menu.Positioner>
+                  </Menu.Portal>
+                </Menu.Root>
+                <Tooltip.Portal>
+                  <Tooltip.Positioner sideOffset={8}>
+                    <Tooltip.Popup className="tooltip-popup">
+                      Board actions
+                    </Tooltip.Popup>
+                  </Tooltip.Positioner>
+                </Tooltip.Portal>
+              </Tooltip.Root>
             </div>
           </header>
           <Columns

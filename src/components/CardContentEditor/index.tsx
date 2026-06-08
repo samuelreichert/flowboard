@@ -1,4 +1,5 @@
 import { Button } from '@base-ui/react/button';
+import { Toolbar } from '@base-ui/react/toolbar';
 import FileHandler from '@tiptap/extension-file-handler';
 import Image from '@tiptap/extension-image';
 import { Markdown } from '@tiptap/markdown';
@@ -74,7 +75,7 @@ const ToolbarButton = ({
   onClick,
   children,
 }: ToolbarButtonProps) => (
-  <Button
+  <Toolbar.Button
     aria-label={label}
     aria-pressed={active}
     className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
@@ -83,7 +84,7 @@ const ToolbarButton = ({
     type="button"
   >
     {children}
-  </Button>
+  </Toolbar.Button>
 );
 
 const CardContentEditor = ({
@@ -248,7 +249,7 @@ const CardContentEditor = ({
       onDrop={onFileDrop}
       onPaste={onFilePaste}
     >
-      <div className="editor-toolbar" aria-label="Content formatting">
+      <Toolbar.Root className="editor-toolbar" aria-label="Content formatting">
         <ToolbarButton
           active={editor?.isActive('heading', { level: 1 })}
           disabled={!editor}
@@ -375,7 +376,7 @@ const CardContentEditor = ({
             <span className="editor-toolbar__copy-status">{copyStatus}</span>
           )}
         </Button>
-      </div>
+      </Toolbar.Root>
       <EditorContent editor={editor} />
     </div>
   );
