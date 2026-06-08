@@ -10,7 +10,7 @@ import { vi } from 'vitest';
 
 import App from './App';
 import { reorderCard } from './dnd';
-import { fetchStorage } from './storage';
+import { fetchStorage, fetchTagStorage } from './storage';
 import type { BoardColumn } from './types';
 
 const CREATED_AT = '2026-06-03T12:34:56.000Z';
@@ -47,7 +47,7 @@ test('changes and persists a solid board background', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /background/i }));
+  await openBackgroundSettings(user);
   await user.click(
     screen.getByRole('button', { name: /use lavender background/i })
   );
@@ -64,7 +64,7 @@ test('restores the original image as a board background preset', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /background/i }));
+  await openBackgroundSettings(user);
   await user.click(
     screen.getByRole('button', { name: /use northern lights background/i })
   );
@@ -82,7 +82,7 @@ test('applies and persists a custom background image URL', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /background/i }));
+  await openBackgroundSettings(user);
   await user.type(
     screen.getByLabelText(/image url/i),
     'https://images.example.com/cover.jpg'
@@ -105,7 +105,7 @@ test('rejects an insecure custom background image URL', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /background/i }));
+  await openBackgroundSettings(user);
   await user.type(
     screen.getByLabelText(/image url/i),
     'http://images.example.com/cover.jpg'
@@ -130,6 +130,8 @@ test('migrates legacy localStorage data to stable IDs', () => {
   expect(columns[0].id).toBeTruthy();
   expect(columns[0].cards[0]).toMatchObject({ title: 'Ship it' });
   expect(columns[0].cards[0].content).toBe('');
+  expect(columns[0].cards[0].priority).toBe('medium');
+  expect(columns[0].cards[0].tagIds).toEqual([]);
   expect(Date.parse(columns[0].cards[0].createdAt)).not.toBeNaN();
   expect(columns[0].cards[0].id).toBeTruthy();
   expect(localStorage.getItem('columnsList')).toContain(columns[0].id);
@@ -152,6 +154,8 @@ test('migrates stable-ID cards that predate content', () => {
     content: '',
     createdAt: expect.any(String),
     id: 'ship-it',
+    priority: 'medium',
+    tagIds: [],
     title: 'Ship it',
   });
   expect(Date.parse(fetchStorage()[0].cards[0].createdAt)).not.toBeNaN();
@@ -180,6 +184,8 @@ test('migrates card descriptions to content', () => {
     content: 'Legacy notes',
     createdAt: expect.any(String),
     id: 'ship-it',
+    priority: 'medium',
+    tagIds: [],
     title: 'Ship it',
   });
   expect(Date.parse(fetchStorage()[0].cards[0].createdAt)).not.toBeNaN();
@@ -206,6 +212,8 @@ test('creates columns and cards from dialogs', async () => {
   expect(readColumns()[0].cards[0].content).toBe(
     'Release the new Flowboard build.'
   );
+  expect(readColumns()[0].cards[0].priority).toBe('medium');
+  expect(readColumns()[0].cards[0].tagIds).toEqual([]);
   expect(Date.parse(readColumns()[0].cards[0].createdAt)).not.toBeNaN();
   expect(
     screen.queryByText('Release the new Flowboard build.')
@@ -333,6 +341,101 @@ test('moves a card from the modal column select', async () => {
   expect(
     readColumns().find((column) => column.title === 'Done')?.cards[0].title
   ).toBe('Ship it');
+});
+
+test('edits card priority and displays it on the board', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Escalate');
+
+  await user.click(screen.getByText('Escalate'));
+  await user.selectOptions(screen.getByLabelText('Priority'), 'high');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  expect(readColumns()[0].cards[0].priority).toBe('high');
+  expect(screen.getByText('High')).toBeInTheDocument();
+});
+
+test('creates, assigns, and removes card tags from the card dropdown', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Tagged');
+
+  await user.click(screen.getByText('Tagged'));
+  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('button', { name: /create tag/i }));
+  await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
+
+  expect(fetchTagStorage()).toEqual([
+    { id: expect.any(String), name: 'Design' },
+  ]);
+  expect(readColumns()[0].cards[0].tagIds).toEqual([fetchTagStorage()[0].id]);
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Design' }));
+  await user.click(screen.getByRole('option', { name: 'Design' }));
+  expect(readColumns()[0].cards[0].tagIds).toEqual([]);
+});
+
+test('closes the tag dropdown when clicking outside', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Tagged');
+  await user.click(screen.getByText('Tagged'));
+  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+  await user.click(screen.getByText('Content'));
+
+  await waitFor(() =>
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  );
+});
+
+test('manages board tags from the board actions menu', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await openTagManager(user);
+  await user.type(screen.getByLabelText('New tag'), 'Bug{Enter}');
+  expect(fetchTagStorage()[0].name).toBe('Bug');
+
+  await user.click(screen.getByRole('button', { name: /rename bug tag/i }));
+  await user.clear(screen.getByLabelText('Edit Bug tag'));
+  await user.type(screen.getByLabelText('Edit Bug tag'), 'Issue{Enter}');
+  expect(fetchTagStorage()[0].name).toBe('Issue');
+
+  await user.click(screen.getByRole('button', { name: /remove issue tag/i }));
+  expect(fetchTagStorage()).toEqual([]);
+});
+
+test('confirms removing tags that are assigned to cards', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Tagged');
+  await user.click(screen.getByText('Tagged'));
+  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('button', { name: /create tag/i }));
+  await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  await openTagManager(user);
+  await user.click(screen.getByRole('button', { name: /remove design tag/i }));
+  expect(
+    screen.getByRole('alertdialog', { name: /remove this tag/i })
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /^remove tag$/i }));
+
+  expect(fetchTagStorage()).toEqual([]);
+  expect(readColumns()[0].cards[0].tagIds).toEqual([]);
 });
 
 test('keeps the last valid title when an existing card title is cleared', async () => {
@@ -528,14 +631,13 @@ test('clears the board only after confirmation', async () => {
   render(<App />);
 
   await addColumn(user, 'Todo');
-  expect(
-    screen.getByRole('button', { name: /clear board/i }).parentElement
-  ).toHaveClass('board__actions');
-  await user.click(screen.getByRole('button', { name: /clear board/i }));
+  await openBoardActions(user);
+  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
 
-  await user.click(screen.getByRole('button', { name: /clear board/i }));
+  await openBoardActions(user);
+  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /^clear board$/i }));
   expect(readColumns()).toEqual([]);
 });
@@ -607,22 +709,73 @@ const openColumnActions = async (
   );
 };
 
+const openBoardActions = async (_user: ReturnType<typeof userEvent.setup>) => {
+  fireEvent.click(screen.getByRole('button', { name: /open board actions/i }));
+  await screen.findByRole('menu');
+};
+
+const openBackgroundSettings = async (
+  user: ReturnType<typeof userEvent.setup>
+) => {
+  await openBoardActions(user);
+  await user.click(
+    await screen.findByRole('menuitem', { name: /background settings/i })
+  );
+};
+
+const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
+  await openBoardActions(user);
+  await user.click(
+    await screen.findByRole('menuitem', { name: /manage tags/i })
+  );
+};
+
 const readColumns = () =>
   JSON.parse(localStorage.getItem('columnsList') ?? '[]') as BoardColumn[];
 
 const createBoardColumns = (): BoardColumn[] => [
   {
     cards: [
-      { content: '', createdAt: CREATED_AT, id: 'first', title: 'First' },
-      { content: '', createdAt: CREATED_AT, id: 'second', title: 'Second' },
-      { content: '', createdAt: CREATED_AT, id: 'third', title: 'Third' },
+      {
+        content: '',
+        createdAt: CREATED_AT,
+        id: 'first',
+        priority: 'medium',
+        tagIds: [],
+        title: 'First',
+      },
+      {
+        content: '',
+        createdAt: CREATED_AT,
+        id: 'second',
+        priority: 'medium',
+        tagIds: [],
+        title: 'Second',
+      },
+      {
+        content: '',
+        createdAt: CREATED_AT,
+        id: 'third',
+        priority: 'medium',
+        tagIds: [],
+        title: 'Third',
+      },
     ],
     id: 'todo',
     position: 0,
     title: 'Todo',
   },
   {
-    cards: [{ content: '', createdAt: CREATED_AT, id: 'done', title: 'Done' }],
+    cards: [
+      {
+        content: '',
+        createdAt: CREATED_AT,
+        id: 'done',
+        priority: 'medium',
+        tagIds: [],
+        title: 'Done',
+      },
+    ],
     id: 'complete',
     position: 10,
     title: 'Complete',
