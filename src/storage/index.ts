@@ -3,13 +3,18 @@ import type {
   BoardCard,
   BoardColumn,
   BoardState,
+  BoardTag,
+  CardPriority,
 } from '../types';
+import { CARD_PRIORITIES } from '../types';
 
 const STORAGE_KEY = 'columnsList';
 const BACKGROUND_STORAGE_KEY = 'boardBackground';
+const TAGS_STORAGE_KEY = 'boardTags';
 const BOARD_API_URL = import.meta.env.VITE_BOARD_API_URL?.trim();
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const CARD_CONTENT_LIMIT = 100_000;
+export const DEFAULT_CARD_PRIORITY: CardPriority = 'medium';
 
 export const DEFAULT_BACKGROUND: BoardBackground = {
   type: 'image',
@@ -44,6 +49,26 @@ const isValidDateString = (value: unknown): value is string => {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value));
 };
 
+const isCardPriority = (value: unknown): value is CardPriority => {
+  return (
+    typeof value === 'string' && CARD_PRIORITIES.includes(value as CardPriority)
+  );
+};
+
+const normalizeCardMetadata = <
+  T extends { priority?: unknown; tagIds?: unknown },
+>(
+  card: T
+) => ({
+  ...card,
+  priority: isCardPriority(card.priority)
+    ? card.priority
+    : DEFAULT_CARD_PRIORITY,
+  tagIds: Array.isArray(card.tagIds)
+    ? card.tagIds.filter((tagId): tagId is string => typeof tagId === 'string')
+    : [],
+});
+
 export const isSafeImageUrl = (value: string) => {
   if (value.length > 2048) {
     return false;
@@ -67,15 +92,45 @@ const isBoardCard = (value: unknown): value is BoardCard => {
     value.content.length <= CARD_CONTENT_LIMIT &&
     isValidDateString(value.createdAt) &&
     typeof value.id === 'string' &&
+    isCardPriority(value.priority) &&
+    Array.isArray(value.tagIds) &&
+    value.tagIds.every((tagId) => typeof tagId === 'string') &&
+    typeof value.title === 'string'
+  );
+};
+
+const isBoardTag = (value: unknown): value is BoardTag => {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    value.name.trim().length > 0
+  );
+};
+
+const isCardWithContent = (
+  value: unknown
+): value is Omit<BoardCard, 'createdAt' | 'priority' | 'tagIds'> & {
+  createdAt?: unknown;
+  priority?: unknown;
+  tagIds?: unknown;
+} => {
+  return (
+    isRecord(value) &&
+    typeof value.content === 'string' &&
+    value.content.length <= CARD_CONTENT_LIMIT &&
+    typeof value.id === 'string' &&
     typeof value.title === 'string'
   );
 };
 
 const isLegacyDescriptionCard = (
   value: unknown
-): value is Omit<BoardCard, 'content' | 'createdAt'> & {
+): value is Omit<BoardCard, 'content' | 'createdAt' | 'priority' | 'tagIds'> & {
   createdAt?: unknown;
   description: string;
+  priority?: unknown;
+  tagIds?: unknown;
 } => {
   return (
     isRecord(value) &&
@@ -88,8 +143,10 @@ const isLegacyDescriptionCard = (
 
 const isCardWithoutContent = (
   value: unknown
-): value is Omit<BoardCard, 'content' | 'createdAt'> & {
+): value is Omit<BoardCard, 'content' | 'createdAt' | 'priority' | 'tagIds'> & {
   createdAt?: unknown;
+  priority?: unknown;
+  tagIds?: unknown;
 } => {
   return (
     isRecord(value) &&
@@ -128,7 +185,9 @@ const isBoardState = (value: unknown): value is BoardState => {
     isRecord(value) &&
     Array.isArray(value.columns) &&
     value.columns.every(isBoardColumn) &&
-    isBoardBackground(value.background)
+    isBoardBackground(value.background) &&
+    Array.isArray(value.tags) &&
+    value.tags.every(isBoardTag)
   );
 };
 
@@ -147,8 +206,10 @@ const isLegacyColumn = (
 const isColumnWithoutDescriptions = (
   value: unknown
 ): value is Omit<BoardColumn, 'cards'> & {
-  cards: (Omit<BoardCard, 'content' | 'createdAt'> & {
+  cards: (Omit<BoardCard, 'content' | 'createdAt' | 'priority' | 'tagIds'> & {
     createdAt?: unknown;
+    priority?: unknown;
+    tagIds?: unknown;
   })[];
 } => {
   return (
@@ -166,9 +227,16 @@ const isColumnWithLegacyDescriptions = (
 ): value is Omit<BoardColumn, 'cards'> & {
   cards: (
     | BoardCard
-    | (Omit<BoardCard, 'content' | 'createdAt'> & {
+    | (Omit<BoardCard, 'createdAt' | 'priority' | 'tagIds'> & {
+        createdAt?: unknown;
+        priority?: unknown;
+        tagIds?: unknown;
+      })
+    | (Omit<BoardCard, 'content' | 'createdAt' | 'priority' | 'tagIds'> & {
         createdAt?: unknown;
         description: string;
+        priority?: unknown;
+        tagIds?: unknown;
       })
   )[];
 } => {
@@ -178,10 +246,75 @@ const isColumnWithLegacyDescriptions = (
     typeof value.title === 'string' &&
     Array.isArray(value.cards) &&
     value.cards.every(
-      (card) => isBoardCard(card) || isLegacyDescriptionCard(card)
+      (card) =>
+        isBoardCard(card) ||
+        isCardWithContent(card) ||
+        isLegacyDescriptionCard(card)
     ) &&
     typeof value.position === 'number'
   );
+};
+
+const normalizeStoredCard = (
+  card: unknown,
+  migratedCreatedAt: string
+): unknown => {
+  if (!isRecord(card)) {
+    return card;
+  }
+
+  if (typeof card.content === 'string') {
+    return normalizeCardMetadata({
+      ...card,
+      createdAt: isValidDateString(card.createdAt)
+        ? card.createdAt
+        : migratedCreatedAt,
+    });
+  }
+
+  if (typeof card.description === 'string') {
+    return normalizeCardMetadata({
+      content: card.description,
+      createdAt: isValidDateString(card.createdAt)
+        ? card.createdAt
+        : migratedCreatedAt,
+      id: card.id,
+      priority: card.priority,
+      tagIds: card.tagIds,
+      title: card.title,
+    });
+  }
+
+  return normalizeCardMetadata({
+    ...card,
+    content: '',
+    createdAt: isValidDateString(card.createdAt)
+      ? card.createdAt
+      : migratedCreatedAt,
+  });
+};
+
+const normalizeBoardState = (value: unknown): unknown => {
+  if (!isRecord(value) || !Array.isArray(value.columns)) {
+    return value;
+  }
+
+  const migratedCreatedAt = new Date().toISOString();
+
+  return {
+    ...value,
+    columns: value.columns.map((column) =>
+      isRecord(column) && Array.isArray(column.cards)
+        ? {
+            ...column,
+            cards: column.cards.map((card) =>
+              normalizeStoredCard(card, migratedCreatedAt)
+            ),
+          }
+        : column
+    ),
+    tags: Array.isArray(value.tags) ? value.tags.filter(isBoardTag) : [],
+  };
 };
 
 const updateStorageCache = (data: BoardColumn[]) => {
@@ -191,6 +324,10 @@ const updateStorageCache = (data: BoardColumn[]) => {
 
 const updateBackgroundStorageCache = (background: BoardBackground) => {
   writeStorage(BACKGROUND_STORAGE_KEY, JSON.stringify(background));
+};
+
+const updateTagStorageCache = (tags: BoardTag[]) => {
+  writeStorage(TAGS_STORAGE_KEY, JSON.stringify(tags));
 };
 
 export const fetchBackgroundStorage = (): BoardBackground => {
@@ -212,6 +349,7 @@ export const fetchBackgroundStorage = (): BoardBackground => {
 const fetchBoardCache = (): BoardState => ({
   background: fetchBackgroundStorage(),
   columns: fetchStorage(),
+  tags: fetchTagStorage(),
 });
 
 const persistBoardState = (state = fetchBoardCache()) => {
@@ -247,6 +385,11 @@ export const updateBackgroundStorage = (background: BoardBackground) => {
   void persistBoardState();
 };
 
+export const updateTagStorage = (tags: BoardTag[]) => {
+  updateTagStorageCache(tags);
+  void persistBoardState();
+};
+
 export const hydrateStorageFromDatabase =
   async (): Promise<BoardState | null> => {
     if (!BOARD_API_URL || typeof fetch !== 'function') {
@@ -261,28 +404,53 @@ export const hydrateStorageFromDatabase =
       }
 
       const payload: unknown = await response.json();
+      const state = isRecord(payload)
+        ? payload.state === null
+          ? null
+          : normalizeBoardState(payload.state)
+        : undefined;
 
-      if (
-        !isRecord(payload) ||
-        (payload.state !== null && !isBoardState(payload.state))
-      ) {
+      if (!isRecord(payload) || state === undefined) {
+        return null;
+      }
+
+      if (state !== null && !isBoardState(state)) {
         return null;
       }
 
       databaseReady = true;
 
-      if (payload.state === null) {
+      if (state === null) {
         await persistBoardState();
         return null;
       }
 
-      updateStorageCache(payload.state.columns);
-      updateBackgroundStorageCache(payload.state.background);
-      return payload.state;
+      updateStorageCache(state.columns);
+      updateBackgroundStorageCache(state.background);
+      updateTagStorageCache(state.tags);
+      return state;
     } catch {
       return null;
     }
   };
+
+export const fetchTagStorage = (): BoardTag[] => {
+  const data = readStorage(TAGS_STORAGE_KEY);
+
+  if (!data) {
+    return [];
+  }
+
+  try {
+    const parsedData: unknown = JSON.parse(data);
+
+    return Array.isArray(parsedData) && parsedData.every(isBoardTag)
+      ? parsedData
+      : [];
+  } catch {
+    return [];
+  }
+};
 
 export const fetchStorage = (): BoardColumn[] => {
   const data = readStorage(STORAGE_KEY);
@@ -307,20 +475,22 @@ export const fetchStorage = (): BoardColumn[] => {
         ...column,
         cards: column.cards.map((card) =>
           'content' in card
-            ? {
+            ? normalizeCardMetadata({
                 ...card,
                 createdAt: isValidDateString(card.createdAt)
                   ? card.createdAt
                   : migratedCreatedAt,
-              }
-            : {
+              })
+            : normalizeCardMetadata({
                 content: card.description,
                 createdAt: isValidDateString(card.createdAt)
                   ? card.createdAt
                   : migratedCreatedAt,
                 id: card.id,
+                priority: card.priority,
+                tagIds: card.tagIds,
                 title: card.title,
-              }
+              })
         ),
       }));
 
@@ -334,13 +504,15 @@ export const fetchStorage = (): BoardColumn[] => {
     ) {
       const migratedColumns = parsedData.map((column) => ({
         ...column,
-        cards: column.cards.map((card) => ({
-          ...card,
-          content: '',
-          createdAt: isValidDateString(card.createdAt)
-            ? card.createdAt
-            : migratedCreatedAt,
-        })),
+        cards: column.cards.map((card) =>
+          normalizeCardMetadata({
+            ...card,
+            content: '',
+            createdAt: isValidDateString(card.createdAt)
+              ? card.createdAt
+              : migratedCreatedAt,
+          })
+        ),
       }));
 
       updateStorage(migratedColumns);
@@ -355,6 +527,8 @@ export const fetchStorage = (): BoardColumn[] => {
           content: '',
           createdAt: migratedCreatedAt,
           id: createId(),
+          priority: DEFAULT_CARD_PRIORITY,
+          tagIds: [],
           title,
         })),
       }));

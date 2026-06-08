@@ -1,12 +1,18 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
-import { ChevronDown, Trash2, X } from 'lucide-react';
+import { Popover } from '@base-ui/react/popover';
+import { Check, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import CardContentEditor from '../CardContentEditor';
 import ConfirmDialog from '../ConfirmDialog';
-import type { BoardCard, BoardColumn } from '../../types';
+import type {
+  BoardCard,
+  BoardColumn,
+  BoardTag,
+  CardPriority,
+} from '../../types';
 import '../IconButton/IconButton.css';
 
 type CardDialogProps = {
@@ -16,14 +22,23 @@ type CardDialogProps = {
   onDelete?: () => void;
   onOpenChange: (open: boolean) => void;
   onSave: (values: CardDialogValues) => string | void;
+  onTagsChange: (tags: BoardTag[]) => void;
   open: boolean;
+  tags: BoardTag[];
 };
 
 export type CardDialogValues = {
   columnId: string;
   content: string;
+  priority: CardPriority;
+  tagIds: string[];
   title: string;
 };
+
+const DEFAULT_CARD_PRIORITY: CardPriority = 'medium';
+
+const formatPriorityLabel = (priority: CardPriority) =>
+  priority.charAt(0).toUpperCase() + priority.slice(1);
 
 const formatCreatedAt = (value: string) => {
   const date = new Date(value);
@@ -45,11 +60,19 @@ const CardDialog = ({
   onDelete,
   onOpenChange,
   onSave,
+  onTagsChange,
   open,
+  tags,
 }: CardDialogProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedColumnId, setSelectedColumnId] = useState(columnId);
+  const [priority, setPriority] = useState<CardPriority>(DEFAULT_CARD_PRIORITY);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [tagError, setTagError] = useState('');
   const [error, setError] = useState('');
   const [titleEditing, setTitleEditing] = useState(!card);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -66,6 +89,12 @@ const CardDialog = ({
       setTitle(card?.title ?? '');
       setContent(card?.content ?? '');
       setSelectedColumnId(columnId);
+      setPriority(card?.priority ?? DEFAULT_CARD_PRIORITY);
+      setSelectedTagIds(card?.tagIds ?? []);
+      setTagsOpen(false);
+      setCreatingTag(false);
+      setNewTagName('');
+      setTagError('');
       lastValidTitleRef.current = card?.title ?? '';
       openCardIdRef.current = card?.id;
       setTitleEditing(!card);
@@ -76,10 +105,20 @@ const CardDialog = ({
     if (!open) {
       openCardIdRef.current = undefined;
       setDeleteOpen(false);
+      setTagsOpen(false);
+      setCreatingTag(false);
     }
 
     wasOpenRef.current = open;
-  }, [card?.content, card?.id, card?.title, columnId, open]);
+  }, [
+    card?.content,
+    card?.id,
+    card?.priority,
+    card?.tagIds,
+    card?.title,
+    columnId,
+    open,
+  ]);
 
   useEffect(() => {
     if (!open || !titleEditing) {
@@ -121,6 +160,8 @@ const CardDialog = ({
     const message = onSave({
       columnId: nextValues.columnId ?? selectedColumnId,
       content: nextValues.content ?? content,
+      priority: nextValues.priority ?? priority,
+      tagIds: nextValues.tagIds ?? selectedTagIds,
       title: titleToSave,
     });
 
@@ -140,6 +181,8 @@ const CardDialog = ({
     const message = onSave({
       columnId: selectedColumnId,
       content: content.trim(),
+      priority,
+      tagIds: selectedTagIds,
       title: title.trim(),
     });
 
@@ -171,6 +214,58 @@ const CardDialog = ({
     saveExistingCard({ columnId: value });
   };
 
+  const onPriorityChange = (value: string) => {
+    const nextPriority = value as CardPriority;
+
+    setPriority(nextPriority);
+    saveExistingCard({ priority: nextPriority });
+  };
+
+  const toggleTag = (tagId: string) => {
+    const nextTagIds = selectedTagIds.includes(tagId)
+      ? selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId)
+      : [...selectedTagIds, tagId];
+
+    setSelectedTagIds(nextTagIds);
+    saveExistingCard({ tagIds: nextTagIds });
+  };
+
+  const createTag = () => {
+    const name = newTagName.trim();
+
+    if (!name) {
+      setTagError('Enter a tag name.');
+      return;
+    }
+
+    if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
+      setTagError('Tag names must be unique.');
+      return;
+    }
+
+    const tag = { id: crypto.randomUUID(), name };
+    const nextTags = [...tags, tag];
+    const nextTagIds = [...selectedTagIds, tag.id];
+
+    onTagsChange(nextTags);
+    setSelectedTagIds(nextTagIds);
+    saveExistingCard({ tagIds: nextTagIds });
+    setNewTagName('');
+    setTagError('');
+    setCreatingTag(false);
+    setTagsOpen(false);
+  };
+
+  const onTagsOpenChange = (nextOpen: boolean) => {
+    setTagsOpen(nextOpen);
+
+    if (!nextOpen) {
+      setCreatingTag(false);
+      setNewTagName('');
+      setTagError('');
+    }
+  };
+
   const onTitleBlur = () => {
     if (!title.trim() && !lastValidTitleRef.current) {
       return;
@@ -180,6 +275,13 @@ const CardDialog = ({
   };
 
   const createdAtLabel = card?.createdAt ? formatCreatedAt(card.createdAt) : '';
+  const selectedTags = selectedTagIds
+    .map((tagId) => tags.find((tag) => tag.id === tagId))
+    .filter((tag): tag is BoardTag => Boolean(tag));
+  const tagSummary =
+    selectedTags.length > 0
+      ? selectedTags.map((tag) => tag.name).join(', ')
+      : 'No tags';
 
   return (
     <>
@@ -267,6 +369,124 @@ const CardDialog = ({
                     />
                   </span>
                 </label>
+                <label className="dialog-field">
+                  <span>Priority</span>
+                  <span className="dialog-select">
+                    <select
+                      className="dialog-input dialog-input--select"
+                      onChange={(event) =>
+                        onPriorityChange(event.currentTarget.value)
+                      }
+                      value={priority}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="dialog-select__icon"
+                      size={17}
+                    />
+                  </span>
+                </label>
+                <div className="dialog-field">
+                  <span>Tags</span>
+                  <Popover.Root
+                    modal={false}
+                    onOpenChange={onTagsOpenChange}
+                    open={tagsOpen}
+                  >
+                    <Popover.Trigger
+                      className="dialog-input tag-select__trigger"
+                      render={<Button />}
+                    >
+                      <span>{tagSummary}</span>
+                      <ChevronDown size={17} />
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                      <Popover.Positioner
+                        align="start"
+                        className="tag-select__positioner"
+                        sideOffset={5}
+                      >
+                        <Popover.Popup
+                          className="tag-select__dropdown"
+                          initialFocus={false}
+                          role="listbox"
+                        >
+                          {tags.length > 0 ? (
+                            tags.map((tag) => {
+                              const selected = selectedTagIds.includes(tag.id);
+
+                              return (
+                                <button
+                                  aria-selected={selected}
+                                  className="tag-select__option"
+                                  key={tag.id}
+                                  onClick={() => toggleTag(tag.id)}
+                                  role="option"
+                                  type="button"
+                                >
+                                  <span>{tag.name}</span>
+                                  {selected && <Check size={15} />}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <p className="tag-select__empty">No tags yet</p>
+                          )}
+                          <div className="tag-select__create">
+                            {creatingTag ? (
+                              <div>
+                                <input
+                                  aria-label="New tag name"
+                                  autoFocus
+                                  maxLength={60}
+                                  onChange={(event) => {
+                                    setNewTagName(event.currentTarget.value);
+                                    setTagError('');
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      createTag();
+                                    }
+
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault();
+                                      onTagsOpenChange(false);
+                                    }
+                                  }}
+                                  placeholder="New tag name"
+                                  type="text"
+                                  value={newTagName}
+                                />
+                                {tagError && (
+                                  <p className="tag-select__error">
+                                    {tagError}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                className="tag-select__create-button"
+                                onClick={() => {
+                                  setCreatingTag(true);
+                                  setTagError('');
+                                }}
+                                type="button"
+                              >
+                                <Plus size={15} />
+                                Create tag
+                              </button>
+                            )}
+                          </div>
+                        </Popover.Popup>
+                      </Popover.Positioner>
+                    </Popover.Portal>
+                  </Popover.Root>
+                </div>
                 <div className="dialog-field">
                   <span id={`card-content-label-${card?.id ?? columnId}`}>
                     Content

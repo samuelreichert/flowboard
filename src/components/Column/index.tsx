@@ -10,7 +10,7 @@ import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
-import type { BoardColumn } from '../../types';
+import type { BoardColumn, BoardTag } from '../../types';
 
 import './Column.css';
 import '../IconButton/IconButton.css';
@@ -25,8 +25,10 @@ type ColumnProps = {
     cardId: string,
     values: CardDialogValues
   ) => string | void;
+  onTagsChange: (tags: BoardTag[]) => void;
   renameColumn: (columnId: string, title: string) => string | void;
   saveCard: (values: CardDialogValues) => string | void;
+  tags: BoardTag[];
 };
 
 const Column = ({
@@ -35,8 +37,10 @@ const Column = ({
   deleteCard,
   deleteColumn,
   editCard,
+  onTagsChange,
   renameColumn,
   saveCard,
+  tags,
 }: ColumnProps) => {
   const columnRef = useRef<HTMLElement | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -112,6 +116,8 @@ const Column = ({
               deleteCard={deleteCard}
               editCard={editCard}
               key={card.id}
+              onTagsChange={onTagsChange}
+              tags={tags}
             />
           ))}
         </div>
@@ -129,9 +135,11 @@ const Column = ({
       <CardDialog
         columnId={column.id}
         columns={columns}
+        onTagsChange={onTagsChange}
         onOpenChange={setAddCardOpen}
         onSave={saveCard}
         open={addCardOpen}
+        tags={tags}
       />
       <ColumnRenameDialog
         initialValue={column.title}

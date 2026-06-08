@@ -14,7 +14,7 @@ import {
 } from '../../dnd';
 import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
-import type { BoardColumn } from '../../types';
+import type { BoardColumn, BoardTag } from '../../types';
 
 import './Columns.css';
 
@@ -22,9 +22,11 @@ const createId = () => crypto.randomUUID();
 
 type ColumnsProps = {
   onColumnCountChange: (count: number) => void;
+  onTagsChange: (tags: BoardTag[]) => void;
+  tags: BoardTag[];
 };
 
-const Columns = ({ onColumnCountChange }: ColumnsProps) => {
+const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
   const [columns, setColumns] = useState<BoardColumn[]>(fetchStorage);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
@@ -95,6 +97,8 @@ const Columns = ({ onColumnCountChange }: ColumnsProps) => {
                   content: values.content,
                   createdAt: new Date().toISOString(),
                   id: createId(),
+                  priority: values.priority,
+                  tagIds: values.tagIds,
                   title: values.title,
                 },
               ],
@@ -123,6 +127,8 @@ const Columns = ({ onColumnCountChange }: ColumnsProps) => {
     const updatedCard = {
       ...existingCard,
       content: values.content,
+      priority: values.priority,
+      tagIds: values.tagIds,
       title: values.title,
     };
 
@@ -229,8 +235,10 @@ const Columns = ({ onColumnCountChange }: ColumnsProps) => {
             deleteColumn={onDeleteColumn}
             editCard={onEditCard}
             key={column.id}
+            onTagsChange={onTagsChange}
             renameColumn={onRenameColumn}
             saveCard={onSaveCard}
+            tags={tags}
           />
         ))}
         <Button

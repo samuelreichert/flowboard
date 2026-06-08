@@ -1,19 +1,23 @@
 import { Button } from '@base-ui/react/button';
+import { Menu } from '@base-ui/react/menu';
 import { Tooltip } from '@base-ui/react/tooltip';
-import { RotateCcw } from 'lucide-react';
+import { Ellipsis, Palette, RotateCcw, Tags } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import BackgroundPicker from './components/BackgroundPicker';
 import Columns from './components/Columns';
 import ConfirmDialog from './components/ConfirmDialog';
+import TagManagerDialog from './components/TagManagerDialog';
 import {
   fetchBackgroundStorage,
   fetchStorage,
+  fetchTagStorage,
   hydrateStorageFromDatabase,
   updateBackgroundStorage,
+  updateTagStorage,
   updateStorage,
 } from './storage';
-import type { BoardBackground } from './types';
+import type { BoardBackground, BoardTag } from './types';
 
 import './App.css';
 
@@ -30,6 +34,9 @@ const getBackgroundStyle = (background: BoardBackground) => {
 const App = () => {
   const [background, setBackground] = useState(fetchBackgroundStorage);
   const [columnCount, setColumnCount] = useState(() => fetchStorage().length);
+  const [tags, setTags] = useState<BoardTag[]>(fetchTagStorage);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [clearBoardOpen, setClearBoardOpen] = useState(false);
   const [storageVersion, setStorageVersion] = useState(0);
 
@@ -43,6 +50,7 @@ const App = () => {
 
       setBackground(state.background);
       setColumnCount(state.columns.length);
+      setTags(state.tags);
       setStorageVersion((version) => version + 1);
     });
 
@@ -54,6 +62,33 @@ const App = () => {
   const updateBackground = (newBackground: BoardBackground) => {
     setBackground(newBackground);
     updateBackgroundStorage(newBackground);
+  };
+
+  const updateTags = (newTags: BoardTag[]) => {
+    setTags(newTags);
+    updateTagStorage(newTags);
+  };
+
+  const getTagUsageCount = (tagId: string) =>
+    fetchStorage().reduce(
+      (count, column) =>
+        count +
+        column.cards.filter((card) => card.tagIds.includes(tagId)).length,
+      0
+    );
+
+  const deleteTag = (tagId: string) => {
+    updateTags(tags.filter((tag) => tag.id !== tagId));
+    updateStorage(
+      fetchStorage().map((column) => ({
+        ...column,
+        cards: column.cards.map((card) => ({
+          ...card,
+          tagIds: card.tagIds.filter((cardTagId) => cardTagId !== tagId),
+        })),
+      }))
+    );
+    setStorageVersion((version) => version + 1);
   };
 
   const clearBoard = () => {
@@ -76,21 +111,67 @@ const App = () => {
             <div className="board__actions">
               <BackgroundPicker
                 background={background}
+                onOpenChange={setBackgroundOpen}
                 onChange={updateBackground}
+                open={backgroundOpen}
+                showTrigger={false}
               />
-              {columnCount > 0 && (
-                <Button
+              <Menu.Root>
+                <Menu.Trigger
+                  aria-label="Open board actions"
                   className="button button--subtle"
-                  onClick={() => setClearBoardOpen(true)}
+                  render={<Button />}
                 >
-                  <RotateCcw size={16} />
-                  Clear board
-                </Button>
-              )}
+                  <Ellipsis size={16} />
+                  Board
+                </Menu.Trigger>
+                <Menu.Portal>
+                  <Menu.Positioner sideOffset={4}>
+                    <Menu.Popup className="menu-popup">
+                      <Menu.Item
+                        className="menu-item"
+                        onClick={() => setBackgroundOpen(true)}
+                      >
+                        <Palette size={15} />
+                        Background settings
+                      </Menu.Item>
+                      <Menu.Item
+                        className="menu-item"
+                        onClick={() => setTagManagerOpen(true)}
+                      >
+                        <Tags size={15} />
+                        Manage tags
+                      </Menu.Item>
+                      {columnCount > 0 && (
+                        <Menu.Item
+                          className="menu-item menu-item--danger"
+                          onClick={() => setClearBoardOpen(true)}
+                        >
+                          <RotateCcw size={15} />
+                          Clear board
+                        </Menu.Item>
+                      )}
+                    </Menu.Popup>
+                  </Menu.Positioner>
+                </Menu.Portal>
+              </Menu.Root>
             </div>
           </header>
-          <Columns key={storageVersion} onColumnCountChange={setColumnCount} />
+          <Columns
+            key={storageVersion}
+            onColumnCountChange={setColumnCount}
+            onTagsChange={updateTags}
+            tags={tags}
+          />
         </section>
+        <TagManagerDialog
+          getTagUsageCount={getTagUsageCount}
+          onDeleteTag={deleteTag}
+          onOpenChange={setTagManagerOpen}
+          onTagsChange={updateTags}
+          open={tagManagerOpen}
+          tags={tags}
+        />
         <ConfirmDialog
           confirmLabel="Clear board"
           description={`This will permanently delete ${columnCount} columns and all of their cards.`}

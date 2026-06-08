@@ -1,7 +1,18 @@
+export const CARD_PRIORITIES = ['low', 'medium', 'high'] as const;
+
+export type CardPriority = (typeof CARD_PRIORITIES)[number];
+
+export type BoardTag = {
+  id: string;
+  name: string;
+};
+
 export type BoardCard = {
   content: string;
   createdAt: string;
   id: string;
+  priority: CardPriority;
+  tagIds: string[];
   title: string;
 };
 
@@ -25,4 +36,5 @@ export type BoardBackground =
 export type BoardState = {
   background: BoardBackground;
   columns: BoardColumn[];
+  tags: BoardTag[];
 };
