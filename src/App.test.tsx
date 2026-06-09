@@ -123,9 +123,7 @@ test('closes background settings with Escape without changing the background', a
   render(<App />);
 
   await openBackgroundSettings(user);
-  expect(
-    screen.getByLabelText(/choose board background/i)
-  ).toBeInTheDocument();
+  expect(screen.getByLabelText(/choose board background/i)).toBeInTheDocument();
 
   await user.keyboard('{Escape}');
 
@@ -244,6 +242,126 @@ test('creates columns and cards from dialogs', async () => {
   );
 });
 
+test('closes an empty new-card draft without discard confirmation', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await openCreateCard(user, 'Todo');
+  await user.keyboard('{Escape}');
+
+  expect(
+    screen.queryByRole('alertdialog', { name: /discard new card/i })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(readColumns()[0].cards).toEqual([]);
+
+  await openCreateCard(user, 'Todo');
+  await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+  expect(
+    screen.queryByRole('alertdialog', { name: /discard new card/i })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(readColumns()[0].cards).toEqual([]);
+});
+
+test('confirms before discarding a new-card draft with title text', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await openCreateCard(user, 'Todo');
+  await user.type(screen.getByLabelText('Card title'), 'Draft card');
+  await user.keyboard('{Escape}');
+
+  const alert = screen.getByRole('alertdialog', {
+    name: /discard new card/i,
+  });
+  expect(alert).toBeInTheDocument();
+
+  await user.click(within(alert).getByRole('button', { name: /^cancel$/i }));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('alertdialog', { name: /discard new card/i })
+    ).not.toBeInTheDocument()
+  );
+  expect(await screen.findByLabelText('Card title')).toHaveValue('Draft card');
+
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await user.click(screen.getByRole('button', { name: /discard card/i }));
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(readColumns()[0].cards).toEqual([]);
+});
+
+test('confirms before discarding a new-card draft with content', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await openCreateCard(user, 'Todo');
+  await user.click(screen.getByLabelText('Content'));
+  pasteText(screen.getByLabelText('Content'), 'Unsaved details');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  const alert = screen.getByRole('alertdialog', {
+    name: /discard new card/i,
+  });
+  expect(alert).toBeInTheDocument();
+
+  await user.click(
+    within(alert).getByRole('button', { name: /discard card/i })
+  );
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(readColumns()[0].cards).toEqual([]);
+});
+
+test('confirms before discarding a new-card draft with selected tags', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await openTagManager(user);
+  await user.type(screen.getByLabelText('New tag'), 'Design{Enter}');
+  await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+
+  await openCreateCard(user, 'Todo');
+  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('option', { name: 'Design' }));
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  const alert = screen.getByRole('alertdialog', {
+    name: /discard new card/i,
+  });
+  expect(alert).toBeInTheDocument();
+  await user.click(
+    within(alert).getByRole('button', { name: /discard card/i })
+  );
+
+  expect(readColumns()[0].cards).toEqual([]);
+  expect(fetchTagStorage()).toEqual([
+    { id: expect.any(String), name: 'Design' },
+  ]);
+});
+
+test('closes a priority-only new-card draft without discard confirmation', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await openCreateCard(user, 'Todo');
+  await chooseSelectOption(user, 'Priority', 'High');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  expect(
+    screen.queryByRole('alertdialog', { name: /discard new card/i })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(readColumns()[0].cards).toEqual([]);
+});
+
 test('renders column creation as a placeholder in the columns list', () => {
   render(<App />);
 
@@ -304,6 +422,9 @@ test('shows and edits card details in the modal', async () => {
   pasteText(content, ' Ready to ship');
   await user.click(screen.getByRole('button', { name: /close card/i }));
 
+  expect(
+    screen.queryByRole('alertdialog', { name: /discard new card/i })
+  ).not.toBeInTheDocument();
   expect(readColumns()[0].cards.map((card) => card.title)).toEqual([
     'Approved',
     'Review',
@@ -711,16 +832,24 @@ const addCard = async (
   title: string,
   content = ''
 ) => {
-  const column = screen
-    .getByRole('heading', { name: columnTitle })
-    .closest('section') as HTMLElement;
-  fireEvent.click(within(column).getByRole('button', { name: /create card/i }));
+  await openCreateCard(user, columnTitle);
   await user.type(await screen.findByLabelText('Card title'), title);
   if (content) {
     await user.click(screen.getByLabelText('Content'));
     pasteText(screen.getByLabelText('Content'), content);
   }
   await user.click(screen.getByRole('button', { name: /^create$/i }));
+};
+
+const openCreateCard = async (
+  _user: ReturnType<typeof userEvent.setup>,
+  columnTitle: string
+) => {
+  const column = screen
+    .getByRole('heading', { name: columnTitle })
+    .closest('section') as HTMLElement;
+  fireEvent.click(within(column).getByRole('button', { name: /create card/i }));
+  await screen.findByLabelText('Card title');
 };
 
 const pasteText = (element: HTMLElement, text: string) => {
