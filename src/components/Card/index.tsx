@@ -9,7 +9,7 @@ import {
   extractClosestEdge,
 } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { AlignLeft, GripVertical } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 
@@ -34,6 +34,32 @@ type CardProps = {
   tags: BoardTag[];
 };
 
+const stopCardClick = (event: MouseEvent) => {
+  event.stopPropagation();
+};
+
+type CardState = {
+  closestEdge: Edge | null;
+  detailsOpen: boolean;
+  isDragging: boolean;
+};
+
+type CardAction =
+  | { type: 'closestEdgeChanged'; closestEdge: Edge | null }
+  | { type: 'detailsOpenChanged'; open: boolean }
+  | { type: 'draggingChanged'; isDragging: boolean };
+
+const cardReducer = (state: CardState, action: CardAction): CardState => {
+  switch (action.type) {
+    case 'closestEdgeChanged':
+      return { ...state, closestEdge: action.closestEdge };
+    case 'detailsOpenChanged':
+      return { ...state, detailsOpen: action.open };
+    case 'draggingChanged':
+      return { ...state, isDragging: action.isDragging };
+  }
+};
+
 const Card = ({
   card,
   columnId,
@@ -45,9 +71,14 @@ const Card = ({
 }: CardProps) => {
   const cardRef = useRef<HTMLElement | null>(null);
   const dragHandleRef = useRef<HTMLButtonElement | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+  const [state, dispatch] = useReducer(cardReducer, {
+    closestEdge: null,
+    detailsOpen: false,
+    isDragging: false,
+  });
+  const { closestEdge, detailsOpen, isDragging } = state;
+
+  const openCard = () => dispatch({ open: true, type: 'detailsOpenChanged' });
 
   useEffect(() => {
     const cardElement = cardRef.current;
@@ -62,8 +93,9 @@ const Card = ({
         element: cardElement,
         dragHandle,
         getInitialData: () => ({ cardId: card.id, columnId, type: 'card' }),
-        onDragStart: () => setIsDragging(true),
-        onDrop: () => setIsDragging(false),
+        onDragStart: () =>
+          dispatch({ isDragging: true, type: 'draggingChanged' }),
+        onDrop: () => dispatch({ isDragging: false, type: 'draggingChanged' }),
       }),
       dropTargetForElements({
         element: cardElement,
@@ -74,18 +106,24 @@ const Card = ({
             { cardId: card.id, columnId, type: 'card' },
             { allowedEdges: ['top', 'bottom'], element, input }
           ),
-        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDrag: ({ self }) =>
+          dispatch({
+            closestEdge: extractClosestEdge(self.data),
+            type: 'closestEdgeChanged',
+          }),
         onDragEnter: ({ self }) =>
-          setClosestEdge(extractClosestEdge(self.data)),
-        onDragLeave: () => setClosestEdge(null),
-        onDrop: () => setClosestEdge(null),
+          dispatch({
+            closestEdge: extractClosestEdge(self.data),
+            type: 'closestEdgeChanged',
+          }),
+        onDragLeave: () =>
+          dispatch({ closestEdge: null, type: 'closestEdgeChanged' }),
+        onDrop: () =>
+          dispatch({ closestEdge: null, type: 'closestEdgeChanged' }),
       })
     );
   }, [card.id, columnId]);
 
-  const stopCardClick = (event: MouseEvent) => {
-    event.stopPropagation();
-  };
   const cardTags = card.tagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
     .filter((tag): tag is BoardTag => Boolean(tag));
@@ -98,7 +136,6 @@ const Card = ({
     <>
       <article
         className={`card ${isDragging ? 'card--dragging' : ''}`}
-        onClick={() => setDetailsOpen(true)}
         ref={cardRef}
       >
         {closestEdge && (
@@ -115,7 +152,7 @@ const Card = ({
         >
           <GripVertical size={16} />
         </Button>
-        <div className="card__body">
+        <Button className="card__body" onClick={openCard} type="button">
           <div className="card__title-row">
             <span className="card__title">{card.title}</span>
             {card.content && (
@@ -141,7 +178,7 @@ const Card = ({
               </span>
             )}
           </div>
-        </div>
+        </Button>
       </article>
       <CardDialog
         card={card}
@@ -149,7 +186,7 @@ const Card = ({
         columns={columns}
         onDelete={() => deleteCard(columnId, card.id)}
         onTagsChange={onTagsChange}
-        onOpenChange={setDetailsOpen}
+        onOpenChange={(open) => dispatch({ open, type: 'detailsOpenChanged' })}
         onSave={(values) => editCard(columnId, card.id, values)}
         open={detailsOpen}
         tags={tags}

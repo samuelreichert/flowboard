@@ -2,7 +2,7 @@ import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import { Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 
 import Card from '../Card';
 import CardDialog from '../CardDialog';
@@ -31,6 +31,35 @@ type ColumnProps = {
   tags: BoardTag[];
 };
 
+type ColumnState = {
+  addCardOpen: boolean;
+  deleteOpen: boolean;
+  isDragOver: boolean;
+  renameOpen: boolean;
+};
+
+type ColumnAction =
+  | { type: 'addCardOpenChanged'; open: boolean }
+  | { type: 'deleteOpenChanged'; open: boolean }
+  | { type: 'dragOverChanged'; isDragOver: boolean }
+  | { type: 'renameOpenChanged'; open: boolean };
+
+const columnReducer = (
+  state: ColumnState,
+  action: ColumnAction
+): ColumnState => {
+  switch (action.type) {
+    case 'addCardOpenChanged':
+      return { ...state, addCardOpen: action.open };
+    case 'deleteOpenChanged':
+      return { ...state, deleteOpen: action.open };
+    case 'dragOverChanged':
+      return { ...state, isDragOver: action.isDragOver };
+    case 'renameOpenChanged':
+      return { ...state, renameOpen: action.open };
+  }
+};
+
 const Column = ({
   column,
   columns,
@@ -43,10 +72,13 @@ const Column = ({
   tags,
 }: ColumnProps) => {
   const columnRef = useRef<HTMLElement | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [addCardOpen, setAddCardOpen] = useState(false);
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [state, dispatch] = useReducer(columnReducer, {
+    addCardOpen: false,
+    deleteOpen: false,
+    isDragOver: false,
+    renameOpen: false,
+  });
+  const { addCardOpen, deleteOpen, isDragOver, renameOpen } = state;
 
   useEffect(() => {
     const columnElement = columnRef.current;
@@ -59,9 +91,11 @@ const Column = ({
       element: columnElement,
       canDrop: ({ source }) => isCardDragData(source.data),
       getData: () => ({ columnId: column.id, type: 'column' }),
-      onDragEnter: () => setIsDragOver(true),
-      onDragLeave: () => setIsDragOver(false),
-      onDrop: () => setIsDragOver(false),
+      onDragEnter: () =>
+        dispatch({ isDragOver: true, type: 'dragOverChanged' }),
+      onDragLeave: () =>
+        dispatch({ isDragOver: false, type: 'dragOverChanged' }),
+      onDrop: () => dispatch({ isDragOver: false, type: 'dragOverChanged' }),
     });
   }, [column.id]);
 
@@ -90,14 +124,18 @@ const Column = ({
                 <Menu.Popup className="menu-popup">
                   <Menu.Item
                     className="menu-item"
-                    onClick={() => setRenameOpen(true)}
+                    onClick={() =>
+                      dispatch({ open: true, type: 'renameOpenChanged' })
+                    }
                   >
                     <Pencil size={15} />
                     Rename column
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item menu-item--danger"
-                    onClick={() => setDeleteOpen(true)}
+                    onClick={() =>
+                      dispatch({ open: true, type: 'deleteOpenChanged' })
+                    }
                   >
                     <Trash2 size={15} />
                     Delete column
@@ -126,7 +164,7 @@ const Column = ({
         )}
         <Button
           className="add-card-button"
-          onClick={() => setAddCardOpen(true)}
+          onClick={() => dispatch({ open: true, type: 'addCardOpenChanged' })}
         >
           <Plus size={16} />
           Create card
@@ -136,14 +174,14 @@ const Column = ({
         columnId={column.id}
         columns={columns}
         onTagsChange={onTagsChange}
-        onOpenChange={setAddCardOpen}
+        onOpenChange={(open) => dispatch({ open, type: 'addCardOpenChanged' })}
         onSave={saveCard}
         open={addCardOpen}
         tags={tags}
       />
       <ColumnRenameDialog
         initialValue={column.title}
-        onOpenChange={setRenameOpen}
+        onOpenChange={(open) => dispatch({ open, type: 'renameOpenChanged' })}
         onSave={(title) => renameColumn(column.id, title)}
         open={renameOpen}
       />
@@ -151,7 +189,7 @@ const Column = ({
         confirmLabel="Delete column"
         description={`This will permanently delete ${column.cards.length} ${column.cards.length === 1 ? 'card' : 'cards'} in ${column.title}.`}
         onConfirm={() => deleteColumn(column.id)}
-        onOpenChange={setDeleteOpen}
+        onOpenChange={(open) => dispatch({ open, type: 'deleteOpenChanged' })}
         open={deleteOpen}
         title="Delete this column?"
       />

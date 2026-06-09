@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
 import { Check, Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import ConfirmDialog from '../ConfirmDialog';
@@ -29,6 +29,79 @@ const isDuplicateName = (
       tag.id !== ignoredTagId && tag.name.toLowerCase() === name.toLowerCase()
   );
 
+type TagManagerState = {
+  createError: string;
+  editError: string;
+  editingTagId: string | null;
+  editingTagName: string;
+  newTagName: string;
+  pendingDelete: BoardTag | null;
+};
+
+type TagManagerAction =
+  | { type: 'createErrorChanged'; error: string }
+  | { type: 'createNameChanged'; name: string }
+  | { type: 'editErrorChanged'; error: string }
+  | { type: 'editNameChanged'; name: string }
+  | { type: 'editingCanceled' }
+  | { type: 'renameStarted'; tag: BoardTag }
+  | { type: 'reset' }
+  | { type: 'tagCreated' }
+  | { type: 'tagDeleteRequested'; tag: BoardTag | null }
+  | { type: 'tagRenamed' };
+
+const initialTagManagerState: TagManagerState = {
+  createError: '',
+  editError: '',
+  editingTagId: null,
+  editingTagName: '',
+  newTagName: '',
+  pendingDelete: null,
+};
+
+const tagManagerReducer = (
+  state: TagManagerState,
+  action: TagManagerAction
+): TagManagerState => {
+  switch (action.type) {
+    case 'createErrorChanged':
+      return { ...state, createError: action.error };
+    case 'createNameChanged':
+      return { ...state, createError: '', newTagName: action.name };
+    case 'editErrorChanged':
+      return { ...state, editError: action.error };
+    case 'editNameChanged':
+      return { ...state, editError: '', editingTagName: action.name };
+    case 'editingCanceled':
+      return {
+        ...state,
+        editError: '',
+        editingTagId: null,
+        editingTagName: '',
+      };
+    case 'renameStarted':
+      return {
+        ...state,
+        editError: '',
+        editingTagId: action.tag.id,
+        editingTagName: action.tag.name,
+      };
+    case 'reset':
+      return initialTagManagerState;
+    case 'tagCreated':
+      return { ...state, createError: '', newTagName: '' };
+    case 'tagDeleteRequested':
+      return { ...state, pendingDelete: action.tag };
+    case 'tagRenamed':
+      return {
+        ...state,
+        editError: '',
+        editingTagId: null,
+        editingTagName: '',
+      };
+  }
+};
+
 const TagManagerDialog = ({
   getTagUsageCount,
   onDeleteTag,
@@ -37,63 +110,70 @@ const TagManagerDialog = ({
   open,
   tags,
 }: TagManagerDialogProps) => {
-  const [newTagName, setNewTagName] = useState('');
-  const [createError, setCreateError] = useState('');
-  const [editingTagId, setEditingTagId] = useState<string | null>(null);
-  const [editingTagName, setEditingTagName] = useState('');
-  const [editError, setEditError] = useState('');
-  const [pendingDelete, setPendingDelete] = useState<BoardTag | null>(null);
+  const [state, dispatch] = useReducer(
+    tagManagerReducer,
+    initialTagManagerState
+  );
+  const {
+    createError,
+    editError,
+    editingTagId,
+    editingTagName,
+    newTagName,
+    pendingDelete,
+  } = state;
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    setNewTagName('');
-    setCreateError('');
-    setEditingTagId(null);
-    setEditingTagName('');
-    setEditError('');
-    setPendingDelete(null);
+    dispatch({ type: 'reset' });
   }, [open]);
 
   const createTag = () => {
     const name = newTagName.trim();
 
     if (!name) {
-      setCreateError('Enter a tag name.');
+      dispatch({
+        error: 'Enter a tag name.',
+        type: 'createErrorChanged',
+      });
       return;
     }
 
     if (isDuplicateName(tags, name)) {
-      setCreateError('Tag names must be unique.');
+      dispatch({
+        error: 'Tag names must be unique.',
+        type: 'createErrorChanged',
+      });
       return;
     }
 
     onTagsChange([...tags, { id: crypto.randomUUID(), name }]);
-    setNewTagName('');
-    setCreateError('');
+    dispatch({ type: 'tagCreated' });
   };
 
   const saveRename = (tagId: string) => {
     const name = editingTagName.trim();
 
     if (!name) {
-      setEditError('Enter a tag name.');
+      dispatch({ error: 'Enter a tag name.', type: 'editErrorChanged' });
       return;
     }
 
     if (isDuplicateName(tags, name, tagId)) {
-      setEditError('Tag names must be unique.');
+      dispatch({
+        error: 'Tag names must be unique.',
+        type: 'editErrorChanged',
+      });
       return;
     }
 
     onTagsChange(
       tags.map((tag) => (tag.id === tagId ? { ...tag, name } : tag))
     );
-    setEditingTagId(null);
-    setEditingTagName('');
-    setEditError('');
+    dispatch({ type: 'tagRenamed' });
   };
 
   const onCreateKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -105,7 +185,7 @@ const TagManagerDialog = ({
 
   const requestDelete = (tag: BoardTag) => {
     if (getTagUsageCount(tag.id) > 0) {
-      setPendingDelete(tag);
+      dispatch({ tag, type: 'tagDeleteRequested' });
       return;
     }
 
@@ -148,8 +228,10 @@ const TagManagerDialog = ({
                       <Field.Control
                         maxLength={60}
                         onValueChange={(value) => {
-                          setNewTagName(value);
-                          setCreateError('');
+                          dispatch({
+                            name: value,
+                            type: 'createNameChanged',
+                          });
                         }}
                         onKeyDown={onCreateKeyDown}
                         placeholder="Design"
@@ -192,8 +274,10 @@ const TagManagerDialog = ({
                                 className="dialog-input"
                                 maxLength={60}
                                 onValueChange={(value) => {
-                                  setEditingTagName(value);
-                                  setEditError('');
+                                  dispatch({
+                                    name: value,
+                                    type: 'editNameChanged',
+                                  });
                                 }}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Enter') {
@@ -203,9 +287,7 @@ const TagManagerDialog = ({
 
                                   if (event.key === 'Escape') {
                                     event.preventDefault();
-                                    setEditingTagId(null);
-                                    setEditingTagName('');
-                                    setEditError('');
+                                    dispatch({ type: 'editingCanceled' });
                                   }
                                 }}
                                 type="text"
@@ -242,9 +324,10 @@ const TagManagerDialog = ({
                                 aria-label={`Rename ${tag.name} tag`}
                                 className="icon-button"
                                 onClick={() => {
-                                  setEditingTagId(tag.id);
-                                  setEditingTagName(tag.name);
-                                  setEditError('');
+                                  dispatch({
+                                    tag,
+                                    type: 'renameStarted',
+                                  });
                                 }}
                                 type="button"
                               >
@@ -278,11 +361,11 @@ const TagManagerDialog = ({
           description={`${pendingDelete.name} is assigned to ${getTagUsageCount(pendingDelete.id)} cards. Removing it will clear the tag from those cards.`}
           onConfirm={() => {
             onDeleteTag(pendingDelete.id);
-            setPendingDelete(null);
+            dispatch({ tag: null, type: 'tagDeleteRequested' });
           }}
           onOpenChange={(nextOpen) => {
             if (!nextOpen) {
-              setPendingDelete(null);
+              dispatch({ tag: null, type: 'tagDeleteRequested' });
             }
           }}
           open={Boolean(pendingDelete)}

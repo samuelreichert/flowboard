@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Palette, RotateCcw, Settings2, Tags } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 
 import BackgroundPicker from './components/BackgroundPicker';
 import Columns from './components/Columns';
@@ -31,15 +31,94 @@ const getBackgroundStyle = (background: BoardBackground) => {
   return { backgroundColor: background.value };
 };
 
+const getTagUsageCount = (tagId: string) =>
+  fetchStorage().reduce(
+    (count, column) =>
+      count + column.cards.filter((card) => card.tagIds.includes(tagId)).length,
+    0
+  );
+
+type AppState = {
+  background: BoardBackground;
+  backgroundOpen: boolean;
+  clearBoardOpen: boolean;
+  columnCount: number;
+  storageVersion: number;
+  tagManagerOpen: boolean;
+  tags: BoardTag[];
+};
+
+type AppAction =
+  | { type: 'backgroundChanged'; background: BoardBackground }
+  | { type: 'backgroundOpenChanged'; open: boolean }
+  | { type: 'boardCleared' }
+  | { type: 'clearBoardOpenChanged'; open: boolean }
+  | { type: 'columnCountChanged'; columnCount: number }
+  | {
+      type: 'storageHydrated';
+      background: BoardBackground;
+      columnCount: number;
+      tags: BoardTag[];
+    }
+  | { type: 'storageVersionIncremented' }
+  | { type: 'tagManagerOpenChanged'; open: boolean }
+  | { type: 'tagsChanged'; tags: BoardTag[] };
+
+const initAppState = (): AppState => ({
+  background: fetchBackgroundStorage(),
+  backgroundOpen: false,
+  clearBoardOpen: false,
+  columnCount: fetchStorage().length,
+  storageVersion: 0,
+  tagManagerOpen: false,
+  tags: fetchTagStorage(),
+});
+
+const appReducer = (state: AppState, action: AppAction): AppState => {
+  switch (action.type) {
+    case 'backgroundChanged':
+      return { ...state, background: action.background };
+    case 'backgroundOpenChanged':
+      return { ...state, backgroundOpen: action.open };
+    case 'boardCleared':
+      return {
+        ...state,
+        columnCount: 0,
+        storageVersion: state.storageVersion + 1,
+      };
+    case 'clearBoardOpenChanged':
+      return { ...state, clearBoardOpen: action.open };
+    case 'columnCountChanged':
+      return { ...state, columnCount: action.columnCount };
+    case 'storageHydrated':
+      return {
+        ...state,
+        background: action.background,
+        columnCount: action.columnCount,
+        storageVersion: state.storageVersion + 1,
+        tags: action.tags,
+      };
+    case 'storageVersionIncremented':
+      return { ...state, storageVersion: state.storageVersion + 1 };
+    case 'tagManagerOpenChanged':
+      return { ...state, tagManagerOpen: action.open };
+    case 'tagsChanged':
+      return { ...state, tags: action.tags };
+  }
+};
+
 const App = () => {
-  const [background, setBackground] = useState(fetchBackgroundStorage);
-  const [columnCount, setColumnCount] = useState(() => fetchStorage().length);
-  const [tags, setTags] = useState<BoardTag[]>(fetchTagStorage);
-  const [backgroundOpen, setBackgroundOpen] = useState(false);
-  const [tagManagerOpen, setTagManagerOpen] = useState(false);
-  const [clearBoardOpen, setClearBoardOpen] = useState(false);
-  const [storageVersion, setStorageVersion] = useState(0);
+  const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
   const boardActionsRef = useRef<HTMLDivElement | null>(null);
+  const {
+    background,
+    backgroundOpen,
+    clearBoardOpen,
+    columnCount,
+    storageVersion,
+    tagManagerOpen,
+    tags,
+  } = state;
 
   useEffect(() => {
     let active = true;
@@ -49,10 +128,12 @@ const App = () => {
         return;
       }
 
-      setBackground(state.background);
-      setColumnCount(state.columns.length);
-      setTags(state.tags);
-      setStorageVersion((version) => version + 1);
+      dispatch({
+        background: state.background,
+        columnCount: state.columns.length,
+        tags: state.tags,
+        type: 'storageHydrated',
+      });
     });
 
     return () => {
@@ -61,22 +142,14 @@ const App = () => {
   }, []);
 
   const updateBackground = (newBackground: BoardBackground) => {
-    setBackground(newBackground);
+    dispatch({ background: newBackground, type: 'backgroundChanged' });
     updateBackgroundStorage(newBackground);
   };
 
   const updateTags = (newTags: BoardTag[]) => {
-    setTags(newTags);
+    dispatch({ tags: newTags, type: 'tagsChanged' });
     updateTagStorage(newTags);
   };
-
-  const getTagUsageCount = (tagId: string) =>
-    fetchStorage().reduce(
-      (count, column) =>
-        count +
-        column.cards.filter((card) => card.tagIds.includes(tagId)).length,
-      0
-    );
 
   const deleteTag = (tagId: string) => {
     updateTags(tags.filter((tag) => tag.id !== tagId));
@@ -89,13 +162,12 @@ const App = () => {
         })),
       }))
     );
-    setStorageVersion((version) => version + 1);
+    dispatch({ type: 'storageVersionIncremented' });
   };
 
   const clearBoard = () => {
     updateStorage([]);
-    setColumnCount(0);
-    setStorageVersion((version) => version + 1);
+    dispatch({ type: 'boardCleared' });
   };
 
   return (
@@ -113,7 +185,9 @@ const App = () => {
               <BackgroundPicker
                 anchor={boardActionsRef}
                 background={background}
-                onOpenChange={setBackgroundOpen}
+                onOpenChange={(open) =>
+                  dispatch({ open, type: 'backgroundOpenChanged' })
+                }
                 onChange={updateBackground}
                 open={backgroundOpen}
                 showTrigger={false}
@@ -132,14 +206,24 @@ const App = () => {
                       <Menu.Popup className="menu-popup">
                         <Menu.Item
                           className="menu-item"
-                          onClick={() => setBackgroundOpen(true)}
+                          onClick={() =>
+                            dispatch({
+                              open: true,
+                              type: 'backgroundOpenChanged',
+                            })
+                          }
                         >
                           <Palette size={15} />
                           Background settings
                         </Menu.Item>
                         <Menu.Item
                           className="menu-item"
-                          onClick={() => setTagManagerOpen(true)}
+                          onClick={() =>
+                            dispatch({
+                              open: true,
+                              type: 'tagManagerOpenChanged',
+                            })
+                          }
                         >
                           <Tags size={15} />
                           Manage tags
@@ -147,7 +231,12 @@ const App = () => {
                         {columnCount > 0 && (
                           <Menu.Item
                             className="menu-item menu-item--danger"
-                            onClick={() => setClearBoardOpen(true)}
+                            onClick={() =>
+                              dispatch({
+                                open: true,
+                                type: 'clearBoardOpenChanged',
+                              })
+                            }
                           >
                             <RotateCcw size={15} />
                             Clear board
@@ -169,7 +258,12 @@ const App = () => {
           </header>
           <Columns
             key={storageVersion}
-            onColumnCountChange={setColumnCount}
+            onColumnCountChange={(nextColumnCount) =>
+              dispatch({
+                columnCount: nextColumnCount,
+                type: 'columnCountChanged',
+              })
+            }
             onTagsChange={updateTags}
             tags={tags}
           />
@@ -177,7 +271,9 @@ const App = () => {
         <TagManagerDialog
           getTagUsageCount={getTagUsageCount}
           onDeleteTag={deleteTag}
-          onOpenChange={setTagManagerOpen}
+          onOpenChange={(open) =>
+            dispatch({ open, type: 'tagManagerOpenChanged' })
+          }
           onTagsChange={updateTags}
           open={tagManagerOpen}
           tags={tags}
@@ -186,7 +282,9 @@ const App = () => {
           confirmLabel="Clear board"
           description={`This will permanently delete ${columnCount} columns and all of their cards.`}
           onConfirm={clearBoard}
-          onOpenChange={setClearBoardOpen}
+          onOpenChange={(open) =>
+            dispatch({ open, type: 'clearBoardOpenChanged' })
+          }
           open={clearBoardOpen}
           title="Clear this board?"
         />

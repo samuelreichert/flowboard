@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import '../ContentDialog/ContentDialog.css';
 import '../IconButton/IconButton.css';
@@ -20,15 +20,27 @@ const ColumnRenameDialog = ({
   onSave,
   open,
 }: ColumnRenameDialogProps) => {
+  const dialogKey = open ? initialValue : 'closed';
+
+  return (
+    <ColumnRenameDialogContent
+      initialValue={initialValue}
+      key={dialogKey}
+      onOpenChange={onOpenChange}
+      onSave={onSave}
+      open={open}
+    />
+  );
+};
+
+const ColumnRenameDialogContent = ({
+  initialValue,
+  onOpenChange,
+  onSave,
+  open,
+}: ColumnRenameDialogProps) => {
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setValue(initialValue);
-      setError('');
-    }
-  }, [initialValue, open]);
 
   const saveValue = (nextValue: string) => {
     const trimmedValue = nextValue.trim();

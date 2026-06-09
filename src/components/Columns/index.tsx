@@ -2,7 +2,7 @@ import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/ad
 import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { Button } from '@base-ui/react/button';
 import { Columns3, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import Column from '../Column';
 import ContentDialog from '../ContentDialog';
@@ -30,11 +30,14 @@ const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
   const [columns, setColumns] = useState<BoardColumn[]>(fetchStorage);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
-  const updateColumns = (newColumns: BoardColumn[]) => {
-    setColumns(newColumns);
-    updateStorage(newColumns);
-    onColumnCountChange(newColumns.length);
-  };
+  const updateColumns = useCallback(
+    (newColumns: BoardColumn[]) => {
+      setColumns(newColumns);
+      updateStorage(newColumns);
+      onColumnCountChange(newColumns.length);
+    },
+    [onColumnCountChange]
+  );
 
   const onSaveColumn = (title: string) => {
     if (!title) {
@@ -217,10 +220,10 @@ const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
           }
         },
       }),
-    [columns]
+    [columns, updateColumns]
   );
 
-  const sortedColumns = [...columns].sort(
+  const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
   );
 
