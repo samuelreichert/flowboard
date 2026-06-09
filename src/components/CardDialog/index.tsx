@@ -84,6 +84,7 @@ const CardDialog = ({
   const [error, setError] = useState('');
   const [titleEditing, setTitleEditing] = useState(!card);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const lastValidTitleRef = useRef('');
   const openCardIdRef = useRef<string | undefined>(undefined);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -107,14 +108,18 @@ const CardDialog = ({
       openCardIdRef.current = card?.id;
       setTitleEditing(!card);
       setDeleteOpen(false);
+      setDiscardOpen(false);
       setError('');
     }
 
     if (!open) {
       openCardIdRef.current = undefined;
       setDeleteOpen(false);
+      setDiscardOpen(false);
       setTagsOpen(false);
       setCreatingTag(false);
+      setNewTagName('');
+      setTagError('');
     }
 
     wasOpenRef.current = open;
@@ -140,6 +145,40 @@ const CardDialog = ({
 
     return () => window.clearTimeout(focusTitle);
   }, [open, titleEditing]);
+
+  const isNewCardDraftDirty = () =>
+    !card &&
+    (title.trim().length > 0 ||
+      content.trim().length > 0 ||
+      selectedTagIds.length > 0);
+
+  const closeCardDialog = () => {
+    setDiscardOpen(false);
+    onOpenChange(false);
+  };
+
+  const onCardOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+
+    if (discardOpen) {
+      setDiscardOpen(false);
+      return;
+    }
+
+    if (isNewCardDraftDirty()) {
+      setTagsOpen(false);
+      setCreatingTag(false);
+      setNewTagName('');
+      setTagError('');
+      setDiscardOpen(true);
+      return;
+    }
+
+    closeCardDialog();
+  };
 
   const saveExistingCard = (
     nextValues: Partial<Omit<CardDialogValues, 'title'>> & {
@@ -182,7 +221,7 @@ const CardDialog = ({
     event.preventDefault();
 
     if (card) {
-      onOpenChange(false);
+      closeCardDialog();
       return;
     }
 
@@ -199,12 +238,12 @@ const CardDialog = ({
       return;
     }
 
-    onOpenChange(false);
+    closeCardDialog();
   };
 
   const onConfirmDeleteCard = () => {
     onDelete?.();
-    onOpenChange(false);
+    closeCardDialog();
   };
 
   const onTitleChange = (value: string) => {
@@ -293,306 +332,353 @@ const CardDialog = ({
 
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Root open={open} onOpenChange={onCardOpenChange}>
         <Dialog.Portal>
           <Dialog.Backdrop className="dialog-backdrop" />
           <Dialog.Viewport className="dialog-viewport">
-            <Dialog.Popup className="dialog-popup dialog-popup--card">
-              <form onSubmit={onSubmit}>
-                <div className="dialog-header">
+            <Dialog.Popup
+              className="dialog-popup dialog-popup--card"
+              role={discardOpen ? 'alertdialog' : undefined}
+            >
+              {discardOpen ? (
+                <>
                   <Dialog.Title className="dialog-title">
-                    {card ? 'Card' : 'New card'}
+                    Discard new card?
                   </Dialog.Title>
-                  <Dialog.Close
-                    aria-label="Close card"
-                    className="icon-button dialog-close"
-                    render={<Button />}
-                  >
-                    <X size={17} />
-                  </Dialog.Close>
-                </div>
-                <div className="card-title-row">
-                  <h2 className="card-title-field">
-                    {titleEditing ? (
-                      <Field.Control
-                        aria-label="Card title"
-                        className="card-title-field__input"
-                        maxLength={120}
-                        onBlur={onTitleBlur}
-                        onValueChange={onTitleChange}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            onTitleBlur();
-                          }
-                        }}
-                        ref={titleInputRef}
-                        type="text"
-                        value={title}
-                      />
-                    ) : (
-                      <Button
-                        aria-label="Edit card title"
-                        className="card-title-field__display"
-                        onClick={() => setTitleEditing(true)}
-                        type="button"
-                      >
-                        {title.trim() ||
-                          lastValidTitleRef.current ||
-                          'Untitled card'}
-                      </Button>
-                    )}
-                  </h2>
-                  {createdAtLabel && (
-                    <time
-                      className="card-created-at"
-                      dateTime={card?.createdAt}
-                    >
-                      Created {createdAtLabel}
-                    </time>
-                  )}
-                </div>
-                <Select.Root
-                  name="column"
-                  onValueChange={(value) => {
-                    if (value) {
-                      onColumnChange(value);
-                    }
-                  }}
-                  value={selectedColumnId}
-                >
-                  <div className="dialog-field">
-                    <Select.Label className="dialog-label">
-                      Column
-                    </Select.Label>
-                    <Select.Trigger className="dialog-input dialog-select__trigger">
-                      <Select.Value>
-                        {(value: string | null) =>
-                          columns.find((column) => column.id === value)
-                            ?.title ?? 'Choose column'
-                        }
-                      </Select.Value>
-                      <Select.Icon>
-                        <ChevronDown size={17} />
-                      </Select.Icon>
-                    </Select.Trigger>
-                  </div>
-                  <Select.Portal>
-                    <Select.Positioner
-                      align="start"
-                      className="dialog-select__positioner"
-                      sideOffset={5}
-                    >
-                      <Select.Popup className="dialog-select__popup">
-                        <Select.List>
-                          {columns.map((column) => (
-                            <Select.Item
-                              className="dialog-select__item"
-                              key={column.id}
-                              value={column.id}
-                            >
-                              <Select.ItemText>{column.title}</Select.ItemText>
-                              <Select.ItemIndicator>
-                                <Check size={15} />
-                              </Select.ItemIndicator>
-                            </Select.Item>
-                          ))}
-                        </Select.List>
-                      </Select.Popup>
-                    </Select.Positioner>
-                  </Select.Portal>
-                </Select.Root>
-                <Select.Root
-                  name="priority"
-                  onValueChange={(value) => {
-                    if (value) {
-                      onPriorityChange(value);
-                    }
-                  }}
-                  value={priority}
-                >
-                  <div className="dialog-field">
-                    <Select.Label className="dialog-label">
-                      Priority
-                    </Select.Label>
-                    <Select.Trigger className="dialog-input dialog-select__trigger">
-                      <Select.Value>
-                        {(value: CardPriority | null) =>
-                          value ? formatPriorityLabel(value) : 'Choose priority'
-                        }
-                      </Select.Value>
-                      <Select.Icon>
-                        <ChevronDown size={17} />
-                      </Select.Icon>
-                    </Select.Trigger>
-                  </div>
-                  <Select.Portal>
-                    <Select.Positioner
-                      align="start"
-                      className="dialog-select__positioner"
-                      sideOffset={5}
-                    >
-                      <Select.Popup className="dialog-select__popup">
-                        <Select.List>
-                          {PRIORITY_OPTIONS.map((option) => (
-                            <Select.Item
-                              className="dialog-select__item"
-                              key={option.value}
-                              value={option.value}
-                            >
-                              <Select.ItemText>{option.label}</Select.ItemText>
-                              <Select.ItemIndicator>
-                                <Check size={15} />
-                              </Select.ItemIndicator>
-                            </Select.Item>
-                          ))}
-                        </Select.List>
-                      </Select.Popup>
-                    </Select.Positioner>
-                  </Select.Portal>
-                </Select.Root>
-                <div className="dialog-field">
-                  <span className="dialog-label">Tags</span>
-                  <Popover.Root
-                    modal={false}
-                    onOpenChange={onTagsOpenChange}
-                    open={tagsOpen}
-                  >
-                    <Popover.Trigger
-                      className="dialog-input tag-select__trigger"
-                      render={<Button />}
-                    >
-                      <span>{tagSummary}</span>
-                      <ChevronDown size={17} />
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                      <Popover.Positioner
-                        align="start"
-                        className="tag-select__positioner"
-                        sideOffset={5}
-                      >
-                        <Popover.Popup
-                          className="tag-select__dropdown"
-                          initialFocus={false}
-                          role="listbox"
-                        >
-                          {tags.length > 0 ? (
-                            tags.map((tag) => {
-                              const selected = selectedTagIds.includes(tag.id);
-
-                              return (
-                                <Button
-                                  aria-selected={selected}
-                                  className="tag-select__option"
-                                  key={tag.id}
-                                  onClick={() => toggleTag(tag.id)}
-                                  role="option"
-                                  type="button"
-                                >
-                                  <span>{tag.name}</span>
-                                  {selected && <Check size={15} />}
-                                </Button>
-                              );
-                            })
-                          ) : (
-                            <p className="tag-select__empty">No tags yet</p>
-                          )}
-                          <div className="tag-select__create">
-                            {creatingTag ? (
-                              <Field.Root invalid={Boolean(tagError)}>
-                                <Field.Control
-                                  aria-label="New tag name"
-                                  autoFocus
-                                  maxLength={60}
-                                  onValueChange={(value) => {
-                                    setNewTagName(value);
-                                    setTagError('');
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault();
-                                      createTag();
-                                    }
-
-                                    if (event.key === 'Escape') {
-                                      event.preventDefault();
-                                      onTagsOpenChange(false);
-                                    }
-                                  }}
-                                  placeholder="New tag name"
-                                  type="text"
-                                  value={newTagName}
-                                />
-                                <Field.Error
-                                  className="tag-select__error"
-                                  match={Boolean(tagError)}
-                                >
-                                  {tagError}
-                                </Field.Error>
-                              </Field.Root>
-                            ) : (
-                              <Button
-                                className="tag-select__create-button"
-                                onClick={() => {
-                                  setCreatingTag(true);
-                                  setTagError('');
-                                }}
-                                type="button"
-                              >
-                                <Plus size={15} />
-                                Create tag
-                              </Button>
-                            )}
-                          </div>
-                        </Popover.Popup>
-                      </Popover.Positioner>
-                    </Popover.Portal>
-                  </Popover.Root>
-                </div>
-                <Field.Root className="dialog-field" name="content">
-                  <Field.Label id={`card-content-label-${card?.id ?? columnId}`}>
-                    Content
-                  </Field.Label>
-                  <CardContentEditor
-                    id={`card-content-editor-${card?.id ?? columnId}`}
-                    labelId={`card-content-label-${card?.id ?? columnId}`}
-                    onChange={onContentChange}
-                    value={content}
-                  />
-                </Field.Root>
-                <Field.Root className="dialog-form-error" invalid={Boolean(error)}>
-                  <Field.Error className="dialog-error" match={Boolean(error)}>
-                    {error}
-                  </Field.Error>
-                </Field.Root>
-                {card ? (
-                  <div className="dialog-actions dialog-actions--spread">
-                    <div />
-                    <div className="dialog-actions__group">
-                      <Button
-                        className="button button--danger"
-                        onClick={() => setDeleteOpen(true)}
-                        type="button"
-                      >
-                        <Trash2 size={16} />
-                        Delete card
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
+                  <Dialog.Description className="dialog-description">
+                    This will close the new card without saving its title,
+                    content, or tags.
+                  </Dialog.Description>
                   <div className="dialog-actions">
-                    <Dialog.Close
+                    <Button
                       className="button button--subtle"
-                      render={<Button />}
+                      onClick={() => setDiscardOpen(false)}
+                      type="button"
                     >
                       Cancel
-                    </Dialog.Close>
-                    <Button className="button button--primary" type="submit">
-                      Create
+                    </Button>
+                    <Button
+                      className="button button--danger"
+                      onClick={closeCardDialog}
+                      type="button"
+                    >
+                      Discard card
                     </Button>
                   </div>
-                )}
-              </form>
+                </>
+              ) : (
+                <form onSubmit={onSubmit}>
+                  <div className="dialog-header">
+                    <Dialog.Title className="dialog-title">
+                      {card ? 'Card' : 'New card'}
+                    </Dialog.Title>
+                    <Dialog.Close
+                      aria-label="Close card"
+                      className="icon-button dialog-close"
+                      render={<Button />}
+                    >
+                      <X size={17} />
+                    </Dialog.Close>
+                  </div>
+                  <div className="card-title-row">
+                    <h2 className="card-title-field">
+                      {titleEditing ? (
+                        <Field.Control
+                          aria-label="Card title"
+                          className="card-title-field__input"
+                          maxLength={120}
+                          onBlur={onTitleBlur}
+                          onValueChange={onTitleChange}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              onTitleBlur();
+                            }
+                          }}
+                          ref={titleInputRef}
+                          type="text"
+                          value={title}
+                        />
+                      ) : (
+                        <Button
+                          aria-label="Edit card title"
+                          className="card-title-field__display"
+                          onClick={() => setTitleEditing(true)}
+                          type="button"
+                        >
+                          {title.trim() ||
+                            lastValidTitleRef.current ||
+                            'Untitled card'}
+                        </Button>
+                      )}
+                    </h2>
+                    {createdAtLabel && (
+                      <time
+                        className="card-created-at"
+                        dateTime={card?.createdAt}
+                      >
+                        Created {createdAtLabel}
+                      </time>
+                    )}
+                  </div>
+                  <Select.Root
+                    name="column"
+                    onValueChange={(value) => {
+                      if (value) {
+                        onColumnChange(value);
+                      }
+                    }}
+                    value={selectedColumnId}
+                  >
+                    <div className="dialog-field">
+                      <Select.Label className="dialog-label">
+                        Column
+                      </Select.Label>
+                      <Select.Trigger className="dialog-input dialog-select__trigger">
+                        <Select.Value className="dialog-select__value">
+                          {(value: string | null) =>
+                            columns.find((column) => column.id === value)
+                              ?.title ?? 'Choose column'
+                          }
+                        </Select.Value>
+                        <Select.Icon className="dialog-select__icon">
+                          <ChevronDown size={17} />
+                        </Select.Icon>
+                      </Select.Trigger>
+                    </div>
+                    <Select.Portal>
+                      <Select.Positioner
+                        align="start"
+                        className="dialog-select__positioner"
+                        sideOffset={5}
+                      >
+                        <Select.Popup className="dialog-select__popup">
+                          <Select.List>
+                            {columns.map((column) => (
+                              <Select.Item
+                                className="dialog-select__item"
+                                key={column.id}
+                                value={column.id}
+                              >
+                                <Select.ItemText>
+                                  {column.title}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <Check size={15} />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.List>
+                        </Select.Popup>
+                      </Select.Positioner>
+                    </Select.Portal>
+                  </Select.Root>
+                  <Select.Root
+                    name="priority"
+                    onValueChange={(value) => {
+                      if (value) {
+                        onPriorityChange(value);
+                      }
+                    }}
+                    value={priority}
+                  >
+                    <div className="dialog-field">
+                      <Select.Label className="dialog-label">
+                        Priority
+                      </Select.Label>
+                      <Select.Trigger className="dialog-input dialog-select__trigger">
+                        <Select.Value className="dialog-select__value">
+                          {(value: CardPriority | null) =>
+                            value
+                              ? formatPriorityLabel(value)
+                              : 'Choose priority'
+                          }
+                        </Select.Value>
+                        <Select.Icon className="dialog-select__icon">
+                          <ChevronDown size={17} />
+                        </Select.Icon>
+                      </Select.Trigger>
+                    </div>
+                    <Select.Portal>
+                      <Select.Positioner
+                        align="start"
+                        className="dialog-select__positioner"
+                        sideOffset={5}
+                      >
+                        <Select.Popup className="dialog-select__popup">
+                          <Select.List>
+                            {PRIORITY_OPTIONS.map((option) => (
+                              <Select.Item
+                                className="dialog-select__item"
+                                key={option.value}
+                                value={option.value}
+                              >
+                                <Select.ItemText>
+                                  {option.label}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <Check size={15} />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.List>
+                        </Select.Popup>
+                      </Select.Positioner>
+                    </Select.Portal>
+                  </Select.Root>
+                  <div className="dialog-field">
+                    <span className="dialog-label">Tags</span>
+                    <Popover.Root
+                      modal={false}
+                      onOpenChange={onTagsOpenChange}
+                      open={tagsOpen}
+                    >
+                      <Popover.Trigger
+                        className="dialog-input tag-select__trigger"
+                        render={<Button />}
+                      >
+                        <span>{tagSummary}</span>
+                        <ChevronDown size={17} />
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Positioner
+                          align="start"
+                          className="tag-select__positioner"
+                          sideOffset={5}
+                        >
+                          <Popover.Popup
+                            className="tag-select__dropdown"
+                            initialFocus={false}
+                            role="listbox"
+                          >
+                            {tags.length > 0 ? (
+                              tags.map((tag) => {
+                                const selected = selectedTagIds.includes(
+                                  tag.id
+                                );
+
+                                return (
+                                  <Button
+                                    aria-selected={selected}
+                                    className="tag-select__option"
+                                    key={tag.id}
+                                    onClick={() => toggleTag(tag.id)}
+                                    role="option"
+                                    type="button"
+                                  >
+                                    <span>{tag.name}</span>
+                                    {selected && <Check size={15} />}
+                                  </Button>
+                                );
+                              })
+                            ) : (
+                              <p className="tag-select__empty">No tags yet</p>
+                            )}
+                            <div className="tag-select__create">
+                              {creatingTag ? (
+                                <Field.Root invalid={Boolean(tagError)}>
+                                  <Field.Control
+                                    aria-label="New tag name"
+                                    autoFocus
+                                    maxLength={60}
+                                    onValueChange={(value) => {
+                                      setNewTagName(value);
+                                      setTagError('');
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        createTag();
+                                      }
+
+                                      if (event.key === 'Escape') {
+                                        event.preventDefault();
+                                        onTagsOpenChange(false);
+                                      }
+                                    }}
+                                    placeholder="New tag name"
+                                    type="text"
+                                    value={newTagName}
+                                  />
+                                  <Field.Error
+                                    className="tag-select__error"
+                                    match={Boolean(tagError)}
+                                  >
+                                    {tagError}
+                                  </Field.Error>
+                                </Field.Root>
+                              ) : (
+                                <Button
+                                  className="tag-select__create-button"
+                                  onClick={() => {
+                                    setCreatingTag(true);
+                                    setTagError('');
+                                  }}
+                                  type="button"
+                                >
+                                  <Plus size={15} />
+                                  Create tag
+                                </Button>
+                              )}
+                            </div>
+                          </Popover.Popup>
+                        </Popover.Positioner>
+                      </Popover.Portal>
+                    </Popover.Root>
+                  </div>
+                  <Field.Root className="dialog-field" name="content">
+                    <Field.Label
+                      id={`card-content-label-${card?.id ?? columnId}`}
+                    >
+                      Content
+                    </Field.Label>
+                    <CardContentEditor
+                      id={`card-content-editor-${card?.id ?? columnId}`}
+                      labelId={`card-content-label-${card?.id ?? columnId}`}
+                      onChange={onContentChange}
+                      value={content}
+                    />
+                  </Field.Root>
+                  <Field.Root
+                    className="dialog-form-error"
+                    invalid={Boolean(error)}
+                  >
+                    <Field.Error
+                      className="dialog-error"
+                      match={Boolean(error)}
+                    >
+                      {error}
+                    </Field.Error>
+                  </Field.Root>
+                  {card ? (
+                    <div className="dialog-actions dialog-actions--spread">
+                      <div />
+                      <div className="dialog-actions__group">
+                        <Button
+                          className="button button--danger"
+                          onClick={() => setDeleteOpen(true)}
+                          type="button"
+                        >
+                          <Trash2 size={16} />
+                          Delete card
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="dialog-actions">
+                      <Dialog.Close
+                        className="button button--subtle"
+                        render={<Button />}
+                      >
+                        Cancel
+                      </Dialog.Close>
+                      <Button className="button button--primary" type="submit">
+                        Create
+                      </Button>
+                    </div>
+                  )}
+                </form>
+              )}
             </Dialog.Popup>
           </Dialog.Viewport>
         </Dialog.Portal>

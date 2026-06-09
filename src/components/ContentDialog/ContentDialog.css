@@ -209,6 +209,23 @@
   width: 100%;
 }
 
+.dialog-select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-select__icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 17px;
+  justify-content: center;
+  line-height: 0;
+  width: 17px;
+}
+
 .dialog-select__trigger svg,
 .tag-select__trigger svg {
   color: #4b4d55;
