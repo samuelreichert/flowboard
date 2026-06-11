@@ -4,7 +4,7 @@ import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown, Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import type { FormEvent } from 'react';
 
 import CardContentEditor from '../CardContentEditor';
@@ -48,6 +48,11 @@ const PRIORITY_OPTIONS: { label: string; value: CardPriority }[] = [
 const formatPriorityLabel = (priority: CardPriority) =>
   priority.charAt(0).toUpperCase() + priority.slice(1);
 
+const createdAtFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 const formatCreatedAt = (value: string) => {
   const date = new Date(value);
 
@@ -55,13 +60,99 @@ const formatCreatedAt = (value: string) => {
     return '';
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return createdAtFormatter.format(date);
 };
 
-const CardDialog = ({
+type CardDialogState = {
+  content: string;
+  creatingTag: boolean;
+  deleteOpen: boolean;
+  discardOpen: boolean;
+  error: string;
+  newTagName: string;
+  priority: CardPriority;
+  selectedColumnId: string;
+  selectedTagIds: string[];
+  tagError: string;
+  tagsOpen: boolean;
+  title: string;
+  titleEditing: boolean;
+};
+
+type CardDialogAction =
+  | { type: 'closed' }
+  | { type: 'fieldsChanged'; values: Partial<CardDialogState> }
+  | { type: 'opened'; state: CardDialogState }
+  | { type: 'tagCreated'; selectedTagIds: string[] }
+  | { type: 'tagsClosed' };
+
+const createCardDialogState = (
+  card: BoardCard | undefined,
+  columnId: string
+): CardDialogState => ({
+  content: card?.content ?? '',
+  creatingTag: false,
+  deleteOpen: false,
+  discardOpen: false,
+  error: '',
+  newTagName: '',
+  priority: card?.priority ?? DEFAULT_CARD_PRIORITY,
+  selectedColumnId: columnId,
+  selectedTagIds: card?.tagIds ?? [],
+  tagError: '',
+  tagsOpen: false,
+  title: card?.title ?? '',
+  titleEditing: !card,
+});
+
+const cardDialogReducer = (
+  state: CardDialogState,
+  action: CardDialogAction
+): CardDialogState => {
+  switch (action.type) {
+    case 'closed':
+      return {
+        ...state,
+        creatingTag: false,
+        deleteOpen: false,
+        discardOpen: false,
+        newTagName: '',
+        tagError: '',
+        tagsOpen: false,
+      };
+    case 'fieldsChanged':
+      return { ...state, ...action.values };
+    case 'opened':
+      return action.state;
+    case 'tagCreated':
+      return {
+        ...state,
+        creatingTag: false,
+        newTagName: '',
+        selectedTagIds: action.selectedTagIds,
+        tagError: '',
+        tagsOpen: false,
+      };
+    case 'tagsClosed':
+      return {
+        ...state,
+        creatingTag: false,
+        newTagName: '',
+        tagError: '',
+        tagsOpen: false,
+      };
+  }
+};
+
+const CardDialog = (props: CardDialogProps) => {
+  const dialogKey = props.open
+    ? (props.card?.id ?? `new-${props.columnId}`)
+    : 'closed';
+
+  return <CardDialogContent key={dialogKey} {...props} />;
+};
+
+const CardDialogContent = ({
   card,
   columnId,
   columns,
@@ -72,66 +163,27 @@ const CardDialog = ({
   open,
   tags,
 }: CardDialogProps) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [selectedColumnId, setSelectedColumnId] = useState(columnId);
-  const [priority, setPriority] = useState<CardPriority>(DEFAULT_CARD_PRIORITY);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [tagsOpen, setTagsOpen] = useState(false);
-  const [creatingTag, setCreatingTag] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
-  const [tagError, setTagError] = useState('');
-  const [error, setError] = useState('');
-  const [titleEditing, setTitleEditing] = useState(!card);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [discardOpen, setDiscardOpen] = useState(false);
-  const lastValidTitleRef = useRef('');
-  const openCardIdRef = useRef<string | undefined>(undefined);
+  const [state, dispatch] = useReducer(
+    cardDialogReducer,
+    createCardDialogState(card, columnId)
+  );
+  const lastValidTitleRef = useRef(card?.title ?? '');
   const titleInputRef = useRef<HTMLInputElement | null>(null);
-  const wasOpenRef = useRef(false);
-
-  useEffect(() => {
-    const didJustOpen = open && !wasOpenRef.current;
-    const didSwitchCards = open && openCardIdRef.current !== card?.id;
-
-    if (didJustOpen || didSwitchCards) {
-      setTitle(card?.title ?? '');
-      setContent(card?.content ?? '');
-      setSelectedColumnId(columnId);
-      setPriority(card?.priority ?? DEFAULT_CARD_PRIORITY);
-      setSelectedTagIds(card?.tagIds ?? []);
-      setTagsOpen(false);
-      setCreatingTag(false);
-      setNewTagName('');
-      setTagError('');
-      lastValidTitleRef.current = card?.title ?? '';
-      openCardIdRef.current = card?.id;
-      setTitleEditing(!card);
-      setDeleteOpen(false);
-      setDiscardOpen(false);
-      setError('');
-    }
-
-    if (!open) {
-      openCardIdRef.current = undefined;
-      setDeleteOpen(false);
-      setDiscardOpen(false);
-      setTagsOpen(false);
-      setCreatingTag(false);
-      setNewTagName('');
-      setTagError('');
-    }
-
-    wasOpenRef.current = open;
-  }, [
-    card?.content,
-    card?.id,
-    card?.priority,
-    card?.tagIds,
-    card?.title,
-    columnId,
-    open,
-  ]);
+  const {
+    content,
+    creatingTag,
+    deleteOpen,
+    discardOpen,
+    error,
+    newTagName,
+    priority,
+    selectedColumnId,
+    selectedTagIds,
+    tagError,
+    tagsOpen,
+    title,
+    titleEditing,
+  } = state;
 
   useEffect(() => {
     if (!open || !titleEditing) {
@@ -153,7 +205,7 @@ const CardDialog = ({
       selectedTagIds.length > 0);
 
   const closeCardDialog = () => {
-    setDiscardOpen(false);
+    dispatch({ type: 'fieldsChanged', values: { discardOpen: false } });
     onOpenChange(false);
   };
 
@@ -164,16 +216,21 @@ const CardDialog = ({
     }
 
     if (discardOpen) {
-      setDiscardOpen(false);
+      dispatch({ type: 'fieldsChanged', values: { discardOpen: false } });
       return;
     }
 
     if (isNewCardDraftDirty()) {
-      setTagsOpen(false);
-      setCreatingTag(false);
-      setNewTagName('');
-      setTagError('');
-      setDiscardOpen(true);
+      dispatch({
+        type: 'fieldsChanged',
+        values: {
+          creatingTag: false,
+          discardOpen: true,
+          newTagName: '',
+          tagError: '',
+          tagsOpen: false,
+        },
+      });
       return;
     }
 
@@ -194,10 +251,13 @@ const CardDialog = ({
     const titleToSave = trimmedTitle || lastValidTitleRef.current;
 
     if (!trimmedTitle) {
-      setError('Enter a card title.');
+      dispatch({
+        type: 'fieldsChanged',
+        values: { error: 'Enter a card title.' },
+      });
     } else {
       lastValidTitleRef.current = trimmedTitle;
-      setError('');
+      dispatch({ type: 'fieldsChanged', values: { error: '' } });
     }
 
     if (!titleToSave) {
@@ -213,7 +273,7 @@ const CardDialog = ({
     });
 
     if (message) {
-      setError(message);
+      dispatch({ type: 'fieldsChanged', values: { error: message } });
     }
   };
 
@@ -234,7 +294,7 @@ const CardDialog = ({
     });
 
     if (message) {
-      setError(message);
+      dispatch({ type: 'fieldsChanged', values: { error: message } });
       return;
     }
 
@@ -247,24 +307,24 @@ const CardDialog = ({
   };
 
   const onTitleChange = (value: string) => {
-    setTitle(value);
+    dispatch({ type: 'fieldsChanged', values: { title: value } });
     saveExistingCard({ title: value });
   };
 
   const onContentChange = (value: string) => {
-    setContent(value);
+    dispatch({ type: 'fieldsChanged', values: { content: value } });
     saveExistingCard({ content: value });
   };
 
   const onColumnChange = (value: string) => {
-    setSelectedColumnId(value);
+    dispatch({ type: 'fieldsChanged', values: { selectedColumnId: value } });
     saveExistingCard({ columnId: value });
   };
 
   const onPriorityChange = (value: string) => {
     const nextPriority = value as CardPriority;
 
-    setPriority(nextPriority);
+    dispatch({ type: 'fieldsChanged', values: { priority: nextPriority } });
     saveExistingCard({ priority: nextPriority });
   };
 
@@ -273,7 +333,7 @@ const CardDialog = ({
       ? selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId)
       : [...selectedTagIds, tagId];
 
-    setSelectedTagIds(nextTagIds);
+    dispatch({ type: 'fieldsChanged', values: { selectedTagIds: nextTagIds } });
     saveExistingCard({ tagIds: nextTagIds });
   };
 
@@ -281,12 +341,18 @@ const CardDialog = ({
     const name = newTagName.trim();
 
     if (!name) {
-      setTagError('Enter a tag name.');
+      dispatch({
+        type: 'fieldsChanged',
+        values: { tagError: 'Enter a tag name.' },
+      });
       return;
     }
 
     if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
-      setTagError('Tag names must be unique.');
+      dispatch({
+        type: 'fieldsChanged',
+        values: { tagError: 'Tag names must be unique.' },
+      });
       return;
     }
 
@@ -295,21 +361,15 @@ const CardDialog = ({
     const nextTagIds = [...selectedTagIds, tag.id];
 
     onTagsChange(nextTags);
-    setSelectedTagIds(nextTagIds);
     saveExistingCard({ tagIds: nextTagIds });
-    setNewTagName('');
-    setTagError('');
-    setCreatingTag(false);
-    setTagsOpen(false);
+    dispatch({ selectedTagIds: nextTagIds, type: 'tagCreated' });
   };
 
   const onTagsOpenChange = (nextOpen: boolean) => {
-    setTagsOpen(nextOpen);
+    dispatch({ type: 'fieldsChanged', values: { tagsOpen: nextOpen } });
 
     if (!nextOpen) {
-      setCreatingTag(false);
-      setNewTagName('');
-      setTagError('');
+      dispatch({ type: 'tagsClosed' });
     }
   };
 
@@ -318,7 +378,7 @@ const CardDialog = ({
       return;
     }
 
-    setTitleEditing(false);
+    dispatch({ type: 'fieldsChanged', values: { titleEditing: false } });
   };
 
   const createdAtLabel = card?.createdAt ? formatCreatedAt(card.createdAt) : '';
@@ -352,7 +412,12 @@ const CardDialog = ({
                   <div className="dialog-actions">
                     <Button
                       className="button button--subtle"
-                      onClick={() => setDiscardOpen(false)}
+                      onClick={() =>
+                        dispatch({
+                          type: 'fieldsChanged',
+                          values: { discardOpen: false },
+                        })
+                      }
                       type="button"
                     >
                       Cancel
@@ -403,7 +468,12 @@ const CardDialog = ({
                         <Button
                           aria-label="Edit card title"
                           className="card-title-field__display"
-                          onClick={() => setTitleEditing(true)}
+                          onClick={() =>
+                            dispatch({
+                              type: 'fieldsChanged',
+                              values: { titleEditing: true },
+                            })
+                          }
                           type="button"
                         >
                           {title.trim() ||
@@ -582,8 +652,13 @@ const CardDialog = ({
                                     autoFocus
                                     maxLength={60}
                                     onValueChange={(value) => {
-                                      setNewTagName(value);
-                                      setTagError('');
+                                      dispatch({
+                                        type: 'fieldsChanged',
+                                        values: {
+                                          newTagName: value,
+                                          tagError: '',
+                                        },
+                                      });
                                     }}
                                     onKeyDown={(event) => {
                                       if (event.key === 'Enter') {
@@ -611,8 +686,13 @@ const CardDialog = ({
                                 <Button
                                   className="tag-select__create-button"
                                   onClick={() => {
-                                    setCreatingTag(true);
-                                    setTagError('');
+                                    dispatch({
+                                      type: 'fieldsChanged',
+                                      values: {
+                                        creatingTag: true,
+                                        tagError: '',
+                                      },
+                                    });
                                   }}
                                   type="button"
                                 >
@@ -656,7 +736,12 @@ const CardDialog = ({
                       <div className="dialog-actions__group">
                         <Button
                           className="button button--danger"
-                          onClick={() => setDeleteOpen(true)}
+                          onClick={() =>
+                            dispatch({
+                              type: 'fieldsChanged',
+                              values: { deleteOpen: true },
+                            })
+                          }
                           type="button"
                         >
                           <Trash2 size={16} />
@@ -688,7 +773,12 @@ const CardDialog = ({
           confirmLabel="Delete card"
           description={`This will permanently delete ${title.trim() || lastValidTitleRef.current || 'this card'}.`}
           onConfirm={onConfirmDeleteCard}
-          onOpenChange={setDeleteOpen}
+          onOpenChange={(nextOpen) =>
+            dispatch({
+              type: 'fieldsChanged',
+              values: { deleteOpen: nextOpen },
+            })
+          }
           open={deleteOpen}
           title="Delete this card?"
         />

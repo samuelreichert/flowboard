@@ -78,10 +78,23 @@
 }
 
 .card__body {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   flex: 1;
+  font: inherit;
   gap: 7px;
+  padding: 0;
+  text-align: left;
   min-width: 0;
+}
+
+.card__body:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #625bdb;
+  outline-offset: 2px;
 }
 
 .card__title-row {

@@ -68,6 +68,35 @@ const normalizeUrl = (value: string) => {
   return `https://${trimmedValue}`;
 };
 
+const insertImageFiles = async (
+  editor: NonNullable<ReturnType<typeof useEditor>>,
+  files: File[],
+  position?: number
+) => {
+  const images = files.filter((file) => imageMimeTypes.includes(file.type));
+  const imageSources = await Promise.all(
+    images.map(async (image) => ({
+      image,
+      src: await readFileAsDataUrl(image),
+    }))
+  );
+
+  for (const { image, src } of imageSources) {
+    const chain = editor.chain().focus();
+
+    if (typeof position === 'number') {
+      chain.insertContentAt(position, {
+        attrs: { alt: image.name, src },
+        type: 'image',
+      });
+    } else {
+      chain.setImage({ alt: image.name, src });
+    }
+
+    chain.run();
+  }
+};
+
 const ToolbarButton = ({
   active = false,
   disabled = false,
@@ -100,30 +129,6 @@ const CardContentEditor = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
-
-  const insertImageFiles = async (
-    editor: NonNullable<ReturnType<typeof useEditor>>,
-    files: File[],
-    position?: number
-  ) => {
-    const images = files.filter((file) => imageMimeTypes.includes(file.type));
-
-    for (const image of images) {
-      const src = await readFileAsDataUrl(image);
-      const chain = editor.chain().focus();
-
-      if (typeof position === 'number') {
-        chain.insertContentAt(position, {
-          attrs: { alt: image.name, src },
-          type: 'image',
-        });
-      } else {
-        chain.setImage({ alt: image.name, src });
-      }
-
-      chain.run();
-    }
-  };
 
   const editor = useEditor({
     content: value,

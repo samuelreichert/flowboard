@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ReactNode } from 'react';
 
@@ -36,15 +36,41 @@ const ContentDialog = ({
   submitLabel,
   title,
 }: ContentDialogProps) => {
+  const dialogKey = open ? initialValue : 'closed';
+
+  return (
+    <ContentDialogContent
+      description={description}
+      hideCancel={hideCancel}
+      initialValue={initialValue}
+      key={dialogKey}
+      label={label}
+      leadingIcon={leadingIcon}
+      onOpenChange={onOpenChange}
+      onSave={onSave}
+      open={open}
+      placeholder={placeholder}
+      submitLabel={submitLabel}
+      title={title}
+    />
+  );
+};
+
+const ContentDialogContent = ({
+  description,
+  hideCancel = false,
+  initialValue = '',
+  label,
+  leadingIcon,
+  onOpenChange,
+  onSave,
+  open,
+  placeholder,
+  submitLabel,
+  title,
+}: ContentDialogProps) => {
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setValue(initialValue);
-      setError('');
-    }
-  }, [initialValue, open]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
