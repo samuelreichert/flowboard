@@ -40,7 +40,7 @@ Runs Vite without the local API. This matches the static Vercel deployment: each
 
 ### `npm start`
 
-Serves the production build and the SQLite API locally. To create a build that connects to that local API, run:
+Compiles the local TypeScript server, then serves the production build and the SQLite API locally. To create a production app build that connects to that local API, run:
 
 ```bash
 npm run build:local
@@ -56,7 +56,7 @@ Runs the test suite once.
 
 ### `npm run build`
 
-Type-checks the app and builds it for production to the `dist` folder.
+Type-checks the app and local TypeScript server, emits the compiled server to `dist-server`, and builds the production app to `dist`.
 
 ## Storage
 

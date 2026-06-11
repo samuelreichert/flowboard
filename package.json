@@ -20,10 +20,11 @@
     "react-dom": "^19.2.6"
   },
   "scripts": {
-    "dev": "VITE_BOARD_API_URL=/api/board node server/index.mjs --dev",
+    "dev": "npm run build:server && VITE_BOARD_API_URL=/api/board node dist-server/server/index.js --dev",
     "dev:static": "vite",
-    "start": "node server/index.mjs",
+    "start": "npm run build:server && node dist-server/server/index.js",
     "build": "tsc -b && vite build",
+    "build:server": "tsc -p tsconfig.server.json",
     "build:local": "VITE_BOARD_API_URL=/api/board npm run build",
     "preview": "vite preview",
     "test": "vitest",
