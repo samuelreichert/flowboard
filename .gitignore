@@ -11,6 +11,7 @@
 # production
 /build
 /dist
+/dist-server
 /data/*.db
 /data/*.db-shm
 /data/*.db-wal
