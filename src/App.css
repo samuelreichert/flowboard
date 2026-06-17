@@ -328,6 +328,11 @@
   box-shadow: 0 1px 2px var(--color-shadow-soft);
 }
 
+.theme-switcher__button[aria-pressed='true']:hover,
+.theme-switcher__button[aria-pressed='true']:focus-visible {
+  background-color: var(--color-hover);
+}
+
 .app--sidebar-collapsed .app-sidebar {
   padding: 10px 8px;
 }
