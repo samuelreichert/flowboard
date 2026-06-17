@@ -1,7 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
-import { Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Pencil, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { KeyboardEvent } from 'react';
 
@@ -154,15 +154,26 @@ const TagManagerDialog = ({
     dispatch({ type: 'tagCreated' });
   };
 
-  const saveRename = (tagId: string) => {
+  const saveRename = (tagId: string, options?: { revertInvalid?: boolean }) => {
     const name = editingTagName.trim();
+    const revertInvalid = Boolean(options?.revertInvalid);
 
     if (!name) {
+      if (revertInvalid) {
+        dispatch({ type: 'editingCanceled' });
+        return;
+      }
+
       dispatch({ error: 'Enter a tag name.', type: 'editErrorChanged' });
       return;
     }
 
     if (isDuplicateName(tags, name, tagId)) {
+      if (revertInvalid) {
+        dispatch({ type: 'editingCanceled' });
+        return;
+      }
+
       dispatch({
         error: 'Tag names must be unique.',
         type: 'editErrorChanged',
@@ -226,6 +237,7 @@ const TagManagerDialog = ({
                     <div className="tag-manager__input">
                       <Tag size={15} />
                       <Field.Control
+                        autoFocus
                         maxLength={60}
                         onValueChange={(value) => {
                           dispatch({
@@ -239,14 +251,6 @@ const TagManagerDialog = ({
                         value={newTagName}
                       />
                     </div>
-                    <Button
-                      className="button button--primary tag-manager__create-button"
-                      onClick={createTag}
-                      type="button"
-                    >
-                      <Plus size={16} />
-                      Create
-                    </Button>
                   </div>
                   <Field.Error
                     className="dialog-error"
@@ -276,6 +280,9 @@ const TagManagerDialog = ({
                               autoFocus
                               className="dialog-input tag-manager__edit-input"
                               maxLength={60}
+                              onBlur={() =>
+                                saveRename(tag.id, { revertInvalid: true })
+                              }
                               onValueChange={(value) => {
                                 dispatch({
                                   name: value,

@@ -56,13 +56,6 @@
   color: var(--color-text-soft);
 }
 
-.button.tag-manager__create-button {
-  height: var(--dialog-control-height);
-  min-height: var(--dialog-control-height);
-  padding-bottom: 0;
-  padding-top: 0;
-}
-
 .tag-manager__edit-field {
   width: 100%;
 }
@@ -133,9 +126,5 @@
   .tag-manager__create-row {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .tag-manager__create-button {
-    width: 100%;
   }
 }

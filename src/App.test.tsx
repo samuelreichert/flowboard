@@ -526,7 +526,13 @@ test('manages board tags from the sidebar', async () => {
 
   await user.click(screen.getByRole('button', { name: /rename bug tag/i }));
   await user.clear(screen.getByLabelText('Edit Bug tag'));
-  await user.type(screen.getByLabelText('Edit Bug tag'), 'Issue{Enter}');
+  await user.type(screen.getByLabelText('Edit Bug tag'), 'Issue');
+  await user.click(screen.getByLabelText('New tag'));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: /rename issue tag/i })
+    ).toBeInTheDocument()
+  );
   expect(fetchTagStorage()[0].name).toBe('Issue');
 
   await user.click(screen.getByRole('button', { name: /remove issue tag/i }));
