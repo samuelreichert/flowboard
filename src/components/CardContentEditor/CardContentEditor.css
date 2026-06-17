@@ -123,7 +123,7 @@
 
 .card-content-editor__surface code {
   background-color: var(--color-surface-muted);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   color: var(--color-text);
   font-family:
     'Geist Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
