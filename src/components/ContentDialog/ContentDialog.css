@@ -157,9 +157,9 @@
 }
 
 .dialog-input {
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   box-sizing: border-box;
   color: var(--color-text);
   font: inherit;
@@ -175,9 +175,9 @@
 
 .dialog-input-shell {
   align-items: center;
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   box-sizing: border-box;
   color: var(--color-text-soft);
   display: flex;
@@ -210,9 +210,9 @@
 .dialog-select__trigger {
   align-items: center;
   appearance: none;
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   box-sizing: border-box;
   color: var(--color-text);
   cursor: pointer;
@@ -257,14 +257,14 @@
 }
 
 .dialog-input:focus {
-  background-color: var(--color-surface);
+  background-color: var(--color-control-bg);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-focus);
   outline: 0;
 }
 
 .dialog-input-shell:focus-within {
-  background-color: var(--color-surface);
+  background-color: var(--color-control-bg);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-focus);
 }
@@ -275,7 +275,7 @@
 }
 
 .dialog-select__popup {
-  background-color: var(--color-surface-raised);
+  background-color: var(--color-list-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow:
@@ -291,7 +291,7 @@
 
 .dialog-select__item {
   align-items: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
@@ -332,9 +332,9 @@
 .tag-select__trigger {
   align-items: center;
   appearance: none;
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   box-sizing: border-box;
   color: var(--color-text);
   cursor: pointer;
@@ -360,7 +360,7 @@
 }
 
 .tag-select__dropdown {
-  background-color: var(--color-surface-raised);
+  background-color: var(--color-list-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow:
@@ -379,7 +379,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
@@ -414,9 +414,9 @@
 }
 
 .tag-select__create input {
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-text);
   font: inherit;
   font-size: 12px;
@@ -426,7 +426,7 @@
 }
 
 .tag-select__create input:focus {
-  background-color: var(--color-surface);
+  background-color: var(--color-control-bg);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-focus);
   outline: 0;

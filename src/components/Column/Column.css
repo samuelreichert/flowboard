@@ -58,7 +58,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-text-soft);
   cursor: pointer;
   display: flex;

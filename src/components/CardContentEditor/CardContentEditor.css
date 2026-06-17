@@ -20,7 +20,7 @@
   align-items: center;
   background-color: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;

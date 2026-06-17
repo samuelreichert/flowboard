@@ -6,6 +6,8 @@
   --color-surface-raised: #ffffff;
   --color-surface-subtle: #f4f4f2;
   --color-surface-muted: #ececea;
+  --color-control-bg: #ffffff;
+  --color-list-bg: #ffffff;
   --color-text: #202123;
   --color-text-muted: #676767;
   --color-text-soft: #8b8b8b;
@@ -45,6 +47,8 @@
   --color-surface-raised: #303030;
   --color-surface-subtle: #262626;
   --color-surface-muted: #3a3a3a;
+  --color-control-bg: #303030;
+  --color-list-bg: #303030;
   --color-text: #ececec;
   --color-text-muted: #b4b4b4;
   --color-text-soft: #8c8c8c;
@@ -77,6 +81,8 @@
   --color-surface-raised: #ffffff;
   --color-surface-subtle: #f4f4f2;
   --color-surface-muted: #ececea;
+  --color-control-bg: #ffffff;
+  --color-list-bg: #ffffff;
   --color-text: #202123;
   --color-text-muted: #676767;
   --color-text-soft: #8b8b8b;
@@ -125,6 +131,8 @@
   --color-surface-raised: #303030;
   --color-surface-subtle: #262626;
   --color-surface-muted: #3a3a3a;
+  --color-control-bg: #303030;
+  --color-list-bg: #303030;
   --color-text: #ececec;
   --color-text-muted: #b4b4b4;
   --color-text-soft: #8c8c8c;
@@ -235,7 +243,7 @@
 .theme-switcher__button {
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
@@ -298,16 +306,16 @@
 
 .theme-switcher {
   display: grid;
-  background-color: var(--color-surface-subtle);
+  background-color: var(--color-control-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
   gap: 2px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 2px;
 }
 
 .theme-switcher__button {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   font-size: 12px;
   gap: 5px;
   justify-content: center;
@@ -410,7 +418,7 @@
 .button {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -595,7 +603,7 @@
 
   .app--sidebar-collapsed .theme-switcher,
   .theme-switcher {
-    background-color: var(--color-surface-subtle);
+    background-color: var(--color-control-bg);
     border: 1px solid var(--color-border);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 2px;
