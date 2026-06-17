@@ -87,6 +87,13 @@
   padding: 8px 9px;
 }
 
+.tag-manager__item--editing {
+  background-color: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .tag-manager__name {
   color: var(--color-text);
   display: block;

@@ -262,7 +262,10 @@ const TagManagerDialog = ({
                     const isEditing = editingTagId === tag.id;
 
                     return (
-                      <div className="tag-manager__item" key={tag.id}>
+                      <div
+                        className={`tag-manager__item${isEditing ? ' tag-manager__item--editing' : ''}`}
+                        key={tag.id}
+                      >
                         {isEditing ? (
                           <Field.Root
                             className="tag-manager__edit-field"
@@ -270,6 +273,7 @@ const TagManagerDialog = ({
                           >
                             <Field.Control
                               aria-label={`Edit ${tag.name} tag`}
+                              autoFocus
                               className="dialog-input tag-manager__edit-input"
                               maxLength={60}
                               onValueChange={(value) => {
