@@ -1,12 +1,12 @@
 .card {
   align-items: flex-start;
-  background-color: #ffffff;
-  border: 1px solid #ededf0;
-  border-radius: 6px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   box-shadow:
-    0 1px 2px rgb(31 33 40 / 4%),
-    0 2px 5px rgb(31 33 40 / 2%);
-  color: #4a4c54;
+    0 1px 2px var(--color-shadow-soft),
+    0 2px 5px var(--color-shadow-soft);
+  color: var(--color-text);
   cursor: pointer;
   display: flex;
   gap: 6px;
@@ -21,19 +21,19 @@
 }
 
 .card:hover {
-  border-color: #dedee3;
+  border-color: var(--color-border-strong);
   box-shadow:
-    0 3px 7px rgb(31 33 40 / 6%),
-    0 7px 13px rgb(31 33 40 / 3%);
+    0 3px 7px var(--color-shadow-soft),
+    0 7px 13px var(--color-shadow-soft);
   transform: translateY(-1px);
 }
 
 .card--dragging {
-  background-color: rgb(255 255 255 / 72%);
-  border-color: #b9b5f0;
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-primary);
   box-shadow:
-    0 0 0 2px rgb(98 91 219 / 12%),
-    0 5px 12px rgb(31 33 40 / 6%);
+    0 0 0 2px var(--color-focus),
+    0 5px 12px var(--color-shadow-soft);
   opacity: 0.58;
   transform: scale(0.985);
 }
@@ -42,8 +42,8 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 4px;
-  color: #c0c1c7;
+  border-radius: 7px;
+  color: var(--color-text-soft);
   cursor: grab;
   display: flex;
   flex: 0 0 auto;
@@ -52,12 +52,13 @@
   padding: 4px 1px;
   transition:
     background-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    opacity 140ms ease;
 }
 
 .card__drag-handle:hover {
-  background-color: #f3f3f5;
-  color: #7c7e87;
+  background-color: var(--color-hover);
+  color: var(--color-text-muted);
 }
 
 .card__drag-handle:active {
@@ -65,7 +66,7 @@
 }
 
 .card__drag-handle:focus-visible {
-  outline: 2px solid #625bdb;
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
 
@@ -92,8 +93,8 @@
 }
 
 .card__body:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid #625bdb;
+  border-radius: 7px;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -105,7 +106,7 @@
 }
 
 .card__content-icon {
-  color: #b8b9bf;
+  color: var(--color-text-soft);
   flex: 0 0 auto;
 }
 
@@ -130,34 +131,34 @@
 }
 
 .card__priority--low {
-  background-color: #edf7f1;
-  color: #3f7a55;
+  background-color: var(--color-priority-low-bg);
+  color: var(--color-priority-low-text);
 }
 
 .card__priority--medium {
-  background-color: #f4f1ff;
-  color: #5d55bd;
+  background-color: var(--color-priority-medium-bg);
+  color: var(--color-priority-medium-text);
 }
 
 .card__priority--high {
-  background-color: #fff0ec;
-  color: #b9533b;
+  background-color: var(--color-priority-high-bg);
+  color: var(--color-priority-high-text);
 }
 
 .card__tag {
-  background-color: #f1f2f5;
-  color: #6a6c75;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
   font-weight: 650;
 }
 
 .card__tag--overflow {
-  color: #858791;
+  color: var(--color-text-soft);
 }
 
 .card__drop-indicator {
-  background-color: #625bdb;
+  background-color: var(--color-primary);
   border-radius: 999px;
-  box-shadow: 0 0 0 2px rgb(255 255 255 / 92%);
+  box-shadow: 0 0 0 2px var(--color-surface);
   height: 3px;
   left: 3px;
   pointer-events: none;
@@ -168,8 +169,8 @@
 
 .card__drop-indicator::before,
 .card__drop-indicator::after {
-  background-color: #625bdb;
-  border: 2px solid #ffffff;
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
   content: '';
   height: 8px;
@@ -204,5 +205,17 @@
   .card__drag-handle {
     min-height: 32px;
     min-width: 28px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card__drag-handle {
+    opacity: 0;
+  }
+
+  .card:hover .card__drag-handle,
+  .card:focus-within .card__drag-handle,
+  .card--dragging .card__drag-handle {
+    opacity: 1;
   }
 }

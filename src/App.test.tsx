@@ -25,114 +25,97 @@ beforeEach(() => {
   });
 });
 
-test('renders the Flowboard identity', () => {
+test('renders the Flowboard app shell and quiet board heading', () => {
   render(<App />);
 
   expect(
-    screen.getByRole('heading', { name: /flowboard/i })
+    screen.getByRole('complementary', { name: /flowboard navigation/i })
   ).toBeInTheDocument();
+  expect(screen.getByText('Flowboard')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /board/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^board$/i })).toHaveAttribute(
+    'aria-current',
+    'page'
+  );
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
 });
 
-test('uses the original image as the default board background', () => {
-  render(<App />);
-
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    '/flowboard-background.png'
-  );
-});
-
-test('changes and persists a solid board background', async () => {
+test('collapses and expands the desktop sidebar', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-expanded');
+
+  await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-collapsed');
+  expect(screen.getByRole('button', { name: /^board$/i })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /expand sidebar/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-expanded');
+});
+
+test('opens and closes the mobile navigation drawer', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /open navigation/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--mobile-sidebar-open');
+
   await user.click(
-    screen.getByRole('button', { name: /use lavender background/i })
+    screen.getAllByRole('button', { name: /close navigation/i })[0]
   );
-
-  expect(screen.getByRole('main')).toHaveStyle({
-    backgroundColor: '#f3f0ff',
-  });
-  expect(localStorage.getItem('boardBackground')).toBe(
-    JSON.stringify({ type: 'color', value: '#f3f0ff' })
+  expect(screen.getByRole('main')).not.toHaveClass(
+    'app--mobile-sidebar-open'
   );
 });
 
-test('restores the original image as a board background preset', async () => {
+test('changes and persists the app theme preference from the sidebar footer', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
-  await user.click(
-    screen.getByRole('button', { name: /use northern lights background/i })
-  );
+  await user.click(screen.getByRole('button', { name: /use dark theme/i }));
 
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    '/flowboard-background.png'
+  expect(screen.getByRole('main')).toHaveAttribute('data-theme', 'dark');
+  expect(screen.getByRole('main')).toHaveAttribute(
+    'data-theme-preference',
+    'dark'
   );
-  expect(localStorage.getItem('boardBackground')).toBe(
-    JSON.stringify({ type: 'image', value: '/flowboard-background.png' })
-  );
+  expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
 });
 
-test('applies and persists a custom background image URL', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await openBackgroundSettings(user);
-  await user.type(
-    screen.getByLabelText(/image url/i),
-    'https://images.example.com/cover.jpg'
-  );
-  await user.click(screen.getByRole('button', { name: /apply/i }));
-
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    'https://images.example.com/cover.jpg'
-  );
-  expect(localStorage.getItem('boardBackground')).toBe(
+test('ignores legacy saved background values for the visible app shell', () => {
+  localStorage.setItem(
+    'boardBackground',
     JSON.stringify({
       type: 'image',
-      value: 'https://images.example.com/cover.jpg',
+      value: '/flowboard-background.png',
     })
   );
+
+  render(<App />);
+
+  expect(screen.getByRole('main')).not.toHaveClass('app--image-background');
+  expect(screen.getByRole('main').style.backgroundImage).toBe('');
+  expect(
+    screen.queryByRole('menuitem', { name: /background settings/i })
+  ).not.toBeInTheDocument();
 });
 
-test('rejects an insecure custom background image URL', async () => {
+test('board actions menu omits background and theme controls', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
-  await user.type(
-    screen.getByLabelText(/image url/i),
-    'http://images.example.com/cover.jpg'
-  );
-  await user.click(screen.getByRole('button', { name: /apply/i }));
+  await openBoardActions(user);
 
   expect(
-    screen.getByText('Enter a secure HTTPS image URL.')
+    screen.getByRole('menuitem', { name: /manage tags/i })
   ).toBeInTheDocument();
-  expect(localStorage.getItem('boardBackground')).toBeNull();
-});
-
-test('closes background settings with Escape without changing the background', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await openBackgroundSettings(user);
-  expect(screen.getByLabelText(/choose board background/i)).toBeInTheDocument();
-
-  await user.keyboard('{Escape}');
-
-  await waitFor(() =>
-    expect(
-      screen.queryByLabelText(/choose board background/i)
-    ).not.toBeInTheDocument()
-  );
-  expect(localStorage.getItem('boardBackground')).toBeNull();
+  expect(
+    screen.queryByRole('menuitem', { name: /background settings/i })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('menuitem', { name: /theme/i })
+  ).not.toBeInTheDocument();
 });
 
 test('migrates legacy localStorage data to stable IDs', () => {
@@ -884,15 +867,6 @@ const chooseSelectOption = async (
 ) => {
   await user.click(screen.getByRole('combobox', { name: label }));
   await user.click(await screen.findByRole('option', { name: option }));
-};
-
-const openBackgroundSettings = async (
-  user: ReturnType<typeof userEvent.setup>
-) => {
-  await openBoardActions(user);
-  await user.click(
-    await screen.findByRole('menuitem', { name: /background settings/i })
-  );
 };
 
 const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {

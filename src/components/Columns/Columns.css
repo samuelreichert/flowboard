@@ -2,7 +2,7 @@
   align-items: flex-start;
   display: flex;
   flex-direction: row;
-  gap: 18px;
+  gap: 14px;
   min-height: 0;
   min-width: 0;
   overflow: auto;
@@ -17,7 +17,7 @@
   border: 0;
   border-radius: 0;
   box-sizing: border-box;
-  color: #585b65;
+  color: var(--color-text-muted);
   flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
   height: auto;
   padding: 0;
@@ -30,11 +30,11 @@
 
 .add-column-placeholder {
   align-items: center;
-  background-color: rgb(255 255 255 / 36%);
-  border: 1px dashed rgb(124 126 135 / 42%);
-  border-radius: 8px;
+  background-color: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 10px;
   box-sizing: border-box;
-  color: #858790;
+  color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
   flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
@@ -53,9 +53,9 @@
 }
 
 .add-column-placeholder:hover {
-  background-color: rgb(255 255 255 / 58%);
-  border-color: rgb(98 91 219 / 52%);
-  color: #625bdb;
+  background-color: var(--color-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 @media (max-width: 640px) {
