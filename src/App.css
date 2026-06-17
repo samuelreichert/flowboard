@@ -28,6 +28,13 @@
   --color-priority-medium-text: #4358bc;
   --color-priority-high-bg: #fff0ec;
   --color-priority-high-text: #b9533b;
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 64px;
 }
@@ -197,7 +204,7 @@
 .app-sidebar__mark {
   align-items: center;
   background-color: var(--color-text);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-sidebar-bg);
   display: inline-flex;
   flex: 0 0 auto;
@@ -230,7 +237,7 @@
 .theme-switcher__button {
   background-color: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
@@ -295,14 +302,14 @@
   display: grid;
   background-color: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   gap: 2px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 2px;
 }
 
 .theme-switcher__button {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   gap: 5px;
   justify-content: center;
@@ -405,7 +412,7 @@
 .button {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -468,7 +475,7 @@
 .menu-popup {
   background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow:
     0 14px 28px var(--color-shadow),
     0 2px 5px var(--color-shadow-soft);
@@ -480,7 +487,7 @@
 
 .menu-item {
   align-items: center;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   font-size: 12px;

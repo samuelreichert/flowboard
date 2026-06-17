@@ -1,7 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
-import { Check, Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { KeyboardEvent } from 'react';
 
@@ -268,40 +268,30 @@ const TagManagerDialog = ({
                             className="tag-manager__edit-field"
                             invalid={Boolean(editError)}
                           >
-                            <div className="tag-manager__edit">
-                              <Field.Control
-                                aria-label={`Edit ${tag.name} tag`}
-                                className="dialog-input"
-                                maxLength={60}
-                                onValueChange={(value) => {
-                                  dispatch({
-                                    name: value,
-                                    type: 'editNameChanged',
-                                  });
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter') {
-                                    event.preventDefault();
-                                    saveRename(tag.id);
-                                  }
+                            <Field.Control
+                              aria-label={`Edit ${tag.name} tag`}
+                              className="dialog-input tag-manager__edit-input"
+                              maxLength={60}
+                              onValueChange={(value) => {
+                                dispatch({
+                                  name: value,
+                                  type: 'editNameChanged',
+                                });
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                  event.preventDefault();
+                                  saveRename(tag.id);
+                                }
 
-                                  if (event.key === 'Escape') {
-                                    event.preventDefault();
-                                    dispatch({ type: 'editingCanceled' });
-                                  }
-                                }}
-                                type="text"
-                                value={editingTagName}
-                              />
-                              <Button
-                                aria-label={`Save ${tag.name} tag`}
-                                className="icon-button"
-                                onClick={() => saveRename(tag.id)}
-                                type="button"
-                              >
-                                <Check size={16} />
-                              </Button>
-                            </div>
+                                if (event.key === 'Escape') {
+                                  event.preventDefault();
+                                  dispatch({ type: 'editingCanceled' });
+                                }
+                              }}
+                              type="text"
+                              value={editingTagName}
+                            />
                             <Field.Error
                               className="dialog-error tag-manager__edit-error"
                               match={Boolean(editError)}

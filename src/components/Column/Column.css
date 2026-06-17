@@ -30,7 +30,7 @@
 
 .column__marker {
   background-color: var(--color-text-soft);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   height: 7px;
   width: 7px;
 }
@@ -58,7 +58,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-text-soft);
   cursor: pointer;
   display: flex;
@@ -84,7 +84,7 @@
   align-items: center;
   background-color: var(--color-primary-subtle);
   border: 1px dashed var(--color-primary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-primary);
   display: flex;
   font-size: 12px;
