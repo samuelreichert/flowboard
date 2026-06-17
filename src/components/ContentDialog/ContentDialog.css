@@ -1,40 +1,52 @@
 .dialog-backdrop {
   backdrop-filter: blur(6px);
   background-color: var(--color-backdrop);
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
   inset: 0;
   position: fixed;
+  z-index: 30;
 }
 
 .dialog-viewport {
   align-items: center;
   display: flex;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
   inset: 0;
   justify-content: center;
   padding: 24px;
   position: fixed;
+  z-index: 31;
 }
 
 .dialog-popup {
   --dialog-control-height: 40px;
 
   background-color: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   box-shadow:
     0 24px 56px var(--color-shadow),
     0 5px 14px var(--color-shadow-soft);
   color: var(--color-text);
   max-height: min(720px, calc(100vh - 40px));
-  max-width: 480px;
+  max-width: min(480px, calc(100vw - 48px));
   overflow: auto;
   padding: 22px;
+  position: relative;
   width: 100%;
+  z-index: 32;
 }
 
 .dialog-popup--card {
   max-height: min(860px, calc(100vh - 40px));
-  max-width: 860px;
+  max-width: min(720px, calc(100vw - 48px));
   padding: 24px;
+}
+
+.dialog-popup--card-confirm {
+  max-width: min(520px, calc(100vw - 48px));
 }
 
 .dialog-header {
@@ -198,7 +210,11 @@
 .dialog-select__trigger {
   align-items: center;
   appearance: none;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   box-sizing: border-box;
+  color: var(--color-text);
   cursor: pointer;
   display: flex;
   height: var(--dialog-control-height);
@@ -316,7 +332,11 @@
 .tag-select__trigger {
   align-items: center;
   appearance: none;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   box-sizing: border-box;
+  color: var(--color-text);
   cursor: pointer;
   display: flex;
   height: var(--dialog-control-height);
@@ -453,6 +473,10 @@
 
   .dialog-popup--card {
     max-height: calc(100dvh - 28px);
+    max-width: 100%;
+  }
+
+  .dialog-popup--card-confirm {
     max-width: 100%;
   }
 

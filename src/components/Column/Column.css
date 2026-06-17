@@ -101,15 +101,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .column__header .icon-button,
-  .add-card-button {
+  .column__header .icon-button {
     opacity: 0;
   }
 
   .column:hover .column__header .icon-button,
-  .column:focus-within .column__header .icon-button,
-  .column:hover .add-card-button,
-  .column:focus-within .add-card-button {
+  .column:focus-within .column__header .icon-button {
     opacity: 1;
   }
 }

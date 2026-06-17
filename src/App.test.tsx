@@ -64,9 +64,7 @@ test('opens and closes the mobile navigation drawer', async () => {
   await user.click(
     screen.getAllByRole('button', { name: /close navigation/i })[0]
   );
-  expect(screen.getByRole('main')).not.toHaveClass(
-    'app--mobile-sidebar-open'
-  );
+  expect(screen.getByRole('main')).not.toHaveClass('app--mobile-sidebar-open');
 });
 
 test('changes and persists the app theme preference from the sidebar footer', async () => {
@@ -101,20 +99,18 @@ test('ignores legacy saved background values for the visible app shell', () => {
   ).not.toBeInTheDocument();
 });
 
-test('board actions menu omits background and theme controls', async () => {
-  const user = userEvent.setup();
+test('board actions live in the sidebar and the top-right menu is removed', () => {
   render(<App />);
 
-  await openBoardActions(user);
-
   expect(
-    screen.getByRole('menuitem', { name: /manage tags/i })
+    screen.getByRole('button', { name: /manage tags/i })
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole('menuitem', { name: /background settings/i })
+    screen.queryByRole('button', { name: /open board actions/i })
   ).not.toBeInTheDocument();
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('menuitem', { name: /theme/i })
+    screen.queryByRole('button', { name: /background settings/i })
   ).not.toBeInTheDocument();
 });
 
@@ -231,6 +227,7 @@ test('closes an empty new-card draft without discard confirmation', async () => 
 
   await addColumn(user, 'Todo');
   await openCreateCard(user, 'Todo');
+  expect(screen.getByRole('dialog', { name: /new card/i })).toBeInTheDocument();
   await user.keyboard('{Escape}');
 
   expect(
@@ -519,7 +516,7 @@ test('closes the tag dropdown when clicking outside', async () => {
   );
 });
 
-test('manages board tags from the board actions menu', async () => {
+test('manages board tags from the sidebar', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -755,29 +752,27 @@ test('clears the board only after confirmation', async () => {
   render(<App />);
 
   await addColumn(user, 'Todo');
-  await openBoardActions(user);
-  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
+  await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
 
-  await openBoardActions(user);
-  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
+  await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /^clear board$/i }));
   expect(readColumns()).toEqual([]);
 });
 
-test('board actions trigger is compact and discoverable', async () => {
+test('clear board sidebar command appears only when the board can be cleared', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  const trigger = screen.getByRole('button', { name: /open board actions/i });
+  expect(
+    screen.queryByRole('button', { name: /clear board/i })
+  ).not.toBeInTheDocument();
 
-  expect(trigger).toHaveClass('board-actions__trigger');
-  expect(trigger).toHaveTextContent('');
-
-  await user.hover(trigger);
-
-  expect(await screen.findByText('Board actions')).toBeInTheDocument();
+  await addColumn(user, 'Todo');
+  expect(
+    screen.getByRole('button', { name: /clear board/i })
+  ).toBeInTheDocument();
 });
 
 test('closes a create dialog with Escape without saving', async () => {
@@ -855,11 +850,6 @@ const openColumnActions = async (
   );
 };
 
-const openBoardActions = async (_user: ReturnType<typeof userEvent.setup>) => {
-  fireEvent.click(screen.getByRole('button', { name: /open board actions/i }));
-  await screen.findByRole('menu');
-};
-
 const chooseSelectOption = async (
   user: ReturnType<typeof userEvent.setup>,
   label: string,
@@ -870,10 +860,8 @@ const chooseSelectOption = async (
 };
 
 const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
-  await openBoardActions(user);
-  await user.click(
-    await screen.findByRole('menuitem', { name: /manage tags/i })
-  );
+  await user.click(screen.getByRole('button', { name: /manage tags/i }));
+  await screen.findByRole('dialog', { name: /manage tags/i });
 };
 
 const readColumns = () =>

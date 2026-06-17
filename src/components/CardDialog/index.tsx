@@ -397,8 +397,8 @@ const CardDialogContent = ({
           <Dialog.Backdrop className="dialog-backdrop" />
           <Dialog.Viewport className="dialog-viewport">
             <Dialog.Popup
-              className="dialog-popup dialog-popup--card"
-              role={discardOpen ? 'alertdialog' : undefined}
+              className={`dialog-popup dialog-popup--card ${discardOpen ? 'dialog-popup--card-confirm' : ''}`}
+              role={discardOpen ? 'alertdialog' : 'dialog'}
             >
               {discardOpen ? (
                 <>
@@ -437,13 +437,14 @@ const CardDialogContent = ({
                     <Dialog.Title className="dialog-title">
                       {card ? 'Card' : 'New card'}
                     </Dialog.Title>
-                    <Dialog.Close
+                    <Button
                       aria-label="Close card"
                       className="icon-button dialog-close"
-                      render={<Button />}
+                      onClick={() => onCardOpenChange(false)}
+                      type="button"
                     >
                       <X size={17} />
-                    </Dialog.Close>
+                    </Button>
                   </div>
                   <div className="card-title-row">
                     <h2 className="card-title-field">

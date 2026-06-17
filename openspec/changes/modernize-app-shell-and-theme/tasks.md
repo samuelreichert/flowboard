@@ -19,6 +19,7 @@
 - [x] 3.2 Add icon-only navigation treatment for collapsed mode with accessible names and tooltips where needed.
 - [x] 3.3 Add the `system`, `light`, and `dark` theme selector to the sidebar footer.
 - [x] 3.4 Ensure the sidebar footer theme selector remains reachable in expanded, collapsed, and mobile drawer states.
+- [x] 3.5 Present expanded and mobile theme options as a horizontal segmented control.
 
 ## 4. Background Feature Removal
 
@@ -27,6 +28,7 @@
 - [x] 4.3 Remove background picker UI from the rendered product experience.
 - [x] 4.4 Keep existing board data with background values readable so old saved boards remain usable.
 - [x] 4.5 Remove or isolate unused background-specific styling branches after the app shell owns the visible background.
+- [x] 4.6 Remove the top-right board actions menu and move remaining board-level commands into the sidebar.
 
 ## 5. Theme Tokens And Component Styling
 
@@ -39,7 +41,7 @@
 ## 6. Hover, Focus, And Touch Affordances
 
 - [x] 6.1 Make secondary card controls visually quiet by default on pointer-capable desktop layouts.
-- [x] 6.2 Make secondary column and board controls visually quiet by default on pointer-capable desktop layouts.
+- [x] 6.2 Make secondary column controls visually quiet by default on pointer-capable desktop layouts.
 - [x] 6.3 Reveal hidden secondary controls on hover and `focus-within` without causing layout shift.
 - [x] 6.4 Preserve touch and mobile access to essential controls without relying on hover.
 - [x] 6.5 Verify destructive actions remain explicit and confirmation-gated.
