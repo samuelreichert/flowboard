@@ -1,6 +1,6 @@
 :root {
   --color-app-bg: #f7f7f5;
-  --color-sidebar-bg: #ffffff;
+  --color-sidebar-bg: #f9f9f9;
   --color-workspace-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
@@ -40,9 +40,9 @@
 }
 
 :root[data-theme='dark'] {
-  --color-app-bg: #212121;
+  --color-app-bg: #000000;
   --color-sidebar-bg: #171717;
-  --color-workspace-bg: #212121;
+  --color-workspace-bg: #000000;
   --color-surface: #2f2f2f;
   --color-surface-raised: #303030;
   --color-surface-subtle: #262626;
@@ -75,7 +75,7 @@
 
 .app {
   --color-app-bg: #f7f7f5;
-  --color-sidebar-bg: #ffffff;
+  --color-sidebar-bg: #f9f9f9;
   --color-workspace-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
@@ -124,9 +124,9 @@
 }
 
 .app[data-theme='dark'] {
-  --color-app-bg: #212121;
+  --color-app-bg: #000000;
   --color-sidebar-bg: #171717;
-  --color-workspace-bg: #212121;
+  --color-workspace-bg: #000000;
   --color-surface: #2f2f2f;
   --color-surface-raised: #303030;
   --color-surface-subtle: #262626;
