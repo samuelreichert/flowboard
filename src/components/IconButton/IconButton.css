@@ -2,8 +2,8 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 6px;
-  color: #8f9199;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
   height: 28px;
@@ -14,20 +14,20 @@
 }
 
 .icon-button:hover {
-  background-color: #f3f3f5;
-  color: #62646c;
+  background-color: var(--color-hover);
+  color: var(--color-text);
 }
 
 .icon-button:focus-visible {
-  outline: 2px solid #625bdb;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .tooltip-popup {
-  background-color: #33343a;
-  border-radius: 6px;
-  box-shadow: 0 6px 14px rgb(31 33 40 / 16%);
-  color: #ffffff;
+  background-color: var(--color-text);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 14px var(--color-shadow);
+  color: var(--color-surface);
   font-size: 12px;
   padding: 6px 8px;
 }

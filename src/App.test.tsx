@@ -25,114 +25,93 @@ beforeEach(() => {
   });
 });
 
-test('renders the Flowboard identity', () => {
+test('renders the Flowboard app shell and quiet board heading', () => {
   render(<App />);
 
   expect(
-    screen.getByRole('heading', { name: /flowboard/i })
+    screen.getByRole('complementary', { name: /flowboard navigation/i })
   ).toBeInTheDocument();
+  expect(screen.getByText('Flowboard')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /board/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /^board$/i })).toHaveAttribute(
+    'aria-current',
+    'page'
+  );
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
 });
 
-test('uses the original image as the default board background', () => {
-  render(<App />);
-
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    '/flowboard-background.png'
-  );
-});
-
-test('changes and persists a solid board background', async () => {
+test('collapses and expands the desktop sidebar', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-expanded');
+
+  await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-collapsed');
+  expect(screen.getByRole('button', { name: /^board$/i })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /expand sidebar/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--sidebar-expanded');
+});
+
+test('opens and closes the mobile navigation drawer', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /open navigation/i }));
+  expect(screen.getByRole('main')).toHaveClass('app--mobile-sidebar-open');
+
   await user.click(
-    screen.getByRole('button', { name: /use lavender background/i })
+    screen.getAllByRole('button', { name: /close navigation/i })[0]
   );
-
-  expect(screen.getByRole('main')).toHaveStyle({
-    backgroundColor: '#f3f0ff',
-  });
-  expect(localStorage.getItem('boardBackground')).toBe(
-    JSON.stringify({ type: 'color', value: '#f3f0ff' })
-  );
+  expect(screen.getByRole('main')).not.toHaveClass('app--mobile-sidebar-open');
 });
 
-test('restores the original image as a board background preset', async () => {
+test('changes and persists the app theme preference from the sidebar footer', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
-  await user.click(
-    screen.getByRole('button', { name: /use northern lights background/i })
-  );
+  await user.click(screen.getByRole('button', { name: /use dark theme/i }));
 
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    '/flowboard-background.png'
+  expect(screen.getByRole('main')).toHaveAttribute('data-theme', 'dark');
+  expect(screen.getByRole('main')).toHaveAttribute(
+    'data-theme-preference',
+    'dark'
   );
-  expect(localStorage.getItem('boardBackground')).toBe(
-    JSON.stringify({ type: 'image', value: '/flowboard-background.png' })
-  );
+  expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
 });
 
-test('applies and persists a custom background image URL', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await openBackgroundSettings(user);
-  await user.type(
-    screen.getByLabelText(/image url/i),
-    'https://images.example.com/cover.jpg'
-  );
-  await user.click(screen.getByRole('button', { name: /apply/i }));
-
-  expect(screen.getByRole('main')).toHaveClass('app--image-background');
-  expect(screen.getByRole('main').style.backgroundImage).toContain(
-    'https://images.example.com/cover.jpg'
-  );
-  expect(localStorage.getItem('boardBackground')).toBe(
+test('ignores legacy saved background values for the visible app shell', () => {
+  localStorage.setItem(
+    'boardBackground',
     JSON.stringify({
       type: 'image',
-      value: 'https://images.example.com/cover.jpg',
+      value: '/flowboard-background.png',
     })
   );
-});
 
-test('rejects an insecure custom background image URL', async () => {
-  const user = userEvent.setup();
   render(<App />);
 
-  await openBackgroundSettings(user);
-  await user.type(
-    screen.getByLabelText(/image url/i),
-    'http://images.example.com/cover.jpg'
-  );
-  await user.click(screen.getByRole('button', { name: /apply/i }));
+  expect(screen.getByRole('main')).not.toHaveClass('app--image-background');
+  expect(screen.getByRole('main').style.backgroundImage).toBe('');
+  expect(
+    screen.queryByRole('menuitem', { name: /background settings/i })
+  ).not.toBeInTheDocument();
+});
+
+test('board actions live in the sidebar and the top-right menu is removed', () => {
+  render(<App />);
 
   expect(
-    screen.getByText('Enter a secure HTTPS image URL.')
+    screen.getByRole('button', { name: /manage tags/i })
   ).toBeInTheDocument();
-  expect(localStorage.getItem('boardBackground')).toBeNull();
-});
-
-test('closes background settings with Escape without changing the background', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await openBackgroundSettings(user);
-  expect(screen.getByLabelText(/choose board background/i)).toBeInTheDocument();
-
-  await user.keyboard('{Escape}');
-
-  await waitFor(() =>
-    expect(
-      screen.queryByLabelText(/choose board background/i)
-    ).not.toBeInTheDocument()
-  );
-  expect(localStorage.getItem('boardBackground')).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: /open board actions/i })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /background settings/i })
+  ).not.toBeInTheDocument();
 });
 
 test('migrates legacy localStorage data to stable IDs', () => {
@@ -248,6 +227,7 @@ test('closes an empty new-card draft without discard confirmation', async () => 
 
   await addColumn(user, 'Todo');
   await openCreateCard(user, 'Todo');
+  expect(screen.getByRole('dialog', { name: /new card/i })).toBeInTheDocument();
   await user.keyboard('{Escape}');
 
   expect(
@@ -536,7 +516,7 @@ test('closes the tag dropdown when clicking outside', async () => {
   );
 });
 
-test('manages board tags from the board actions menu', async () => {
+test('manages board tags from the sidebar', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -546,7 +526,13 @@ test('manages board tags from the board actions menu', async () => {
 
   await user.click(screen.getByRole('button', { name: /rename bug tag/i }));
   await user.clear(screen.getByLabelText('Edit Bug tag'));
-  await user.type(screen.getByLabelText('Edit Bug tag'), 'Issue{Enter}');
+  await user.type(screen.getByLabelText('Edit Bug tag'), 'Issue');
+  await user.click(screen.getByLabelText('New tag'));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: /rename issue tag/i })
+    ).toBeInTheDocument()
+  );
   expect(fetchTagStorage()[0].name).toBe('Issue');
 
   await user.click(screen.getByRole('button', { name: /remove issue tag/i }));
@@ -772,29 +758,27 @@ test('clears the board only after confirmation', async () => {
   render(<App />);
 
   await addColumn(user, 'Todo');
-  await openBoardActions(user);
-  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
+  await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
 
-  await openBoardActions(user);
-  await user.click(screen.getByRole('menuitem', { name: /clear board/i }));
+  await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /^clear board$/i }));
   expect(readColumns()).toEqual([]);
 });
 
-test('board actions trigger is compact and discoverable', async () => {
+test('clear board sidebar command appears only when the board can be cleared', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  const trigger = screen.getByRole('button', { name: /open board actions/i });
+  expect(
+    screen.queryByRole('button', { name: /clear board/i })
+  ).not.toBeInTheDocument();
 
-  expect(trigger).toHaveClass('board-actions__trigger');
-  expect(trigger).toHaveTextContent('');
-
-  await user.hover(trigger);
-
-  expect(await screen.findByText('Board actions')).toBeInTheDocument();
+  await addColumn(user, 'Todo');
+  expect(
+    screen.getByRole('button', { name: /clear board/i })
+  ).toBeInTheDocument();
 });
 
 test('closes a create dialog with Escape without saving', async () => {
@@ -872,11 +856,6 @@ const openColumnActions = async (
   );
 };
 
-const openBoardActions = async (_user: ReturnType<typeof userEvent.setup>) => {
-  fireEvent.click(screen.getByRole('button', { name: /open board actions/i }));
-  await screen.findByRole('menu');
-};
-
 const chooseSelectOption = async (
   user: ReturnType<typeof userEvent.setup>,
   label: string,
@@ -886,20 +865,9 @@ const chooseSelectOption = async (
   await user.click(await screen.findByRole('option', { name: option }));
 };
 
-const openBackgroundSettings = async (
-  user: ReturnType<typeof userEvent.setup>
-) => {
-  await openBoardActions(user);
-  await user.click(
-    await screen.findByRole('menuitem', { name: /background settings/i })
-  );
-};
-
 const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
-  await openBoardActions(user);
-  await user.click(
-    await screen.findByRole('menuitem', { name: /manage tags/i })
-  );
+  await user.click(screen.getByRole('button', { name: /manage tags/i }));
+  await screen.findByRole('dialog', { name: /manage tags/i });
 };
 
 const readColumns = () =>

@@ -16,20 +16,27 @@
   min-height: 28px;
 }
 
+.column__header .icon-button {
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
 .column__heading {
   gap: 7px;
   min-width: 0;
 }
 
 .column__marker {
-  background-color: #a4a5ad;
-  border-radius: 50%;
+  background-color: var(--color-text-soft);
+  border-radius: var(--radius-round);
   height: 7px;
   width: 7px;
 }
 
 .column__title {
-  color: #5a5c65;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
@@ -38,21 +45,21 @@
 }
 
 .column__count {
-  color: #b0b1b7;
+  color: var(--color-text-soft);
   font-size: 11px;
   font-weight: 580;
 }
 
 .column--drag-over {
-  background-color: rgb(98 91 219 / 4%);
+  background-color: var(--color-primary-subtle);
 }
 
 .add-card-button {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 5px;
-  color: #a0a2a9;
+  border-radius: var(--radius-md);
+  color: var(--color-text-soft);
   cursor: pointer;
   display: flex;
   font: inherit;
@@ -63,21 +70,22 @@
   padding: 7px 3px;
   transition:
     background-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    opacity 140ms ease;
   width: 100%;
 }
 
 .add-card-button:hover {
-  background-color: #f4f4f6;
-  color: #6a6c74;
+  background-color: var(--color-hover);
+  color: var(--color-text-muted);
 }
 
 .column__empty-drop-indicator {
   align-items: center;
-  background-color: rgb(98 91 219 / 4%);
-  border: 1px dashed rgb(98 91 219 / 42%);
-  border-radius: 6px;
-  color: #6b65c7;
+  background-color: var(--color-primary-subtle);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
   display: flex;
   font-size: 12px;
   font-weight: 580;
@@ -89,5 +97,16 @@
 @media (max-width: 640px) {
   .add-card-button {
     min-height: 44px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .column__header .icon-button {
+    opacity: 0;
+  }
+
+  .column:hover .column__header .icon-button,
+  .column:focus-within .column__header .icon-button {
+    opacity: 1;
   }
 }
