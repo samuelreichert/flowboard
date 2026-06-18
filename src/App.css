@@ -243,7 +243,6 @@
 .theme-switcher__button {
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
@@ -258,6 +257,14 @@
   transition:
     background-color 140ms ease,
     color 140ms ease;
+}
+
+.app-sidebar__nav-item {
+  border-radius: var(--radius-md);
+}
+
+.theme-switcher__button {
+  border-radius: var(--radius-pill);
 }
 
 .app-sidebar__nav-item svg,
