@@ -19,7 +19,8 @@ type HistoryViewProps = {
 
 type HistoryDetailState = {
   copyStatus: string;
-  selectedCard: ArchivedBoardCard | null;
+  selectedCardId: string | null;
+  selectedCycleId: string | null;
 };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -49,9 +50,10 @@ const getVisibleTagNames = (card: ArchivedBoardCard, tags: BoardTag[]) =>
 const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   const [detailState, setDetailState] = useState<HistoryDetailState>({
     copyStatus: '',
-    selectedCard: null,
+    selectedCardId: null,
+    selectedCycleId: null,
   });
-  const { copyStatus, selectedCard } = detailState;
+  const { copyStatus, selectedCardId, selectedCycleId } = detailState;
   const sortedCycles = useMemo(
     () =>
       completedWorkCycles.toSorted(
@@ -59,10 +61,16 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
     ),
     [completedWorkCycles]
   );
-  const selectedTagNames = useMemo(
-    () => (selectedCard ? getVisibleTagNames(selectedCard, tags) : []),
-    [selectedCard, tags]
+  const selectedCard = useMemo(
+    () =>
+      sortedCycles
+        .find((cycle) => cycle.id === selectedCycleId)
+        ?.cards.find((card) => card.id === selectedCardId) ?? null,
+    [selectedCardId, selectedCycleId, sortedCycles]
   );
+  const selectedTagNames = selectedCard
+    ? getVisibleTagNames(selectedCard, tags)
+    : [];
 
   const copySelectedCardMarkdown = async () => {
     if (!selectedCard) {
@@ -129,7 +137,8 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                         onClick={() =>
                           setDetailState({
                             copyStatus: '',
-                            selectedCard: card,
+                            selectedCardId: card.id,
+                            selectedCycleId: cycle.id,
                           })
                         }
                         type="button"
@@ -178,7 +187,8 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
           if (!open) {
             setDetailState({
               copyStatus: '',
-              selectedCard: null,
+              selectedCardId: null,
+              selectedCycleId: null,
             });
           }
         }}
