@@ -1,25 +1,33 @@
 import { Button } from '@base-ui/react/button';
 import {
+  CheckCircle2,
+  History,
   KanbanSquare,
   Menu as MenuIcon,
   Monitor,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  RotateCcw,
+  Settings,
   Sun,
   Tags,
   X,
 } from 'lucide-react';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 
+import { completeWorkCycle } from './board/completedWork';
+import BoardSettingsDialog from './components/BoardSettingsDialog';
 import Columns from './components/Columns';
 import ConfirmDialog from './components/ConfirmDialog';
+import HistoryView from './components/HistoryView';
 import TagManagerDialog from './components/TagManagerDialog';
 import {
+  fetchBoardState,
   fetchStorage,
   fetchTagStorage,
   hydrateStorageFromDatabase,
+  updateActiveWorkCycleStorage,
+  updateBoardStateStorage,
   updateTagStorage,
   updateStorage,
 } from './storage';
@@ -30,7 +38,13 @@ import {
   updateThemePreference,
 } from './theme';
 import type { ResolvedTheme, ThemePreference } from './theme';
-import type { BoardTag } from './types';
+import type {
+  BoardActiveWorkCycle,
+  BoardColumn,
+  BoardState,
+  BoardTag,
+  CompletedWorkCycle,
+} from './types';
 
 import './App.css';
 
@@ -42,8 +56,15 @@ const getTagUsageCount = (tagId: string) =>
   );
 
 type AppState = {
+  activeWorkCycle: BoardActiveWorkCycle;
+  boardSettingsOpen: boolean;
   clearBoardOpen: boolean;
+  columns: BoardColumn[];
   columnCount: number;
+  completeWorkOpen: boolean;
+  completedWorkCycles: CompletedWorkCycle[];
+  completionPulse: boolean;
+  currentView: 'board' | 'history';
   mobileSidebarOpen: boolean;
   resolvedTheme: ResolvedTheme;
   sidebarExpanded: boolean;
@@ -54,9 +75,15 @@ type AppState = {
 };
 
 type AppAction =
-  | { type: 'boardCleared' }
+  | { type: 'activeWorkCycleChanged'; activeWorkCycle: BoardActiveWorkCycle }
+  | { type: 'boardSettingsOpenChanged'; open: boolean }
+  | { type: 'boardStateChanged'; state: BoardState }
+  | { type: 'boardStateSynced'; state: BoardState }
   | { type: 'clearBoardOpenChanged'; open: boolean }
   | { type: 'columnCountChanged'; columnCount: number }
+  | { type: 'completeWorkOpenChanged'; open: boolean }
+  | { type: 'completionPulseChanged'; active: boolean }
+  | { type: 'currentViewChanged'; view: AppState['currentView'] }
   | { type: 'mobileSidebarOpenChanged'; open: boolean }
   | { type: 'sidebarExpandedChanged'; expanded: boolean }
   | {
@@ -72,32 +99,66 @@ type AppAction =
 
 const initAppState = (): AppState => {
   const themePreference = fetchThemePreference();
+  const boardState = fetchBoardState();
 
   return {
+    activeWorkCycle: boardState.activeWorkCycle,
+    boardSettingsOpen: false,
     clearBoardOpen: false,
-    columnCount: fetchStorage().length,
+    columns: boardState.columns,
+    columnCount: boardState.columns.length,
+    completeWorkOpen: false,
+    completedWorkCycles: boardState.completedWorkCycles,
+    completionPulse: false,
+    currentView: 'board',
     mobileSidebarOpen: false,
     resolvedTheme: resolveThemePreference(themePreference),
     sidebarExpanded: true,
     storageVersion: 0,
     tagManagerOpen: false,
-    tags: fetchTagStorage(),
+    tags: boardState.tags,
     themePreference,
   };
 };
 
 const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
-    case 'boardCleared':
+    case 'activeWorkCycleChanged':
       return {
         ...state,
-        columnCount: 0,
+        activeWorkCycle: action.activeWorkCycle,
+      };
+    case 'boardSettingsOpenChanged':
+      return { ...state, boardSettingsOpen: action.open };
+    case 'boardStateChanged':
+      return {
+        ...state,
+        activeWorkCycle: action.state.activeWorkCycle,
+        columns: action.state.columns,
+        columnCount: action.state.columns.length,
+        completedWorkCycles: action.state.completedWorkCycles,
         storageVersion: state.storageVersion + 1,
+        tags: action.state.tags,
+      };
+    case 'boardStateSynced':
+      return {
+        ...state,
+        activeWorkCycle: action.state.activeWorkCycle,
+        columns: action.state.columns,
+        columnCount: action.state.columns.length,
+        completedWorkCycles: action.state.completedWorkCycles,
+        tags: action.state.tags,
       };
     case 'clearBoardOpenChanged':
       return { ...state, clearBoardOpen: action.open };
     case 'columnCountChanged':
       return { ...state, columnCount: action.columnCount };
+    case 'completeWorkOpenChanged':
+      return { ...state, completeWorkOpen: action.open };
+    case 'completionPulseChanged':
+      return { ...state, completionPulse: action.active };
+    case 'currentViewChanged':
+      return { ...state, currentView: action.view };
     case 'mobileSidebarOpenChanged':
       return { ...state, mobileSidebarOpen: action.open };
     case 'sidebarExpandedChanged':
@@ -105,7 +166,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'storageHydrated':
       return {
         ...state,
+        activeWorkCycle: fetchBoardState().activeWorkCycle,
+        columns: fetchStorage(),
         columnCount: action.columnCount,
+        completedWorkCycles: fetchBoardState().completedWorkCycles,
         storageVersion: state.storageVersion + 1,
         tags: action.tags,
       };
@@ -138,9 +202,17 @@ const THEME_OPTIONS: {
 
 const App = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
+  const completionPulseTimeoutRef = useRef<number | null>(null);
   const {
+    activeWorkCycle,
+    boardSettingsOpen,
     clearBoardOpen,
+    columns,
     columnCount,
+    completeWorkOpen,
+    completedWorkCycles,
+    completionPulse,
+    currentView,
     mobileSidebarOpen,
     resolvedTheme,
     sidebarExpanded,
@@ -194,10 +266,22 @@ const App = () => {
     document.documentElement.dataset.theme = resolvedTheme;
   }, [resolvedTheme]);
 
+  useEffect(
+    () => () => {
+      if (completionPulseTimeoutRef.current !== null) {
+        window.clearTimeout(completionPulseTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const updateTags = (newTags: BoardTag[]) => {
     dispatch({ tags: newTags, type: 'tagsChanged' });
     updateTagStorage(newTags);
   };
+
+  const syncBoardState = () =>
+    dispatch({ state: fetchBoardState(), type: 'boardStateSynced' });
 
   const deleteTag = (tagId: string) => {
     updateTags(tags.filter((tag) => tag.id !== tagId));
@@ -210,12 +294,12 @@ const App = () => {
         })),
       }))
     );
-    dispatch({ type: 'storageVersionIncremented' });
+    dispatch({ state: fetchBoardState(), type: 'boardStateChanged' });
   };
 
   const clearBoard = () => {
     updateStorage([]);
-    dispatch({ type: 'boardCleared' });
+    dispatch({ state: fetchBoardState(), type: 'boardStateChanged' });
   };
 
   const chooseThemePreference = (preference: ThemePreference) => {
@@ -228,9 +312,75 @@ const App = () => {
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
+  const openBoard = () => {
+    dispatch({ view: 'board', type: 'currentViewChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const openHistory = () => {
+    dispatch({ view: 'history', type: 'currentViewChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const openBoardSettings = () => {
+    dispatch({ open: true, type: 'boardSettingsOpenChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const chooseCompletedColumn = (completedColumnId: string | null) => {
+    const nextActiveWorkCycle = {
+      ...activeWorkCycle,
+      completedColumnId,
+    };
+
+    dispatch({
+      activeWorkCycle: nextActiveWorkCycle,
+      type: 'activeWorkCycleChanged',
+    });
+    updateActiveWorkCycleStorage(nextActiveWorkCycle);
+  };
+
   const openClearBoardConfirmation = () => {
     dispatch({ open: true, type: 'clearBoardOpenChanged' });
+    dispatch({ open: false, type: 'boardSettingsOpenChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const openCompleteWorkConfirmation = () => {
+    const latestState = fetchBoardState();
+    const completedColumn = latestState.columns.find(
+      (column) => column.id === latestState.activeWorkCycle.completedColumnId
+    );
+
+    if (!completedColumn) {
+      openBoardSettings();
+      return;
+    }
+
+    dispatch({ state: latestState, type: 'boardStateChanged' });
+    dispatch({ open: true, type: 'completeWorkOpenChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const confirmCompleteWork = () => {
+    const completedAt = new Date().toISOString();
+    const nextState = completeWorkCycle(fetchBoardState(), completedAt);
+
+    if (!nextState) {
+      openBoardSettings();
+      return;
+    }
+
+    updateBoardStateStorage(nextState);
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    dispatch({ active: true, type: 'completionPulseChanged' });
+    if (completionPulseTimeoutRef.current !== null) {
+      window.clearTimeout(completionPulseTimeoutRef.current);
+    }
+    completionPulseTimeoutRef.current = window.setTimeout(
+      () => dispatch({ active: false, type: 'completionPulseChanged' }),
+      900
+    );
   };
 
   const closeMobileSidebar = () =>
@@ -241,6 +391,14 @@ const App = () => {
       expanded: !sidebarExpanded,
       type: 'sidebarExpandedChanged',
     });
+
+  const completedColumn = columns.find(
+    (column) => column.id === activeWorkCycle.completedColumnId
+  );
+  const completedCardCount = completedColumn?.cards.length ?? 0;
+  const workspaceTitle = currentView === 'history' ? 'History' : 'Board';
+  const workspaceEyebrow =
+    currentView === 'history' ? 'Completed work' : 'Workspace';
 
   return (
     <main
@@ -289,14 +447,26 @@ const App = () => {
         </div>
         <nav className="app-sidebar__nav" aria-label="Primary navigation">
           <Button
-            aria-current="page"
+            aria-current={currentView === 'board' ? 'page' : undefined}
             aria-label="Board"
-            className="app-sidebar__nav-item app-sidebar__nav-item--active"
+            className={`app-sidebar__nav-item ${currentView === 'board' ? 'app-sidebar__nav-item--active' : ''}`}
+            onClick={openBoard}
             title="Board"
             type="button"
           >
             <KanbanSquare size={18} />
             <span>Board</span>
+          </Button>
+          <Button
+            aria-current={currentView === 'history' ? 'page' : undefined}
+            aria-label="History"
+            className={`app-sidebar__nav-item ${currentView === 'history' ? 'app-sidebar__nav-item--active' : ''}`}
+            onClick={openHistory}
+            title="History"
+            type="button"
+          >
+            <History size={18} />
+            <span>History</span>
           </Button>
           <Button
             aria-label="Manage tags"
@@ -308,25 +478,22 @@ const App = () => {
             <Tags size={18} />
             <span>Tags</span>
           </Button>
-          {columnCount > 0 && (
-            <Button
-              aria-label="Clear board"
-              className="app-sidebar__nav-item app-sidebar__nav-item--danger"
-              onClick={openClearBoardConfirmation}
-              title="Clear board"
-              type="button"
-            >
-              <RotateCcw size={18} />
-              <span>Clear board</span>
-            </Button>
-          )}
+          <Button
+            aria-label="Board settings"
+            className="app-sidebar__nav-item"
+            onClick={openBoardSettings}
+            title="Board settings"
+            type="button"
+          >
+            <Settings size={18} />
+            <span>Board settings</span>
+          </Button>
         </nav>
         <div className="app-sidebar__footer">
           <p className="app-sidebar__footer-label">Theme</p>
-          <div
+          <fieldset
             aria-label="Theme preference"
             className="theme-switcher"
-            role="group"
           >
             {THEME_OPTIONS.map((option) => {
               const Icon = option.icon;
@@ -346,7 +513,7 @@ const App = () => {
                 </Button>
               );
             })}
-          </div>
+          </fieldset>
         </div>
       </aside>
       <section className="app-workspace" aria-label="Board workspace">
@@ -363,25 +530,61 @@ const App = () => {
               <MenuIcon size={18} />
             </Button>
             <div>
-              <p className="app__eyebrow">Workspace</p>
-              <h1 className="app__title">Board</h1>
+              <p className="app__eyebrow">{workspaceEyebrow}</p>
+              <h1 className="app__title">{workspaceTitle}</h1>
             </div>
           </div>
+          {currentView === 'board' && (
+            <div className="board__header-actions">
+              <Button
+                aria-label="Complete work"
+                className="button button--primary board__complete-work"
+                onClick={openCompleteWorkConfirmation}
+                title="Complete work"
+                type="button"
+              >
+                <CheckCircle2 size={16} />
+                <span>Complete work</span>
+              </Button>
+            </div>
+          )}
         </header>
-        <section className="board" aria-label="Flowboard board">
-          <Columns
-            key={storageVersion}
-            onColumnCountChange={(nextColumnCount) =>
-              dispatch({
-                columnCount: nextColumnCount,
-                type: 'columnCountChanged',
-              })
-            }
-            onTagsChange={updateTags}
-            tags={tags}
-          />
-        </section>
+        {currentView === 'board' ? (
+          <section className="board" aria-label="Flowboard board">
+            {completionPulse && (
+              <div className="complete-work-pulse" aria-live="polite">
+                <CheckCircle2 size={18} />
+                <span>Work completed</span>
+              </div>
+            )}
+            <Columns
+              key={storageVersion}
+              onBoardStateChange={syncBoardState}
+              onColumnCountChange={(nextColumnCount) =>
+                dispatch({
+                  columnCount: nextColumnCount,
+                  type: 'columnCountChanged',
+                })
+              }
+              onTagsChange={updateTags}
+              tags={tags}
+            />
+          </section>
+        ) : (
+          <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
+        )}
       </section>
+      <BoardSettingsDialog
+        canClearBoard={columnCount > 0}
+        columns={columns}
+        completedColumnId={activeWorkCycle.completedColumnId}
+        onClearBoard={openClearBoardConfirmation}
+        onCompletedColumnChange={chooseCompletedColumn}
+        onOpenChange={(open) =>
+          dispatch({ open, type: 'boardSettingsOpenChanged' })
+        }
+        open={boardSettingsOpen}
+      />
       <TagManagerDialog
         getTagUsageCount={getTagUsageCount}
         onDeleteTag={deleteTag}
@@ -401,6 +604,23 @@ const App = () => {
         }
         open={clearBoardOpen}
         title="Clear this board?"
+      />
+      <ConfirmDialog
+        confirmLabel="Complete work"
+        confirmVariant="primary"
+        description={
+          completedColumn
+            ? completedCardCount > 0
+              ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
+              : `There are no cards in ${completedColumn.title}. Complete this work cycle and save an empty history entry?`
+            : 'Choose a completed column in board settings before completing work.'
+        }
+        onConfirm={confirmCompleteWork}
+        onOpenChange={(open) =>
+          dispatch({ open, type: 'completeWorkOpenChanged' })
+        }
+        open={completeWorkOpen}
+        title={completedCardCount > 0 ? 'Complete work?' : 'Complete empty work?'}
       />
     </main>
   );
