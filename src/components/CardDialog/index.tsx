@@ -707,19 +707,20 @@ const CardDialogContent = ({
                       </Popover.Portal>
                     </Popover.Root>
                   </div>
-                  <Field.Root className="dialog-field" name="content">
-                    <Field.Label
+                  <div className="dialog-field">
+                    <span
+                      className="dialog-label"
                       id={`card-content-label-${card?.id ?? columnId}`}
                     >
                       Content
-                    </Field.Label>
+                    </span>
                     <CardContentEditor
                       id={`card-content-editor-${card?.id ?? columnId}`}
                       labelId={`card-content-label-${card?.id ?? columnId}`}
                       onChange={onContentChange}
                       value={content}
                     />
-                  </Field.Root>
+                  </div>
                   <Field.Root
                     className="dialog-form-error"
                     invalid={Boolean(error)}

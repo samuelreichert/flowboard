@@ -11,6 +11,8 @@
     "@fontsource/geist-sans": "^5.2.5",
     "@tiptap/extension-file-handler": "^3.25.0",
     "@tiptap/extension-image": "^3.25.0",
+    "@tiptap/extension-list": "^3.25.0",
+    "@tiptap/extension-text-align": "^3.25.0",
     "@tiptap/markdown": "^3.25.0",
     "@tiptap/pm": "^3.25.0",
     "@tiptap/react": "^3.25.0",
