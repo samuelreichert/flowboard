@@ -200,6 +200,307 @@ const THEME_OPTIONS: {
   { icon: Moon, label: 'Dark', value: 'dark' },
 ];
 
+type AppSidebarProps = {
+  currentView: AppState['currentView'];
+  onBoardClick: () => void;
+  onBoardSettingsClick: () => void;
+  onCloseMobileSidebar: () => void;
+  onHistoryClick: () => void;
+  onManageTagsClick: () => void;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
+  onToggleSidebar: () => void;
+  sidebarExpanded: boolean;
+  themePreference: ThemePreference;
+};
+
+const AppSidebar = ({
+  currentView,
+  onBoardClick,
+  onBoardSettingsClick,
+  onCloseMobileSidebar,
+  onHistoryClick,
+  onManageTagsClick,
+  onThemePreferenceChange,
+  onToggleSidebar,
+  sidebarExpanded,
+  themePreference,
+}: AppSidebarProps) => (
+  <aside
+    aria-label="Flowboard navigation"
+    className="app-sidebar"
+    data-expanded={sidebarExpanded}
+  >
+    <div className="app-sidebar__header">
+      <Button
+        aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+        className="icon-button app-sidebar__toggle"
+        onClick={onToggleSidebar}
+        type="button"
+      >
+        {sidebarExpanded ? (
+          <PanelLeftClose size={18} />
+        ) : (
+          <PanelLeftOpen size={18} />
+        )}
+      </Button>
+      <div className="app-sidebar__brand">
+        <span aria-hidden="true" className="app-sidebar__mark">
+          F
+        </span>
+        <span className="app-sidebar__brand-text">Flowboard</span>
+      </div>
+      <Button
+        aria-label="Close navigation"
+        className="icon-button app-sidebar__mobile-close"
+        onClick={onCloseMobileSidebar}
+        type="button"
+      >
+        <X size={18} />
+      </Button>
+    </div>
+    <nav className="app-sidebar__nav" aria-label="Primary navigation">
+      <Button
+        aria-current={currentView === 'board' ? 'page' : undefined}
+        aria-label="Board"
+        className={`app-sidebar__nav-item ${currentView === 'board' ? 'app-sidebar__nav-item--active' : ''}`}
+        onClick={onBoardClick}
+        title="Board"
+        type="button"
+      >
+        <KanbanSquare size={18} />
+        <span>Board</span>
+      </Button>
+      <Button
+        aria-current={currentView === 'history' ? 'page' : undefined}
+        aria-label="History"
+        className={`app-sidebar__nav-item ${currentView === 'history' ? 'app-sidebar__nav-item--active' : ''}`}
+        onClick={onHistoryClick}
+        title="History"
+        type="button"
+      >
+        <History size={18} />
+        <span>History</span>
+      </Button>
+      <Button
+        aria-label="Manage tags"
+        className="app-sidebar__nav-item"
+        onClick={onManageTagsClick}
+        title="Tags"
+        type="button"
+      >
+        <Tags size={18} />
+        <span>Tags</span>
+      </Button>
+      <Button
+        aria-label="Board settings"
+        className="app-sidebar__nav-item"
+        onClick={onBoardSettingsClick}
+        title="Board settings"
+        type="button"
+      >
+        <Settings size={18} />
+        <span>Board settings</span>
+      </Button>
+    </nav>
+    <div className="app-sidebar__footer">
+      <p className="app-sidebar__footer-label">Theme</p>
+      <fieldset aria-label="Theme preference" className="theme-switcher">
+        {THEME_OPTIONS.map((option) => {
+          const Icon = option.icon;
+
+          return (
+            <Button
+              aria-label={`Use ${option.label.toLowerCase()} theme`}
+              aria-pressed={themePreference === option.value}
+              className="theme-switcher__button"
+              key={option.value}
+              onClick={() => onThemePreferenceChange(option.value)}
+              title={option.label}
+              type="button"
+            >
+              <Icon size={16} />
+              <span>{option.label}</span>
+            </Button>
+          );
+        })}
+      </fieldset>
+    </div>
+  </aside>
+);
+
+type AppWorkspaceProps = {
+  completedWorkCycles: CompletedWorkCycle[];
+  completionPulse: boolean;
+  currentView: AppState['currentView'];
+  onBoardStateChange: () => void;
+  onColumnCountChange: (columnCount: number) => void;
+  onCompleteWorkClick: () => void;
+  onOpenMobileSidebar: () => void;
+  onTagsChange: (tags: BoardTag[]) => void;
+  storageVersion: number;
+  tags: BoardTag[];
+};
+
+const AppWorkspace = ({
+  completedWorkCycles,
+  completionPulse,
+  currentView,
+  onBoardStateChange,
+  onColumnCountChange,
+  onCompleteWorkClick,
+  onOpenMobileSidebar,
+  onTagsChange,
+  storageVersion,
+  tags,
+}: AppWorkspaceProps) => {
+  const workspaceTitle = currentView === 'history' ? 'History' : 'Board';
+  const workspaceEyebrow =
+    currentView === 'history' ? 'Completed work' : 'Workspace';
+
+  return (
+    <section className="app-workspace" aria-label="Board workspace">
+      <header className="board__header">
+        <div className="board__title-group">
+          <Button
+            aria-label="Open navigation"
+            className="icon-button board__mobile-nav-trigger"
+            onClick={onOpenMobileSidebar}
+            type="button"
+          >
+            <MenuIcon size={18} />
+          </Button>
+          <div>
+            <p className="app__eyebrow">{workspaceEyebrow}</p>
+            <h1 className="app__title">{workspaceTitle}</h1>
+          </div>
+        </div>
+        {currentView === 'board' && (
+          <div className="board__header-actions">
+            <Button
+              aria-label="Complete work"
+              className="button button--primary board__complete-work"
+              onClick={onCompleteWorkClick}
+              title="Complete work"
+              type="button"
+            >
+              <CheckCircle2 size={16} />
+              <span>Complete work</span>
+            </Button>
+          </div>
+        )}
+      </header>
+      {currentView === 'board' ? (
+        <section className="board" aria-label="Flowboard board">
+          {completionPulse && (
+            <div className="complete-work-pulse" aria-live="polite">
+              <CheckCircle2 size={18} />
+              <span>Work completed</span>
+            </div>
+          )}
+          <Columns
+            key={storageVersion}
+            onBoardStateChange={onBoardStateChange}
+            onColumnCountChange={onColumnCountChange}
+            onTagsChange={onTagsChange}
+            tags={tags}
+          />
+        </section>
+      ) : (
+        <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
+      )}
+    </section>
+  );
+};
+
+type AppDialogsProps = {
+  activeWorkCycle: BoardActiveWorkCycle;
+  boardSettingsOpen: boolean;
+  clearBoardOpen: boolean;
+  columnCount: number;
+  columns: BoardColumn[];
+  completeWorkOpen: boolean;
+  completedCardCount: number;
+  completedColumn: BoardColumn | undefined;
+  onBoardSettingsOpenChange: (open: boolean) => void;
+  onClearBoard: () => void;
+  onClearBoardOpenChange: (open: boolean) => void;
+  onClearBoardRequest: () => void;
+  onCompleteWork: () => void;
+  onCompleteWorkOpenChange: (open: boolean) => void;
+  onCompletedColumnChange: (completedColumnId: string | null) => void;
+  onDeleteTag: (tagId: string) => void;
+  onTagManagerOpenChange: (open: boolean) => void;
+  onTagsChange: (tags: BoardTag[]) => void;
+  tagManagerOpen: boolean;
+  tags: BoardTag[];
+};
+
+const AppDialogs = ({
+  activeWorkCycle,
+  boardSettingsOpen,
+  clearBoardOpen,
+  columnCount,
+  columns,
+  completeWorkOpen,
+  completedCardCount,
+  completedColumn,
+  onBoardSettingsOpenChange,
+  onClearBoard,
+  onClearBoardOpenChange,
+  onClearBoardRequest,
+  onCompleteWork,
+  onCompleteWorkOpenChange,
+  onCompletedColumnChange,
+  onDeleteTag,
+  onTagManagerOpenChange,
+  onTagsChange,
+  tagManagerOpen,
+  tags,
+}: AppDialogsProps) => (
+  <>
+    <BoardSettingsDialog
+      canClearBoard={columnCount > 0}
+      columns={columns}
+      completedColumnId={activeWorkCycle.completedColumnId}
+      onClearBoard={onClearBoardRequest}
+      onCompletedColumnChange={onCompletedColumnChange}
+      onOpenChange={onBoardSettingsOpenChange}
+      open={boardSettingsOpen}
+    />
+    <TagManagerDialog
+      getTagUsageCount={getTagUsageCount}
+      onDeleteTag={onDeleteTag}
+      onOpenChange={onTagManagerOpenChange}
+      onTagsChange={onTagsChange}
+      open={tagManagerOpen}
+      tags={tags}
+    />
+    <ConfirmDialog
+      confirmLabel="Clear board"
+      description={`This will permanently delete ${columnCount} columns and all of their cards.`}
+      onConfirm={onClearBoard}
+      onOpenChange={onClearBoardOpenChange}
+      open={clearBoardOpen}
+      title="Clear this board?"
+    />
+    <ConfirmDialog
+      confirmLabel="Complete work"
+      confirmVariant="primary"
+      description={
+        completedColumn
+          ? completedCardCount > 0
+            ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
+            : `There are no cards in ${completedColumn.title}. Complete this work cycle and save an empty history entry?`
+          : 'Choose a completed column in board settings before completing work.'
+      }
+      onConfirm={onCompleteWork}
+      onOpenChange={onCompleteWorkOpenChange}
+      open={completeWorkOpen}
+      title={completedCardCount > 0 ? 'Complete work?' : 'Complete empty work?'}
+    />
+  </>
+);
+
 const App = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
   const completionPulseTimeoutRef = useRef<number | null>(null);
@@ -396,9 +697,6 @@ const App = () => {
     (column) => column.id === activeWorkCycle.completedColumnId
   );
   const completedCardCount = completedColumn?.cards.length ?? 0;
-  const workspaceTitle = currentView === 'history' ? 'History' : 'Board';
-  const workspaceEyebrow =
-    currentView === 'history' ? 'Completed work' : 'Workspace';
 
   return (
     <main
@@ -412,215 +710,66 @@ const App = () => {
         onClick={closeMobileSidebar}
         type="button"
       />
-      <aside
-        aria-label="Flowboard navigation"
-        className="app-sidebar"
-        data-expanded={sidebarExpanded}
-      >
-        <div className="app-sidebar__header">
-          <Button
-            aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-            className="icon-button app-sidebar__toggle"
-            onClick={toggleSidebar}
-            type="button"
-          >
-            {sidebarExpanded ? (
-              <PanelLeftClose size={18} />
-            ) : (
-              <PanelLeftOpen size={18} />
-            )}
-          </Button>
-          <div className="app-sidebar__brand">
-            <span aria-hidden="true" className="app-sidebar__mark">
-              F
-            </span>
-            <span className="app-sidebar__brand-text">Flowboard</span>
-          </div>
-          <Button
-            aria-label="Close navigation"
-            className="icon-button app-sidebar__mobile-close"
-            onClick={closeMobileSidebar}
-            type="button"
-          >
-            <X size={18} />
-          </Button>
-        </div>
-        <nav className="app-sidebar__nav" aria-label="Primary navigation">
-          <Button
-            aria-current={currentView === 'board' ? 'page' : undefined}
-            aria-label="Board"
-            className={`app-sidebar__nav-item ${currentView === 'board' ? 'app-sidebar__nav-item--active' : ''}`}
-            onClick={openBoard}
-            title="Board"
-            type="button"
-          >
-            <KanbanSquare size={18} />
-            <span>Board</span>
-          </Button>
-          <Button
-            aria-current={currentView === 'history' ? 'page' : undefined}
-            aria-label="History"
-            className={`app-sidebar__nav-item ${currentView === 'history' ? 'app-sidebar__nav-item--active' : ''}`}
-            onClick={openHistory}
-            title="History"
-            type="button"
-          >
-            <History size={18} />
-            <span>History</span>
-          </Button>
-          <Button
-            aria-label="Manage tags"
-            className="app-sidebar__nav-item"
-            onClick={openTagManager}
-            title="Tags"
-            type="button"
-          >
-            <Tags size={18} />
-            <span>Tags</span>
-          </Button>
-          <Button
-            aria-label="Board settings"
-            className="app-sidebar__nav-item"
-            onClick={openBoardSettings}
-            title="Board settings"
-            type="button"
-          >
-            <Settings size={18} />
-            <span>Board settings</span>
-          </Button>
-        </nav>
-        <div className="app-sidebar__footer">
-          <p className="app-sidebar__footer-label">Theme</p>
-          <fieldset
-            aria-label="Theme preference"
-            className="theme-switcher"
-          >
-            {THEME_OPTIONS.map((option) => {
-              const Icon = option.icon;
-
-              return (
-                <Button
-                  aria-label={`Use ${option.label.toLowerCase()} theme`}
-                  aria-pressed={themePreference === option.value}
-                  className="theme-switcher__button"
-                  key={option.value}
-                  onClick={() => chooseThemePreference(option.value)}
-                  title={option.label}
-                  type="button"
-                >
-                  <Icon size={16} />
-                  <span>{option.label}</span>
-                </Button>
-              );
-            })}
-          </fieldset>
-        </div>
-      </aside>
-      <section className="app-workspace" aria-label="Board workspace">
-        <header className="board__header">
-          <div className="board__title-group">
-            <Button
-              aria-label="Open navigation"
-              className="icon-button board__mobile-nav-trigger"
-              onClick={() =>
-                dispatch({ open: true, type: 'mobileSidebarOpenChanged' })
-              }
-              type="button"
-            >
-              <MenuIcon size={18} />
-            </Button>
-            <div>
-              <p className="app__eyebrow">{workspaceEyebrow}</p>
-              <h1 className="app__title">{workspaceTitle}</h1>
-            </div>
-          </div>
-          {currentView === 'board' && (
-            <div className="board__header-actions">
-              <Button
-                aria-label="Complete work"
-                className="button button--primary board__complete-work"
-                onClick={openCompleteWorkConfirmation}
-                title="Complete work"
-                type="button"
-              >
-                <CheckCircle2 size={16} />
-                <span>Complete work</span>
-              </Button>
-            </div>
-          )}
-        </header>
-        {currentView === 'board' ? (
-          <section className="board" aria-label="Flowboard board">
-            {completionPulse && (
-              <div className="complete-work-pulse" aria-live="polite">
-                <CheckCircle2 size={18} />
-                <span>Work completed</span>
-              </div>
-            )}
-            <Columns
-              key={storageVersion}
-              onBoardStateChange={syncBoardState}
-              onColumnCountChange={(nextColumnCount) =>
-                dispatch({
-                  columnCount: nextColumnCount,
-                  type: 'columnCountChanged',
-                })
-              }
-              onTagsChange={updateTags}
-              tags={tags}
-            />
-          </section>
-        ) : (
-          <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
-        )}
-      </section>
-      <BoardSettingsDialog
-        canClearBoard={columnCount > 0}
+      <AppSidebar
+        currentView={currentView}
+        onBoardClick={openBoard}
+        onBoardSettingsClick={openBoardSettings}
+        onCloseMobileSidebar={closeMobileSidebar}
+        onHistoryClick={openHistory}
+        onManageTagsClick={openTagManager}
+        onThemePreferenceChange={chooseThemePreference}
+        onToggleSidebar={toggleSidebar}
+        sidebarExpanded={sidebarExpanded}
+        themePreference={themePreference}
+      />
+      <AppWorkspace
+        completedWorkCycles={completedWorkCycles}
+        completionPulse={completionPulse}
+        currentView={currentView}
+        onBoardStateChange={syncBoardState}
+        onColumnCountChange={(nextColumnCount) =>
+          dispatch({
+            columnCount: nextColumnCount,
+            type: 'columnCountChanged',
+          })
+        }
+        onCompleteWorkClick={openCompleteWorkConfirmation}
+        onOpenMobileSidebar={() =>
+          dispatch({ open: true, type: 'mobileSidebarOpenChanged' })
+        }
+        onTagsChange={updateTags}
+        storageVersion={storageVersion}
+        tags={tags}
+      />
+      <AppDialogs
+        activeWorkCycle={activeWorkCycle}
+        boardSettingsOpen={boardSettingsOpen}
+        clearBoardOpen={clearBoardOpen}
+        columnCount={columnCount}
         columns={columns}
-        completedColumnId={activeWorkCycle.completedColumnId}
-        onClearBoard={openClearBoardConfirmation}
-        onCompletedColumnChange={chooseCompletedColumn}
-        onOpenChange={(open) =>
+        completeWorkOpen={completeWorkOpen}
+        completedCardCount={completedCardCount}
+        completedColumn={completedColumn}
+        onBoardSettingsOpenChange={(open) =>
           dispatch({ open, type: 'boardSettingsOpenChanged' })
         }
-        open={boardSettingsOpen}
-      />
-      <TagManagerDialog
-        getTagUsageCount={getTagUsageCount}
+        onClearBoard={clearBoard}
+        onClearBoardOpenChange={(open) =>
+          dispatch({ open, type: 'clearBoardOpenChanged' })
+        }
+        onClearBoardRequest={openClearBoardConfirmation}
+        onCompleteWork={confirmCompleteWork}
+        onCompleteWorkOpenChange={(open) =>
+          dispatch({ open, type: 'completeWorkOpenChanged' })
+        }
+        onCompletedColumnChange={chooseCompletedColumn}
         onDeleteTag={deleteTag}
-        onOpenChange={(open) =>
+        onTagManagerOpenChange={(open) =>
           dispatch({ open, type: 'tagManagerOpenChanged' })
         }
         onTagsChange={updateTags}
-        open={tagManagerOpen}
+        tagManagerOpen={tagManagerOpen}
         tags={tags}
-      />
-      <ConfirmDialog
-        confirmLabel="Clear board"
-        description={`This will permanently delete ${columnCount} columns and all of their cards.`}
-        onConfirm={clearBoard}
-        onOpenChange={(open) =>
-          dispatch({ open, type: 'clearBoardOpenChanged' })
-        }
-        open={clearBoardOpen}
-        title="Clear this board?"
-      />
-      <ConfirmDialog
-        confirmLabel="Complete work"
-        confirmVariant="primary"
-        description={
-          completedColumn
-            ? completedCardCount > 0
-              ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
-              : `There are no cards in ${completedColumn.title}. Complete this work cycle and save an empty history entry?`
-            : 'Choose a completed column in board settings before completing work.'
-        }
-        onConfirm={confirmCompleteWork}
-        onOpenChange={(open) =>
-          dispatch({ open, type: 'completeWorkOpenChanged' })
-        }
-        open={completeWorkOpen}
-        title={completedCardCount > 0 ? 'Complete work?' : 'Complete empty work?'}
       />
     </main>
   );
