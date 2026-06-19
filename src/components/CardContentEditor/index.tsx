@@ -1,10 +1,4 @@
-import { Button } from '@base-ui/react/button';
-import { Field } from '@base-ui/react/field';
-import { Popover } from '@base-ui/react/popover';
-import { Select } from '@base-ui/react/select';
-import { Tooltip } from '@base-ui/react/tooltip';
-import { Toolbar } from '@base-ui/react/toolbar';
-import type { JSONContent } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
 import FileHandler from '@tiptap/extension-file-handler';
 import Heading, { type Level } from '@tiptap/extension-heading';
 import Image from '@tiptap/extension-image';
@@ -14,42 +8,14 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Markdown } from '@tiptap/markdown';
 import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
-import {
-  AlignJustify,
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  Bold,
-  Check,
-  ChevronDown,
-  Code,
-  Code2,
-  Copy,
-  Edit3,
-  ExternalLink,
-  Heading1,
-  Heading2,
-  Heading3,
-  Heading4,
-  Image as ImageIcon,
-  Italic,
-  Link as LinkIcon,
-  List,
-  ListChecks,
-  ListOrdered,
-  Pilcrow,
-  Quote,
-  Redo2,
-  Strikethrough,
-  Trash2,
-  Undo2,
-  X,
-} from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import type { ClipboardEvent, DragEvent } from 'react';
+
+import { EditorBubbleMenus } from './EditorBubbleMenus';
+import { EditorToolbar } from './EditorToolbar';
+import type { AlignValue, EditorToolbarState, HeadingValue, ListValue } from './types';
 
 import './CardContentEditor.css';
 
@@ -60,69 +26,13 @@ type CardContentEditorProps = {
   value: string;
 };
 
-type ToolbarButtonProps = {
-  active?: boolean;
-  disabled?: boolean;
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-};
-
-type ToolbarSelectOption<TValue extends string> = {
-  icon?: ReactNode;
-  label: string;
-  triggerLabel?: string;
-  value: TValue;
-};
-
-type ToolbarSelectProps<TValue extends string> = {
-  active?: boolean;
-  disabled?: boolean;
-  fallbackOption?: ToolbarSelectOption<TValue>;
-  label: string;
-  onValueChange: (value: TValue) => void;
-  options: ToolbarSelectOption<TValue>[];
-  value: TValue;
-};
-
-type HeadingValue = 'paragraph' | 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4';
-type ListValue = 'none' | 'bullet' | 'ordered' | 'task';
-type AlignValue = 'left' | 'center' | 'right' | 'justify';
-
 const imageMimeTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/webp'];
 const headingLevels: Level[] = [1, 2, 3, 4];
 const alignValues: AlignValue[] = ['left', 'center', 'right', 'justify'];
 const EMPTY_PARAGRAPH_MARKDOWN = '&nbsp;';
 const NBSP_CHAR = '\u00A0';
 
-const headingOptions: ToolbarSelectOption<HeadingValue>[] = [
-  { icon: <Pilcrow size={15} />, label: 'Paragraph', value: 'paragraph' },
-  { icon: <Heading1 size={15} />, label: 'Heading 1', value: 'heading-1' },
-  { icon: <Heading2 size={15} />, label: 'Heading 2', value: 'heading-2' },
-  { icon: <Heading3 size={15} />, label: 'Heading 3', value: 'heading-3' },
-  { icon: <Heading4 size={15} />, label: 'Heading 4', value: 'heading-4' },
-];
-
-const listOptions: ToolbarSelectOption<ListValue>[] = [
-  { icon: <List size={15} />, label: 'Bullet list', value: 'bullet' },
-  { icon: <ListOrdered size={15} />, label: 'Ordered list', value: 'ordered' },
-  { icon: <ListChecks size={15} />, label: 'Task list', value: 'task' },
-];
-
-const alignOptions: ToolbarSelectOption<AlignValue>[] = [
-  { icon: <AlignLeft size={15} />, label: 'Align left', value: 'left' },
-  { icon: <AlignCenter size={15} />, label: 'Align center', value: 'center' },
-  { icon: <AlignRight size={15} />, label: 'Align right', value: 'right' },
-  { icon: <AlignJustify size={15} />, label: 'Justify', value: 'justify' },
-];
-
-const defaultListOption: ToolbarSelectOption<ListValue> = {
-  icon: <List size={15} />,
-  label: 'List style',
-  value: 'none',
-};
-
-const defaultToolbarState = {
+const defaultToolbarState: EditorToolbarState = {
   alignValue: 'left' as AlignValue,
   canRedo: false,
   canUndo: false,
@@ -138,6 +48,54 @@ const defaultToolbarState = {
   isStrike: false,
   linkHref: '',
   listValue: 'none' as ListValue,
+};
+
+const getToolbarState = (currentEditor: Editor): EditorToolbarState => {
+  const headingValue =
+    headingLevels
+      .map((level) => `heading-${level}` as HeadingValue)
+      .find((option) =>
+        currentEditor.isActive('heading', {
+          level: Number(option.replace('heading-', '')),
+        })
+      ) ?? 'paragraph';
+  const listValue = currentEditor.isActive('taskList')
+    ? 'task'
+    : currentEditor.isActive('bulletList')
+      ? 'bullet'
+      : currentEditor.isActive('orderedList')
+        ? 'ordered'
+        : 'none';
+  const alignValue =
+    alignValues.find((alignment) => currentEditor.isActive({ textAlign: alignment })) ?? 'left';
+  const linkHref = currentEditor.getAttributes('link').href as string | undefined;
+  const selectedNode =
+    currentEditor.state.selection instanceof NodeSelection
+      ? currentEditor.state.selection.node
+      : null;
+  const selectedImage =
+    selectedNode?.type.name === 'image' ? selectedNode : null;
+  const imageSrc =
+    (selectedImage?.attrs.src as string | undefined) ??
+    (currentEditor.getAttributes('image').src as string | undefined);
+
+  return {
+    alignValue,
+    canRedo: currentEditor.can().redo(),
+    canUndo: currentEditor.can().undo(),
+    headingValue,
+    imageSrc: imageSrc ?? '',
+    isBlockquote: currentEditor.isActive('blockquote'),
+    isBold: currentEditor.isActive('bold'),
+    isCode: currentEditor.isActive('code'),
+    isCodeBlock: currentEditor.isActive('codeBlock'),
+    isImage: Boolean(selectedImage),
+    isItalic: currentEditor.isActive('italic'),
+    isLink: currentEditor.isActive('link'),
+    isStrike: currentEditor.isActive('strike'),
+    linkHref: linkHref ?? '',
+    listValue,
+  };
 };
 
 const escapeHtml = (value: string) =>
@@ -419,128 +377,64 @@ const insertImageFiles = async (
   }
 };
 
-const ToolbarButton = ({
-  active = false,
-  disabled = false,
-  label,
-  onClick,
-  children,
-}: ToolbarButtonProps) => (
-  <Tooltip.Root>
-    <Tooltip.Trigger
-      aria-label={label}
-      aria-disabled={disabled}
-      aria-pressed={active}
-      className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
-      data-disabled={disabled ? '' : undefined}
-      onClick={(event) => {
-        if (disabled) {
-          event.preventDefault();
-          return;
-        }
+const applyHeadingChange = (editor: Editor | null, nextValue: HeadingValue) => {
+  if (!editor) {
+    return;
+  }
 
-        onClick();
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-      render={<Toolbar.Button />}
-      tabIndex={disabled ? -1 : undefined}
-      type="button"
-    >
-      {children}
-    </Tooltip.Trigger>
-    <Tooltip.Portal>
-      <Tooltip.Positioner sideOffset={8}>
-        <Tooltip.Popup className="tooltip-popup">
-          {label}
-        </Tooltip.Popup>
-      </Tooltip.Positioner>
-    </Tooltip.Portal>
-  </Tooltip.Root>
-);
+  if (nextValue === 'paragraph') {
+    editor.chain().focus().setParagraph().run();
+    return;
+  }
 
-const ToolbarSelect = <TValue extends string>({
-  active = false,
-  disabled = false,
-  fallbackOption,
-  label,
-  onValueChange,
-  options,
-  value,
-}: ToolbarSelectProps<TValue>) => {
-  const selectLabelId = useId();
-  const selectedOption = options.find((option) => option.value === value) ?? fallbackOption ?? options[0];
-  const triggerLabel = selectedOption.triggerLabel ?? selectedOption.label;
-
-  return (
-    <Select.Root
-      onValueChange={(nextValue) => {
-        if (nextValue) {
-          onValueChange(nextValue as TValue);
-        }
-      }}
-      value={value}
-    >
-      <span className="editor-toolbar__accessible-label" id={selectLabelId}>
-        {label}
-      </span>
-      <Tooltip.Root>
-        <Tooltip.Trigger
-          aria-labelledby={selectLabelId}
-          aria-pressed={active}
-          aria-label={`${label}: ${triggerLabel}`}
-          className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
-          disabled={disabled}
-          render={<Toolbar.Button disabled={disabled} render={<Select.Trigger />} />}
-        >
-          <span className="editor-toolbar__select-trigger-icon" title={triggerLabel}>
-            {selectedOption.icon}
-          </span>
-          <Select.Icon className="editor-toolbar__select-icon">
-            <ChevronDown size={14} />
-          </Select.Icon>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Positioner sideOffset={8}>
-            <Tooltip.Popup className="tooltip-popup">
-              {triggerLabel}
-            </Tooltip.Popup>
-          </Tooltip.Positioner>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-      <Select.Portal>
-        <Select.Positioner
-          align="start"
-          className="editor-toolbar__select-positioner"
-          sideOffset={5}
-        >
-          <Select.Popup className="editor-toolbar__select-popup">
-            <Select.List>
-              {options.map((option) => (
-                <Select.Item
-                  className="editor-toolbar__select-item"
-                  key={option.value}
-                  value={option.value}
-                >
-                  <Select.ItemText>
-                    <span className="editor-toolbar__select-label">
-                      {option.icon}
-                      <span>{option.label}</span>
-                    </span>
-                  </Select.ItemText>
-                  <Select.ItemIndicator>
-                    <Check size={14} />
-                  </Select.ItemIndicator>
-                </Select.Item>
-              ))}
-            </Select.List>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  );
+  editor
+    .chain()
+    .focus()
+    .toggleHeading({ level: Number(nextValue.replace('heading-', '')) as Level })
+    .run();
 };
 
-const CardContentEditor = ({
+const applyListChange = (editor: Editor | null, nextValue: ListValue) => {
+  if (!editor) {
+    return;
+  }
+
+  const chain = editor.chain().focus();
+
+  if (nextValue === 'none') {
+    chain.setParagraph().run();
+    return;
+  }
+
+  if (nextValue === 'bullet') {
+    chain.toggleBulletList().run();
+    return;
+  }
+
+  if (nextValue === 'ordered') {
+    chain.toggleOrderedList().run();
+    return;
+  }
+
+  chain.toggleTaskList().run();
+};
+
+const applyAlignChange = (editor: Editor | null, nextValue: AlignValue) => {
+  if (!editor) {
+    return;
+  }
+
+  const chain = editor.chain().focus();
+
+  if (nextValue === 'left') {
+    chain.unsetTextAlign().run();
+    return;
+  }
+
+  chain.setTextAlign(nextValue).run();
+};
+
+const useCardContentTipTapEditor = ({
   id,
   labelId,
   onChange,
@@ -548,21 +442,6 @@ const CardContentEditor = ({
 }: CardContentEditorProps) => {
   const onChangeRef = useRef(onChange);
   const lastSyncedValue = useRef(value);
-  const [copyStatus, setCopyStatus] = useState('');
-  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkError, setLinkError] = useState('');
-  const [imagePopoverOpen, setImagePopoverOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageError, setImageError] = useState('');
-  const [linkBubbleEditing, setLinkBubbleEditing] = useState(false);
-  const [linkBubbleUrl, setLinkBubbleUrl] = useState('');
-  const [linkBubbleError, setLinkBubbleError] = useState('');
-  const [imageBubbleEditing, setImageBubbleEditing] = useState(false);
-  const [imageBubbleUrl, setImageBubbleUrl] = useState('');
-  const [imageBubbleError, setImageBubbleError] = useState('');
-  const linkSelectionRef = useRef<{ from: number; to: number } | null>(null);
-  const imageSelectionRef = useRef<number | null>(null);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -653,63 +532,65 @@ const CardContentEditor = ({
     });
   }, [editor, value]);
 
-  const toolbarState = useEditorState({
-    editor,
-    selector: ({ editor: currentEditor }) => {
-      if (!currentEditor) {
-        return defaultToolbarState;
-      }
+  return editor;
+};
 
-      const headingValue =
-        headingLevels
-          .map((level) => `heading-${level}` as HeadingValue)
-          .find((option) =>
-            currentEditor.isActive('heading', {
-              level: Number(option.replace('heading-', '')),
-            })
-          ) ?? 'paragraph';
-      const listValue = currentEditor.isActive('taskList')
-        ? 'task'
-        : currentEditor.isActive('bulletList')
-          ? 'bullet'
-          : currentEditor.isActive('orderedList')
-            ? 'ordered'
-            : 'none';
-      const alignValue =
-        alignValues.find((alignment) => currentEditor.isActive({ textAlign: alignment })) ?? 'left';
-      const linkHref = currentEditor.getAttributes('link').href as string | undefined;
-      const selectedNode =
-        currentEditor.state.selection instanceof NodeSelection
-          ? currentEditor.state.selection.node
-          : null;
-      const selectedImage =
-        selectedNode?.type.name === 'image' ? selectedNode : null;
-      const imageSrc =
-        (selectedImage?.attrs.src as string | undefined) ??
-        (currentEditor.getAttributes('image').src as string | undefined);
-
-      return {
-        alignValue,
-        canRedo: currentEditor.can().redo(),
-        canUndo: currentEditor.can().undo(),
-        headingValue,
-        imageSrc: imageSrc ?? '',
-        isBlockquote: currentEditor.isActive('blockquote'),
-        isBold: currentEditor.isActive('bold'),
-        isCode: currentEditor.isActive('code'),
-        isCodeBlock: currentEditor.isActive('codeBlock'),
-        isImage: Boolean(selectedImage),
-        isItalic: currentEditor.isActive('italic'),
-        isLink: currentEditor.isActive('link'),
-        isStrike: currentEditor.isActive('strike'),
-        linkHref: linkHref ?? '',
-        listValue,
-      };
-    },
-  }) ?? defaultToolbarState;
-
+const useCardContentEditorInteractions = (
+  editor: Editor | null,
+  toolbarState: EditorToolbarState
+) => {
+  const [copyStatus, setCopyStatus] = useState('');
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [imagePopoverOpen, setImagePopoverOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageError, setImageError] = useState('');
+  const [linkBubbleEditing, setLinkBubbleEditing] = useState(false);
+  const [linkBubbleUrl, setLinkBubbleUrl] = useState('');
+  const [linkBubbleError, setLinkBubbleError] = useState('');
+  const [imageBubbleEditing, setImageBubbleEditing] = useState(false);
+  const [imageBubbleUrl, setImageBubbleUrl] = useState('');
+  const [imageBubbleError, setImageBubbleError] = useState('');
+  const linkSelectionRef = useRef<{ from: number; to: number } | null>(null);
+  const imageSelectionRef = useRef<number | null>(null);
   const currentHref = toolbarState.linkHref;
   const currentImageSrc = toolbarState.imageSrc;
+
+  const storeLinkSelection = () => {
+    if (!editor) {
+      return;
+    }
+
+    const { from, to } = editor.state.selection;
+
+    if (from !== to) {
+      linkSelectionRef.current = { from, to };
+      return;
+    }
+
+    const selection = window.getSelection();
+
+    if (selection?.anchorNode && editor.view.dom.contains(selection.anchorNode)) {
+      const anchor = editor.view.posAtDOM(selection.anchorNode, selection.anchorOffset);
+      const head = editor.view.posAtDOM(selection.focusNode ?? selection.anchorNode, selection.focusOffset);
+      linkSelectionRef.current = {
+        from: Math.min(anchor, head),
+        to: Math.max(anchor, head),
+      };
+      return;
+    }
+
+    linkSelectionRef.current = { from, to };
+  };
+
+  const storeImageSelection = () => {
+    if (!editor) {
+      return;
+    }
+
+    imageSelectionRef.current = editor.state.selection.from;
+  };
 
   const applyLinkValue = (rawValue: string, close: () => void) => {
     if (!editor) {
@@ -818,41 +699,6 @@ const CardContentEditor = ({
     setLinkPopoverOpen(true);
   };
 
-  const storeLinkSelection = () => {
-    if (!editor) {
-      return;
-    }
-
-    const { from, to } = editor.state.selection;
-
-    if (from !== to) {
-      linkSelectionRef.current = { from, to };
-      return;
-    }
-
-    const selection = window.getSelection();
-
-    if (selection?.anchorNode && editor.view.dom.contains(selection.anchorNode)) {
-      const anchor = editor.view.posAtDOM(selection.anchorNode, selection.anchorOffset);
-      const head = editor.view.posAtDOM(selection.focusNode ?? selection.anchorNode, selection.focusOffset);
-      linkSelectionRef.current = {
-        from: Math.min(anchor, head),
-        to: Math.max(anchor, head),
-      };
-      return;
-    }
-
-    linkSelectionRef.current = { from, to };
-  };
-
-  const storeImageSelection = () => {
-    if (!editor) {
-      return;
-    }
-
-    imageSelectionRef.current = editor.state.selection.from;
-  };
-
   const openImagePopover = () => {
     setImageUrl('');
     setImageError('');
@@ -930,542 +776,159 @@ const CardContentEditor = ({
     void insertImageFiles(editor, files);
   };
 
-  const onHeadingChange = (nextValue: HeadingValue) => {
-    if (!editor) {
-      return;
-    }
+  return {
+    applyImageBubbleValue,
+    applyImageValue,
+    applyLinkPopoverValue: () => applyLinkValue(linkUrl, () => setLinkPopoverOpen(false)),
+    applyLinkBubbleValue: () => applyLinkValue(linkBubbleUrl, () => setLinkBubbleEditing(false)),
+    copyMarkdown,
+    copyStatus,
+    currentHref,
+    currentImageSrc,
+    imageBubbleEditing,
+    imageBubbleError,
+    imageBubbleUrl,
+    imageError,
+    imagePopoverOpen,
+    imageUrl,
+    linkBubbleEditing,
+    linkBubbleError,
+    linkBubbleUrl,
+    linkError,
+    linkPopoverOpen,
+    linkUrl,
+    onCancelImageEdit: () => {
+      setImageBubbleEditing(false);
+      setImageBubbleError('');
+    },
+    onCancelLinkEdit: () => {
+      setLinkBubbleEditing(false);
+      setLinkBubbleError('');
+    },
+    onEditImage: () => {
+      storeImageSelection();
+      setImageBubbleUrl(currentImageSrc);
+      setImageBubbleError('');
+      setImageBubbleEditing(true);
+    },
+    onEditLink: () => {
+      storeLinkSelection();
+      setLinkBubbleUrl(currentHref ?? '');
+      setLinkBubbleError('');
+      setLinkBubbleEditing(true);
+    },
+    onFileDrop,
+    onFilePaste,
+    onImagePopoverOpenChange: (open: boolean) => {
+      setImagePopoverOpen(open);
+      if (open) {
+        openImagePopover();
+        return;
+      }
 
-    if (nextValue === 'paragraph') {
-      editor.chain().focus().setParagraph().run();
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .toggleHeading({ level: Number(nextValue.replace('heading-', '')) as Level })
-      .run();
+      setImageError('');
+    },
+    onLinkMouseDown: storeLinkSelection,
+    onLinkPopoverOpen: openLinkPopover,
+    onLinkPopoverOpenChange: (open: boolean) => {
+      setLinkPopoverOpen(open);
+      if (!open) {
+        setLinkError('');
+      }
+    },
+    onOpenImage: openCurrentImage,
+    onOpenLink: openCurrentLink,
+    onRemoveImage: () => {
+      storeImageSelection();
+      removeCurrentImage();
+    },
+    onRemoveLink: () => editor?.chain().focus().extendMarkRange('link').unsetLink().run(),
+    setImageBubbleUrl,
+    setImageUrl,
+    setLinkBubbleUrl,
+    setLinkUrl,
   };
+};
 
-  const onListChange = (nextValue: ListValue) => {
-    if (!editor) {
-      return;
-    }
+const CardContentEditor = ({
+  id,
+  labelId,
+  onChange,
+  value,
+}: CardContentEditorProps) => {
+  const editor = useCardContentTipTapEditor({ id, labelId, onChange, value });
+  const toolbarState = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) => {
+      if (!currentEditor) {
+        return defaultToolbarState;
+      }
 
-    const chain = editor.chain().focus();
-
-    if (nextValue === 'none') {
-      chain.setParagraph().run();
-      return;
-    }
-
-    if (nextValue === 'bullet') {
-      chain.toggleBulletList().run();
-      return;
-    }
-
-    if (nextValue === 'ordered') {
-      chain.toggleOrderedList().run();
-      return;
-    }
-
-    chain.toggleTaskList().run();
-  };
-
-  const onAlignChange = (nextValue: AlignValue) => {
-    if (!editor) {
-      return;
-    }
-
-    const chain = editor.chain().focus();
-
-    if (nextValue === 'left') {
-      chain.unsetTextAlign().run();
-      return;
-    }
-
-    chain.setTextAlign(nextValue).run();
-  };
+      return getToolbarState(currentEditor);
+    },
+  }) ?? defaultToolbarState;
+  const interactions = useCardContentEditorInteractions(editor, toolbarState);
 
   return (
     <div
       className="card-content-editor"
-      onDrop={onFileDrop}
-      onPaste={onFilePaste}
+      onDrop={interactions.onFileDrop}
+      onPaste={interactions.onFilePaste}
     >
-      <Toolbar.Root className="editor-toolbar" aria-label="Content formatting">
-        <ToolbarButton
-          disabled={!toolbarState.canUndo}
-          label="Undo"
-          onClick={() => editor?.chain().focus().undo().run()}
-        >
-          <Undo2 size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          disabled={!toolbarState.canRedo}
-          label="Redo"
-          onClick={() => editor?.chain().focus().redo().run()}
-        >
-          <Redo2 size={16} />
-        </ToolbarButton>
-        <ToolbarSelect
-          active={toolbarState.headingValue !== 'paragraph'}
-          disabled={!editor}
-          label="Text style"
-          onValueChange={onHeadingChange}
-          options={headingOptions}
-          value={toolbarState.headingValue}
-        />
-        <ToolbarButton
-          active={toolbarState.isBold}
-          disabled={!editor}
-          label="Bold"
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-        >
-          <Bold size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          active={toolbarState.isItalic}
-          disabled={!editor}
-          label="Italic"
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-        >
-          <Italic size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          active={toolbarState.isStrike}
-          disabled={!editor}
-          label="Strike"
-          onClick={() => editor?.chain().focus().toggleStrike().run()}
-        >
-          <Strikethrough size={16} />
-        </ToolbarButton>
-        <ToolbarSelect
-          active={toolbarState.listValue !== 'none'}
-          disabled={!editor}
-          label="List style"
-          onValueChange={onListChange}
-          options={listOptions}
-          value={toolbarState.listValue}
-          fallbackOption={defaultListOption}
-        />
-        <ToolbarSelect
-          active={toolbarState.alignValue !== 'left'}
-          disabled={!editor}
-          label="Text alignment"
-          onValueChange={onAlignChange}
-          options={alignOptions}
-          value={toolbarState.alignValue}
-        />
-        <ToolbarButton
-          active={toolbarState.isBlockquote}
-          disabled={!editor}
-          label="Quote"
-          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-        >
-          <Quote size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          active={toolbarState.isCode}
-          disabled={!editor}
-          label="Inline code"
-          onClick={() => editor?.chain().focus().toggleCode().run()}
-        >
-          <Code size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          active={toolbarState.isCodeBlock}
-          disabled={!editor}
-          label="Code block"
-          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-        >
-          <Code2 size={16} />
-        </ToolbarButton>
-        <Popover.Root
-          onOpenChange={(open) => {
-            setLinkPopoverOpen(open);
-            if (!open) {
-              setLinkError('');
-            }
-          }}
-          open={linkPopoverOpen}
-        >
-          <Tooltip.Root>
-            <Tooltip.Trigger
-              aria-label="Link"
-              aria-pressed={toolbarState.isLink}
-              className={`editor-toolbar__button ${toolbarState.isLink ? 'editor-toolbar__button--active' : ''}`}
-              disabled={!editor}
-              onClick={openLinkPopover}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                storeLinkSelection();
-              }}
-              render={<Popover.Trigger render={<Toolbar.Button disabled={!editor} />} />}
-            >
-              <LinkIcon size={16} />
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Positioner sideOffset={8}>
-                <Tooltip.Popup className="tooltip-popup">
-                  Link
-                </Tooltip.Popup>
-              </Tooltip.Positioner>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-          <Popover.Portal>
-            <Popover.Positioner
-              align="start"
-              className="editor-url-popover__positioner"
-              sideOffset={6}
-            >
-              <Popover.Popup className="editor-url-popover">
-                <form
-                  className="editor-url-popover__form"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    applyLinkValue(linkUrl, () => setLinkPopoverOpen(false));
-                  }}
-                >
-                  <Field.Root invalid={Boolean(linkError)}>
-                    <Field.Label className="editor-url-popover__label">
-                      Link URL
-                    </Field.Label>
-                    <Field.Control
-                      autoFocus
-                      className="editor-url-popover__input"
-                      inputMode="url"
-                      maxLength={2048}
-                      onValueChange={setLinkUrl}
-                      placeholder="https://tiptap.dev"
-                      type="text"
-                      value={linkUrl}
-                    />
-                    <Field.Error
-                      className="editor-url-popover__error"
-                      match={Boolean(linkError)}
-                    >
-                      {linkError}
-                    </Field.Error>
-                  </Field.Root>
-                  <div className="editor-url-popover__actions">
-                    <Popover.Close
-                      className="editor-url-popover__button"
-                      render={<Button />}
-                      type="button"
-                    >
-                      Cancel
-                    </Popover.Close>
-                    <Button
-                      className="editor-url-popover__button editor-url-popover__button--primary"
-                      type="submit"
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                </form>
-              </Popover.Popup>
-            </Popover.Positioner>
-          </Popover.Portal>
-        </Popover.Root>
-        <Popover.Root
-          onOpenChange={(open) => {
-            setImagePopoverOpen(open);
-            if (!open) {
-              setImageError('');
-            }
-          }}
-          open={imagePopoverOpen}
-        >
-          <Tooltip.Root>
-            <Tooltip.Trigger
-              aria-label="Insert image URL"
-              className={`editor-toolbar__button ${toolbarState.isImage ? 'editor-toolbar__button--active' : ''}`}
-              disabled={!editor}
-              aria-pressed={toolbarState.isImage}
-              onClick={openImagePopover}
-              onMouseDown={(event) => event.preventDefault()}
-              render={<Popover.Trigger render={<Toolbar.Button disabled={!editor} />} />}
-            >
-              <ImageIcon size={16} />
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Positioner sideOffset={8}>
-                <Tooltip.Popup className="tooltip-popup">
-                  Insert image URL
-                </Tooltip.Popup>
-              </Tooltip.Positioner>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-          <Popover.Portal>
-            <Popover.Positioner
-              align="start"
-              className="editor-url-popover__positioner"
-              sideOffset={6}
-            >
-              <Popover.Popup className="editor-url-popover">
-                <form className="editor-url-popover__form" onSubmit={applyImageValue}>
-                  <Field.Root invalid={Boolean(imageError)}>
-                    <Field.Label className="editor-url-popover__label">
-                      Image URL
-                    </Field.Label>
-                    <Field.Control
-                      autoFocus
-                      className="editor-url-popover__input"
-                      inputMode="url"
-                      maxLength={2048}
-                      onValueChange={setImageUrl}
-                      placeholder="https://images.example.com/diagram.png"
-                      type="text"
-                      value={imageUrl}
-                    />
-                    <Field.Error
-                      className="editor-url-popover__error"
-                      match={Boolean(imageError)}
-                    >
-                      {imageError}
-                    </Field.Error>
-                  </Field.Root>
-                  <div className="editor-url-popover__actions">
-                    <Popover.Close
-                      className="editor-url-popover__button"
-                      render={<Button />}
-                      type="button"
-                    >
-                      Cancel
-                    </Popover.Close>
-                    <Button
-                      className="editor-url-popover__button editor-url-popover__button--primary"
-                      type="submit"
-                    >
-                      Insert
-                    </Button>
-                  </div>
-                </form>
-              </Popover.Popup>
-            </Popover.Positioner>
-          </Popover.Portal>
-        </Popover.Root>
-        <Tooltip.Root>
-          <Tooltip.Trigger
-            aria-label="Copy Markdown"
-            className="editor-toolbar__copy"
-            disabled={!editor}
-            onClick={copyMarkdown}
-            render={<Button disabled={!editor} />}
-            type="button"
-          >
-            <Copy size={16} />
-            <strong>.MD</strong>
-            {copyStatus && (
-              <span className="editor-toolbar__copy-status">{copyStatus}</span>
-            )}
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Positioner sideOffset={8}>
-              <Tooltip.Popup className="tooltip-popup">
-                Copy Markdown
-              </Tooltip.Popup>
-            </Tooltip.Positioner>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Toolbar.Root>
-      {editor && (
-        <BubbleMenu
-          className="editor-link-bubble"
-          editor={editor}
-          pluginKey="linkBubbleMenu"
-          shouldShow={({ editor: currentEditor }) => currentEditor.isActive('link')}
-        >
-          {linkBubbleEditing ? (
-            <form
-              className="editor-link-bubble__form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                applyLinkValue(linkBubbleUrl, () => setLinkBubbleEditing(false));
-              }}
-            >
-              <Field.Root invalid={Boolean(linkBubbleError)}>
-                <Field.Label className="editor-link-bubble__label">
-                  Link URL
-                </Field.Label>
-                <Field.Control
-                  autoFocus
-                  className="editor-link-bubble__input"
-                  inputMode="url"
-                  maxLength={2048}
-                  onValueChange={setLinkBubbleUrl}
-                  type="text"
-                  value={linkBubbleUrl}
-                />
-                <Field.Error
-                  className="editor-link-bubble__error"
-                  match={Boolean(linkBubbleError)}
-                >
-                  {linkBubbleError}
-                </Field.Error>
-              </Field.Root>
-              <div className="editor-link-bubble__actions">
-                <Button
-                  aria-label="Cancel link edit"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => {
-                    setLinkBubbleEditing(false);
-                    setLinkBubbleError('');
-                  }}
-                  type="button"
-                >
-                  <X size={14} />
-                </Button>
-                <Button
-                  aria-label="Apply link edit"
-                  className="editor-link-bubble__icon-button editor-link-bubble__icon-button--primary"
-                  type="submit"
-                >
-                  <Check size={14} />
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <span className="editor-link-bubble__href">{currentHref}</span>
-              <div className="editor-link-bubble__actions">
-                <Button
-                  aria-label="Edit link"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => {
-                    storeLinkSelection();
-                    setLinkBubbleUrl(currentHref ?? '');
-                    setLinkBubbleError('');
-                    setLinkBubbleEditing(true);
-                  }}
-                  type="button"
-                >
-                  <Edit3 size={14} />
-                </Button>
-                <Button
-                  aria-label="Open link"
-                  className="editor-link-bubble__icon-button"
-                  onClick={openCurrentLink}
-                  type="button"
-                >
-                  <ExternalLink size={14} />
-                </Button>
-                <Button
-                  aria-label="Remove link"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}
-                  type="button"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-            </>
-          )}
-        </BubbleMenu>
-      )}
-      {editor && (
-        <BubbleMenu
-          className="editor-link-bubble editor-image-bubble"
-          editor={editor}
-          pluginKey="imageBubbleMenu"
-          shouldShow={({ editor: currentEditor }) => {
-            const { selection } = currentEditor.state;
-            return (
-              selection instanceof NodeSelection &&
-              selection.node.type.name === 'image'
-            );
-          }}
-        >
-          {imageBubbleEditing ? (
-            <form
-              className="editor-link-bubble__form"
-              onSubmit={applyImageBubbleValue}
-            >
-              <Field.Root invalid={Boolean(imageBubbleError)}>
-                <Field.Label className="editor-link-bubble__label">
-                  Image URL
-                </Field.Label>
-                <Field.Control
-                  autoFocus
-                  className="editor-link-bubble__input"
-                  inputMode="url"
-                  maxLength={2048}
-                  onValueChange={setImageBubbleUrl}
-                  type="text"
-                  value={imageBubbleUrl}
-                />
-                <Field.Error
-                  className="editor-link-bubble__error"
-                  match={Boolean(imageBubbleError)}
-                >
-                  {imageBubbleError}
-                </Field.Error>
-              </Field.Root>
-              <div className="editor-link-bubble__actions">
-                <Button
-                  aria-label="Cancel image edit"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => {
-                    setImageBubbleEditing(false);
-                    setImageBubbleError('');
-                  }}
-                  type="button"
-                >
-                  <X size={14} />
-                </Button>
-                <Button
-                  aria-label="Apply image edit"
-                  className="editor-link-bubble__icon-button editor-link-bubble__icon-button--primary"
-                  type="submit"
-                >
-                  <Check size={14} />
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <span className="editor-link-bubble__href">{currentImageSrc}</span>
-              <div className="editor-link-bubble__actions">
-                <Button
-                  aria-label="Edit image"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => {
-                    storeImageSelection();
-                    setImageBubbleUrl(currentImageSrc);
-                    setImageBubbleError('');
-                    setImageBubbleEditing(true);
-                  }}
-                  type="button"
-                >
-                  <Edit3 size={14} />
-                </Button>
-                <Button
-                  aria-label="Open image"
-                  className="editor-link-bubble__icon-button"
-                  onClick={openCurrentImage}
-                  type="button"
-                >
-                  <ExternalLink size={14} />
-                </Button>
-                <Button
-                  aria-label="Remove image"
-                  className="editor-link-bubble__icon-button"
-                  onClick={() => {
-                    storeImageSelection();
-                    removeCurrentImage();
-                  }}
-                  type="button"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-            </>
-          )}
-        </BubbleMenu>
-      )}
+      <EditorToolbar
+        copyStatus={interactions.copyStatus}
+        editorReady={Boolean(editor)}
+        imageError={interactions.imageError}
+        imagePopoverOpen={interactions.imagePopoverOpen}
+        imageUrl={interactions.imageUrl}
+        linkError={interactions.linkError}
+        linkPopoverOpen={interactions.linkPopoverOpen}
+        linkUrl={interactions.linkUrl}
+        onAlignChange={(nextValue) => applyAlignChange(editor, nextValue)}
+        onApplyImage={interactions.applyImageValue}
+        onApplyLink={interactions.applyLinkPopoverValue}
+        onBlockquote={() => editor?.chain().focus().toggleBlockquote().run()}
+        onBold={() => editor?.chain().focus().toggleBold().run()}
+        onCode={() => editor?.chain().focus().toggleCode().run()}
+        onCodeBlock={() => editor?.chain().focus().toggleCodeBlock().run()}
+        onCopyMarkdown={interactions.copyMarkdown}
+        onHeadingChange={(nextValue) => applyHeadingChange(editor, nextValue)}
+        onImagePopoverOpenChange={interactions.onImagePopoverOpenChange}
+        onItalic={() => editor?.chain().focus().toggleItalic().run()}
+        onLinkMouseDown={interactions.onLinkMouseDown}
+        onLinkPopoverOpen={interactions.onLinkPopoverOpen}
+        onLinkPopoverOpenChange={interactions.onLinkPopoverOpenChange}
+        onListChange={(nextValue) => applyListChange(editor, nextValue)}
+        onRedo={() => editor?.chain().focus().redo().run()}
+        onSetImageUrl={interactions.setImageUrl}
+        onSetLinkUrl={interactions.setLinkUrl}
+        onStrike={() => editor?.chain().focus().toggleStrike().run()}
+        onUndo={() => editor?.chain().focus().undo().run()}
+        toolbarState={toolbarState}
+      />
+      <EditorBubbleMenus
+        currentHref={interactions.currentHref}
+        currentImageSrc={interactions.currentImageSrc}
+        editor={editor}
+        imageBubbleEditing={interactions.imageBubbleEditing}
+        imageBubbleError={interactions.imageBubbleError}
+        imageBubbleUrl={interactions.imageBubbleUrl}
+        linkBubbleEditing={interactions.linkBubbleEditing}
+        linkBubbleError={interactions.linkBubbleError}
+        linkBubbleUrl={interactions.linkBubbleUrl}
+        onApplyImageBubble={interactions.applyImageBubbleValue}
+        onApplyLinkBubble={interactions.applyLinkBubbleValue}
+        onCancelImageEdit={interactions.onCancelImageEdit}
+        onCancelLinkEdit={interactions.onCancelLinkEdit}
+        onEditImage={interactions.onEditImage}
+        onEditLink={interactions.onEditLink}
+        onOpenImage={interactions.onOpenImage}
+        onOpenLink={interactions.onOpenLink}
+        onRemoveImage={interactions.onRemoveImage}
+        onRemoveLink={interactions.onRemoveLink}
+        onSetImageBubbleUrl={interactions.setImageBubbleUrl}
+        onSetLinkBubbleUrl={interactions.setLinkBubbleUrl}
+      />
       <EditorContent
         editor={editor}
         onMouseDown={(event) => {
