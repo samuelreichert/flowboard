@@ -1,7 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { AlignLeft, CalendarDays, CheckCircle2, Copy, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { resolveArchivedTagName } from '../../board/completedWork';
 import type {
@@ -15,6 +15,11 @@ import '../IconButton/IconButton.css';
 type HistoryViewProps = {
   completedWorkCycles: CompletedWorkCycle[];
   tags: BoardTag[];
+};
+
+type HistoryDetailState = {
+  copyStatus: string;
+  selectedCard: ArchivedBoardCard | null;
 };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -42,10 +47,11 @@ const getVisibleTagNames = (card: ArchivedBoardCard, tags: BoardTag[]) =>
     .filter((tagName): tagName is string => Boolean(tagName));
 
 const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
-  const [selectedCard, setSelectedCard] = useState<ArchivedBoardCard | null>(
-    null
-  );
-  const [copyStatus, setCopyStatus] = useState('');
+  const [detailState, setDetailState] = useState<HistoryDetailState>({
+    copyStatus: '',
+    selectedCard: null,
+  });
+  const { copyStatus, selectedCard } = detailState;
   const sortedCycles = useMemo(
     () =>
       completedWorkCycles.toSorted(
@@ -58,18 +64,24 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
     [selectedCard, tags]
   );
 
-  useEffect(() => {
-    setCopyStatus('');
-  }, [selectedCard]);
-
   const copySelectedCardMarkdown = async () => {
     if (!selectedCard) {
       return;
     }
 
     await navigator.clipboard.writeText(selectedCard.content);
-    setCopyStatus('Copied');
-    window.setTimeout(() => setCopyStatus(''), 1600);
+    setDetailState((currentState) => ({
+      ...currentState,
+      copyStatus: 'Copied',
+    }));
+    window.setTimeout(
+      () =>
+        setDetailState((currentState) => ({
+          ...currentState,
+          copyStatus: '',
+        })),
+      1600
+    );
   };
 
   if (sortedCycles.length === 0) {
@@ -114,7 +126,12 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                     <article className="history-card" key={card.id}>
                       <Button
                         className="history-card__button"
-                        onClick={() => setSelectedCard(card)}
+                        onClick={() =>
+                          setDetailState({
+                            copyStatus: '',
+                            selectedCard: card,
+                          })
+                        }
                         type="button"
                       >
                         <div className="history-card__title-row">
@@ -159,7 +176,10 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedCard(null);
+            setDetailState({
+              copyStatus: '',
+              selectedCard: null,
+            });
           }
         }}
       >
