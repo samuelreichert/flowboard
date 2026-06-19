@@ -16,6 +16,36 @@ export type BoardCard = {
   title: string;
 };
 
+export type ArchivedCardTagSnapshot = {
+  id: string;
+  name: string;
+};
+
+export type ArchivedBoardCard = {
+  archivedAt: string;
+  content: string;
+  createdAt: string;
+  id: string;
+  priority: CardPriority;
+  tagIds: string[];
+  tagSnapshots: ArchivedCardTagSnapshot[];
+  title: string;
+};
+
+export type BoardActiveWorkCycle = {
+  completedColumnId: string | null;
+  startDate: string;
+};
+
+export type CompletedWorkCycle = {
+  cards: ArchivedBoardCard[];
+  completedColumnId: string | null;
+  completedColumnTitle: string | null;
+  endDate: string;
+  id: string;
+  startDate: string;
+};
+
 export type BoardColumn = {
   id: string;
   title: string;
@@ -34,7 +64,9 @@ export type BoardBackground =
     };
 
 export type BoardState = {
+  activeWorkCycle: BoardActiveWorkCycle;
   background: BoardBackground;
   columns: BoardColumn[];
+  completedWorkCycles: CompletedWorkCycle[];
   tags: BoardTag[];
 };

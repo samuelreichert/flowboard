@@ -3,6 +3,7 @@ import { Button } from '@base-ui/react/button';
 
 type ConfirmDialogProps = {
   confirmLabel: string;
+  confirmVariant?: 'danger' | 'primary';
   description: string;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
@@ -12,6 +13,7 @@ type ConfirmDialogProps = {
 
 const ConfirmDialog = ({
   confirmLabel,
+  confirmVariant = 'danger',
   description,
   onConfirm,
   onOpenChange,
@@ -37,7 +39,7 @@ const ConfirmDialog = ({
               Cancel
             </AlertDialog.Close>
             <AlertDialog.Close
-              className="button button--danger"
+              className={`button button--${confirmVariant}`}
               onClick={onConfirm}
               render={<Button />}
             >

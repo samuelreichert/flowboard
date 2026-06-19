@@ -21,12 +21,18 @@ import './Columns.css';
 const createId = () => crypto.randomUUID();
 
 type ColumnsProps = {
+  onBoardStateChange: () => void;
   onColumnCountChange: (count: number) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   tags: BoardTag[];
 };
 
-const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
+const Columns = ({
+  onBoardStateChange,
+  onColumnCountChange,
+  onTagsChange,
+  tags,
+}: ColumnsProps) => {
   const [columns, setColumns] = useState<BoardColumn[]>(fetchStorage);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
@@ -35,8 +41,9 @@ const Columns = ({ onColumnCountChange, onTagsChange, tags }: ColumnsProps) => {
       setColumns(newColumns);
       updateStorage(newColumns);
       onColumnCountChange(newColumns.length);
+      onBoardStateChange();
     },
-    [onColumnCountChange]
+    [onBoardStateChange, onColumnCountChange]
   );
 
   const onSaveColumn = (title: string) => {

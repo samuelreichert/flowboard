@@ -1,8 +1,10 @@
 import type {
+  BoardActiveWorkCycle,
   BoardBackground,
   BoardColumn,
   BoardState,
   BoardTag,
+  CompletedWorkCycle,
 } from '../types';
 import {
   DEFAULT_BACKGROUND,
@@ -19,13 +21,17 @@ import {
   isRecord,
   isSafeImageUrl,
   isValidDateString,
+  normalizeActiveWorkCycle,
   normalizeBoardState,
+  normalizeBoardStateForColumns,
   normalizeCardMetadata,
 } from '../board/validation';
 
 const STORAGE_KEY = 'columnsList';
 const BACKGROUND_STORAGE_KEY = 'boardBackground';
 const TAGS_STORAGE_KEY = 'boardTags';
+const ACTIVE_WORK_CYCLE_STORAGE_KEY = 'activeWorkCycle';
+const COMPLETED_WORK_CYCLES_STORAGE_KEY = 'completedWorkCycles';
 const BOARD_API_URL = import.meta.env.VITE_BOARD_API_URL?.trim();
 
 const createId = () => crypto.randomUUID();
@@ -63,6 +69,38 @@ const updateTagStorageCache = (tags: BoardTag[]) => {
   writeStorage(TAGS_STORAGE_KEY, JSON.stringify(tags));
 };
 
+const updateActiveWorkCycleStorageCache = (
+  activeWorkCycle: BoardActiveWorkCycle
+) => {
+  writeStorage(
+    ACTIVE_WORK_CYCLE_STORAGE_KEY,
+    JSON.stringify(activeWorkCycle)
+  );
+};
+
+const updateCompletedWorkCyclesStorageCache = (
+  completedWorkCycles: CompletedWorkCycle[]
+) => {
+  writeStorage(
+    COMPLETED_WORK_CYCLES_STORAGE_KEY,
+    JSON.stringify(completedWorkCycles)
+  );
+};
+
+const readActiveWorkCyclePayload = () => {
+  const data = readStorage(ACTIVE_WORK_CYCLE_STORAGE_KEY);
+
+  if (!data) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(data) as unknown;
+  } catch {
+    return null;
+  }
+};
+
 export const fetchBackgroundStorage = (): BoardBackground => {
   const data = readStorage(BACKGROUND_STORAGE_KEY);
 
@@ -80,10 +118,14 @@ export const fetchBackgroundStorage = (): BoardBackground => {
 };
 
 const fetchBoardCache = (): BoardState => ({
+  activeWorkCycle: fetchActiveWorkCycleStorage(),
   background: fetchBackgroundStorage(),
   columns: fetchStorage(),
+  completedWorkCycles: fetchCompletedWorkCyclesStorage(),
   tags: fetchTagStorage(),
 });
+
+export const fetchBoardState = (): BoardState => fetchBoardCache();
 
 const persistBoardState = (state = fetchBoardCache()) => {
   if (!BOARD_API_URL || !databaseReady || typeof fetch !== 'function') {
@@ -110,7 +152,22 @@ const persistBoardState = (state = fetchBoardCache()) => {
 
 export const updateStorage = (data: BoardColumn[]) => {
   updateStorageCache(data);
-  void persistBoardState();
+
+  const state = normalizeBoardStateForColumns(
+    {
+      ...fetchBoardCache(),
+      activeWorkCycle: normalizeActiveWorkCycle(
+        readActiveWorkCyclePayload(),
+        data,
+        new Date().toISOString()
+      ),
+    },
+    data
+  );
+
+  updateStorageCache(state.columns);
+  updateActiveWorkCycleStorageCache(state.activeWorkCycle);
+  void persistBoardState(state);
 };
 
 export const updateBackgroundStorage = (background: BoardBackground) => {
@@ -121,6 +178,38 @@ export const updateBackgroundStorage = (background: BoardBackground) => {
 export const updateTagStorage = (tags: BoardTag[]) => {
   updateTagStorageCache(tags);
   void persistBoardState();
+};
+
+export const updateActiveWorkCycleStorage = (
+  activeWorkCycle: BoardActiveWorkCycle
+) => {
+  const state = {
+    ...fetchBoardCache(),
+    activeWorkCycle: normalizeActiveWorkCycle(
+      activeWorkCycle,
+      fetchStorage(),
+      new Date().toISOString()
+    ),
+  };
+
+  updateActiveWorkCycleStorageCache(state.activeWorkCycle);
+  void persistBoardState(state);
+};
+
+export const updateCompletedWorkCyclesStorage = (
+  completedWorkCycles: CompletedWorkCycle[]
+) => {
+  updateCompletedWorkCyclesStorageCache(completedWorkCycles);
+  void persistBoardState();
+};
+
+export const updateBoardStateStorage = (state: BoardState) => {
+  updateStorageCache(state.columns);
+  updateBackgroundStorageCache(state.background);
+  updateTagStorageCache(state.tags);
+  updateActiveWorkCycleStorageCache(state.activeWorkCycle);
+  updateCompletedWorkCyclesStorageCache(state.completedWorkCycles);
+  void persistBoardState(state);
 };
 
 export const hydrateStorageFromDatabase =
@@ -161,6 +250,8 @@ export const hydrateStorageFromDatabase =
       updateStorageCache(state.columns);
       updateBackgroundStorageCache(state.background);
       updateTagStorageCache(state.tags);
+      updateActiveWorkCycleStorageCache(state.activeWorkCycle);
+      updateCompletedWorkCyclesStorageCache(state.completedWorkCycles);
       return state;
     } catch {
       return null;
@@ -180,6 +271,44 @@ export const fetchTagStorage = (): BoardTag[] => {
     return Array.isArray(parsedData) && parsedData.every(isBoardTag)
       ? parsedData
       : [];
+  } catch {
+    return [];
+  }
+};
+
+export const fetchActiveWorkCycleStorage = (): BoardActiveWorkCycle => {
+  const columns = fetchStorage();
+  const parsedData = readActiveWorkCyclePayload();
+
+  if (!parsedData) {
+    return normalizeActiveWorkCycle(null, columns, new Date().toISOString());
+  }
+
+  return normalizeActiveWorkCycle(
+    parsedData,
+    columns,
+    new Date().toISOString()
+  );
+};
+
+export const fetchCompletedWorkCyclesStorage = (): CompletedWorkCycle[] => {
+  const data = readStorage(COMPLETED_WORK_CYCLES_STORAGE_KEY);
+
+  if (!data) {
+    return [];
+  }
+
+  try {
+    const parsedData: unknown = JSON.parse(data);
+    const normalized = normalizeBoardState({
+      activeWorkCycle: fetchActiveWorkCycleStorage(),
+      background: fetchBackgroundStorage(),
+      columns: fetchStorage(),
+      completedWorkCycles: parsedData,
+      tags: fetchTagStorage(),
+    });
+
+    return isBoardState(normalized) ? normalized.completedWorkCycles : [];
   } catch {
     return [];
   }
