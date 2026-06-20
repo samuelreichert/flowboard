@@ -1,35 +1,41 @@
 :root {
-  --color-app-bg: #f7f7f5;
-  --color-sidebar-bg: #f9f9f9;
-  --color-workspace-bg: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-surface-subtle: #f4f4f2;
-  --color-surface-muted: #ececea;
-  --color-control-bg: #ffffff;
-  --color-list-bg: #ffffff;
-  --color-text: #202123;
-  --color-text-muted: #676767;
-  --color-text-soft: #8b8b8b;
-  --color-border: #e2e2de;
-  --color-border-strong: #cfcfca;
-  --color-hover: #ededeb;
-  --color-primary: #10a37f;
-  --color-primary-hover: #0d8f70;
-  --color-primary-subtle: rgb(16 163 127 / 12%);
-  --color-danger: #c74747;
-  --color-danger-hover: #ad3939;
-  --color-danger-subtle: #fff0f0;
-  --color-focus: rgb(16 163 127 / 28%);
-  --color-shadow: rgb(0 0 0 / 10%);
-  --color-shadow-soft: rgb(0 0 0 / 5%);
-  --color-backdrop: rgb(0 0 0 / 42%);
-  --color-priority-low-bg: #eaf6ef;
-  --color-priority-low-text: #2f7d54;
-  --color-priority-medium-bg: #eff2ff;
-  --color-priority-medium-text: #4358bc;
-  --color-priority-high-bg: #fff0ec;
-  --color-priority-high-text: #b9533b;
+  --color-app-bg: oklch(0.975 0.004 95);
+  --color-sidebar-bg: oklch(0.986 0 0);
+  --color-workspace-bg: oklch(1 0 0);
+  --color-surface: oklch(1 0 0);
+  --color-surface-raised: var(--color-surface);
+  --color-surface-subtle: oklch(0.965 0.004 95);
+  --color-surface-muted: oklch(0.92 0.004 95);
+  --color-control-bg: var(--color-surface);
+  --color-list-bg: var(--color-surface);
+  --color-text: oklch(0.24 0.006 260);
+  --color-text-muted: oklch(0.49 0.006 260);
+  --color-text-soft: oklch(0.62 0.006 260);
+  --color-on-solid: oklch(1 0 0);
+  --color-border: oklch(0.89 0.006 95);
+  --color-border-strong: oklch(0.82 0.006 95);
+  --color-hover: oklch(0.93 0.004 95);
+  --color-primary: oklch(0.62 0.14 170);
+  --color-primary-hover: oklch(0.55 0.14 170);
+  --color-primary-subtle: oklch(0.62 0.14 170 / 12%);
+  --color-danger: oklch(0.56 0.16 28);
+  --color-danger-hover: oklch(0.5 0.16 28);
+  --color-danger-subtle: oklch(0.96 0.03 28);
+  --color-focus: oklch(0.62 0.14 170 / 28%);
+  --color-shadow: oklch(0 0 0 / 10%);
+  --color-shadow-soft: oklch(0 0 0 / 5%);
+  --color-backdrop: oklch(0 0 0 / 42%);
+  --color-tooltip-bg: oklch(0.27 0.01 260);
+  --color-selected-bg: oklch(0.95 0.03 285);
+  --color-selected-text: oklch(0.48 0.16 285);
+  --color-media-outline: oklch(0.62 0.14 170);
+  --color-priority-low-bg: oklch(0.94 0.035 150);
+  --color-priority-low-text: oklch(0.44 0.11 150);
+  --color-priority-medium-bg: oklch(0.95 0.06 90);
+  --color-priority-medium-text: oklch(0.46 0.1 80);
+  --color-priority-high-bg: oklch(0.95 0.04 30);
+  --color-priority-high-text: oklch(0.5 0.14 30);
+  --font-control-weight: 500;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -40,74 +46,41 @@
 }
 
 :root[data-theme='dark'] {
-  --color-app-bg: #000000;
-  --color-sidebar-bg: #171717;
-  --color-workspace-bg: #000000;
-  --color-surface: #2f2f2f;
-  --color-surface-raised: #303030;
-  --color-surface-subtle: #262626;
-  --color-surface-muted: #3a3a3a;
-  --color-control-bg: #303030;
-  --color-list-bg: #303030;
-  --color-text: #ececec;
-  --color-text-muted: #b4b4b4;
-  --color-text-soft: #8c8c8c;
-  --color-border: #3f3f3f;
-  --color-border-strong: #555555;
-  --color-hover: #383838;
-  --color-primary: #13b38c;
-  --color-primary-hover: #17c998;
-  --color-primary-subtle: rgb(19 179 140 / 16%);
-  --color-danger: #ff6b6b;
-  --color-danger-hover: #ff8585;
-  --color-danger-subtle: rgb(255 107 107 / 12%);
-  --color-focus: rgb(19 179 140 / 32%);
-  --color-shadow: rgb(0 0 0 / 34%);
-  --color-shadow-soft: rgb(0 0 0 / 18%);
-  --color-backdrop: rgb(0 0 0 / 58%);
-  --color-priority-low-bg: rgb(46 125 84 / 20%);
-  --color-priority-low-text: #8fe0ae;
-  --color-priority-medium-bg: rgb(92 111 219 / 22%);
-  --color-priority-medium-text: #b7c2ff;
-  --color-priority-high-bg: rgb(207 91 61 / 20%);
-  --color-priority-high-text: #ffb19e;
+  --color-app-bg: oklch(0 0 0);
+  --color-sidebar-bg: oklch(0.2 0 0);
+  --color-workspace-bg: oklch(0 0 0);
+  --color-surface: oklch(0.29 0 0);
+  --color-surface-subtle: oklch(0.25 0 0);
+  --color-surface-muted: oklch(0.35 0 0);
+  --color-text: oklch(0.93 0 0);
+  --color-text-muted: oklch(0.75 0 0);
+  --color-text-soft: oklch(0.62 0 0);
+  --color-border: oklch(0.39 0 0);
+  --color-border-strong: oklch(0.48 0 0);
+  --color-hover: oklch(0.34 0 0);
+  --color-primary: oklch(0.68 0.14 170);
+  --color-primary-hover: oklch(0.74 0.14 170);
+  --color-primary-subtle: oklch(0.68 0.14 170 / 16%);
+  --color-danger: oklch(0.7 0.18 28);
+  --color-danger-hover: oklch(0.76 0.17 28);
+  --color-danger-subtle: oklch(0.7 0.18 28 / 14%);
+  --color-focus: oklch(0.68 0.14 170 / 32%);
+  --color-shadow: oklch(0 0 0 / 34%);
+  --color-shadow-soft: oklch(0 0 0 / 18%);
+  --color-backdrop: oklch(0 0 0 / 58%);
+  --color-tooltip-bg: oklch(0.22 0 0);
+  --color-selected-bg: oklch(0.5 0.13 285 / 22%);
+  --color-selected-text: oklch(0.82 0.08 285);
+  --color-media-outline: oklch(0.74 0.14 170);
+  --color-priority-low-bg: oklch(0.6 0.12 150 / 22%);
+  --color-priority-low-text: oklch(0.82 0.11 150);
+  --color-priority-medium-bg: oklch(0.72 0.13 90 / 22%);
+  --color-priority-medium-text: oklch(0.86 0.12 90);
+  --color-priority-high-bg: oklch(0.68 0.18 28 / 22%);
+  --color-priority-high-text: oklch(0.82 0.12 30);
 }
 
 .app {
-  --color-app-bg: #f7f7f5;
-  --color-sidebar-bg: #f9f9f9;
-  --color-workspace-bg: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-surface-subtle: #f4f4f2;
-  --color-surface-muted: #ececea;
-  --color-control-bg: #ffffff;
-  --color-list-bg: #ffffff;
-  --color-text: #202123;
-  --color-text-muted: #676767;
-  --color-text-soft: #8b8b8b;
-  --color-border: #e2e2de;
-  --color-border-strong: #cfcfca;
-  --color-hover: #ededeb;
-  --color-primary: #10a37f;
-  --color-primary-hover: #0d8f70;
-  --color-primary-subtle: rgb(16 163 127 / 12%);
-  --color-danger: #c74747;
-  --color-danger-hover: #ad3939;
-  --color-danger-subtle: #fff0f0;
-  --color-focus: rgb(16 163 127 / 28%);
-  --color-shadow: rgb(0 0 0 / 10%);
-  --color-shadow-soft: rgb(0 0 0 / 5%);
-  --color-backdrop: rgb(0 0 0 / 42%);
-  --color-priority-low-bg: #eaf6ef;
-  --color-priority-low-text: #2f7d54;
-  --color-priority-medium-bg: #eff2ff;
-  --color-priority-medium-text: #4358bc;
-  --color-priority-high-bg: #fff0ec;
-  --color-priority-high-text: #b9533b;
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 64px;
-
   background-color: var(--color-app-bg);
   color: var(--color-text);
   display: grid;
@@ -121,40 +94,6 @@
     background-color 180ms ease,
     color 180ms ease,
     grid-template-columns 180ms ease;
-}
-
-.app[data-theme='dark'] {
-  --color-app-bg: #000000;
-  --color-sidebar-bg: #171717;
-  --color-workspace-bg: #000000;
-  --color-surface: #2f2f2f;
-  --color-surface-raised: #303030;
-  --color-surface-subtle: #262626;
-  --color-surface-muted: #3a3a3a;
-  --color-control-bg: #303030;
-  --color-list-bg: #303030;
-  --color-text: #ececec;
-  --color-text-muted: #b4b4b4;
-  --color-text-soft: #8c8c8c;
-  --color-border: #3f3f3f;
-  --color-border-strong: #555555;
-  --color-hover: #383838;
-  --color-primary: #13b38c;
-  --color-primary-hover: #17c998;
-  --color-primary-subtle: rgb(19 179 140 / 16%);
-  --color-danger: #ff6b6b;
-  --color-danger-hover: #ff8585;
-  --color-danger-subtle: rgb(255 107 107 / 12%);
-  --color-focus: rgb(19 179 140 / 32%);
-  --color-shadow: rgb(0 0 0 / 34%);
-  --color-shadow-soft: rgb(0 0 0 / 18%);
-  --color-backdrop: rgb(0 0 0 / 58%);
-  --color-priority-low-bg: rgb(46 125 84 / 20%);
-  --color-priority-low-text: #8fe0ae;
-  --color-priority-medium-bg: rgb(92 111 219 / 22%);
-  --color-priority-medium-text: #b7c2ff;
-  --color-priority-high-bg: rgb(207 91 61 / 20%);
-  --color-priority-high-text: #ffb19e;
 }
 
 .app--sidebar-collapsed {
@@ -457,7 +396,7 @@
 .button--primary {
   background-color: var(--color-primary);
   box-shadow: 0 1px 2px var(--color-shadow-soft);
-  color: #ffffff;
+  color: var(--color-on-solid);
 }
 
 .button--primary:hover {
@@ -481,7 +420,7 @@
 .button--danger {
   background-color: var(--color-danger);
   box-shadow: 0 1px 2px var(--color-shadow-soft);
-  color: #ffffff;
+  color: var(--color-on-solid);
 }
 
 .button--danger:hover {

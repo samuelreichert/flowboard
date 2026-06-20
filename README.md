@@ -1,17 +1,23 @@
 # Flowboard
 
-Flowboard is a focused local-first workflow board for organizing columns, cards, priorities, tags, rich notes, and board backgrounds.
+Flowboard is a focused local-first workflow board for organizing columns, cards, priorities, tags, rich notes, and theme-aware app workspaces.
 
-![Flowboard board with columns, tagged cards, priorities, and a background image](public/flowboard-screenshot.png)
+![Flowboard latest app shell with workflow columns, cards, priorities, and theme controls](public/flowboard-screenshot-latest.jpg)
+
+## UI History
+
+- First version: [background-focused board](public/flowboard-screenshot-v1-background.png)
+- Second version: [dark app-shell board](public/flowboard-screenshot-v2-app-shell.jpg)
+- Latest version: [light app-shell board](public/flowboard-screenshot-latest.jpg)
 
 ## Features
 
 - Create, rename, reorder, and remove workflow columns.
 - Create, edit, move, and delete cards.
-- Add rich card content with Markdown-friendly formatting, links, code blocks, lists, blockquotes, and images.
+- Add rich card content with Markdown-friendly formatting, links, task lists, code blocks, lists, blockquotes, alignment, and images.
 - Assign Low, Medium, or High priority to cards.
 - Create reusable board tags and assign them to cards.
-- Manage board backgrounds with bundled presets or secure image URLs.
+- Use a responsive app shell with a collapsible sidebar, board actions, and system/light/dark theme controls.
 - Save boards locally in the browser, with optional local SQLite persistence for development and self-hosted local runs.
 - Load the production app shell offline after the PWA service worker has cached it.
 
@@ -62,7 +68,7 @@ Type-checks the app and local TypeScript server, emits the compiled server to `d
 
 Flowboard is local-first. Browser storage is the source of truth for interactive editing, so the board remains usable even when the optional API is unavailable.
 
-When using `npm run dev` or `npm start` with a local API build, the complete board state is also saved locally in `data/flowboard.db`: columns, card order, card content, priorities, tags, and the selected background. Existing browser storage is migrated automatically when the database is empty.
+When using `npm run dev` or `npm start` with a local API build, the complete board state is also saved locally in `data/flowboard.db`: columns, card order, card content, priorities, and tags. Existing browser storage is migrated automatically when the database is empty.
 
 To create a backup, stop the server and copy:
 
@@ -74,7 +80,7 @@ data/flowboard.db
 
 The production build includes a web app manifest and service worker. After the app has loaded successfully once, the service worker caches the app shell and bundled assets so Flowboard can reopen offline.
 
-Offline editing continues through browser storage. If `VITE_BOARD_API_URL` points at a local SQLite API and that API is unavailable, Flowboard keeps the local board intact and does not block edits. Bundled backgrounds are available offline; custom remote image URLs depend on the browser cache and the remote host.
+Offline editing continues through browser storage. If `VITE_BOARD_API_URL` points at a local SQLite API and that API is unavailable, Flowboard keeps the local board intact and does not block edits.
 
 ## Deploying to Vercel
 
