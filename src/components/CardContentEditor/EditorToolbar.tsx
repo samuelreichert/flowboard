@@ -32,7 +32,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useId } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent, ReactNode, RefObject } from 'react';
 
 import type {
   AlignValue,
@@ -89,6 +89,7 @@ type EditorToolbarProps = {
   onSetLinkUrl: (value: string) => void;
   onStrike: () => void;
   onUndo: () => void;
+  popoverPortalContainer: RefObject<HTMLDivElement | null>;
   toolbarState: EditorToolbarState;
 };
 
@@ -266,6 +267,7 @@ export const EditorToolbar = ({
   onSetLinkUrl,
   onStrike,
   onUndo,
+  popoverPortalContainer,
   toolbarState,
 }: EditorToolbarProps) => (
   <Toolbar.Root className="editor-toolbar" aria-label="Content formatting">
@@ -370,7 +372,7 @@ export const EditorToolbar = ({
           </Tooltip.Positioner>
         </Tooltip.Portal>
       </Tooltip.Root>
-      <Popover.Portal>
+      <Popover.Portal container={popoverPortalContainer}>
         <Popover.Positioner
           align="start"
           className="editor-url-popover__positioner"
@@ -439,7 +441,7 @@ export const EditorToolbar = ({
           </Tooltip.Positioner>
         </Tooltip.Portal>
       </Tooltip.Root>
-      <Popover.Portal>
+      <Popover.Portal container={popoverPortalContainer}>
         <Popover.Positioner
           align="start"
           className="editor-url-popover__positioner"
