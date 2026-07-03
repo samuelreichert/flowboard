@@ -1262,6 +1262,51 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
   expect(within(dialog).getByText('Copied')).toBeInTheDocument();
 });
 
+test('switches completed work history between grid and list layouts', async () => {
+  const user = userEvent.setup();
+  localStorage.setItem(
+    'completedWorkCycles',
+    JSON.stringify([
+      {
+        cards: [
+          {
+            archivedAt: CREATED_AT,
+            content: '',
+            createdAt: CREATED_AT,
+            id: 'archived-1',
+            priority: 'medium',
+            tagIds: [],
+            tagSnapshots: [],
+            title: 'Archived release',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: CREATED_AT,
+        id: 'cycle-1',
+        startDate: CREATED_AT,
+      },
+    ])
+  );
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(screen.getByRole('button', { name: /grid view/i })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+
+  await user.click(screen.getByRole('button', { name: /list view/i }));
+
+  expect(screen.getByRole('button', { name: /list view/i })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  expect(screen.getByText('Archived release')).toBeInTheDocument();
+  expect(screen.getByText(/^Created \d/i)).toBeInTheDocument();
+});
+
 test('closes a create dialog with Escape without saving', async () => {
   const user = userEvent.setup();
   render(<App />);

@@ -1,6 +1,14 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
-import { AlignLeft, CalendarDays, CheckCircle2, Copy, X } from 'lucide-react';
+import {
+  AlignLeft,
+  CalendarDays,
+  CheckCircle2,
+  Copy,
+  LayoutGrid,
+  List,
+  X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { resolveArchivedTagName } from '../../board/completedWork';
@@ -22,6 +30,8 @@ type HistoryDetailState = {
   selectedCardId: string | null;
   selectedCycleId: string | null;
 };
+
+type HistoryLayout = 'grid' | 'list';
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: '2-digit',
@@ -53,6 +63,7 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
     selectedCardId: null,
     selectedCycleId: null,
   });
+  const [historyLayout, setHistoryLayout] = useState<HistoryLayout>('grid');
   const { copyStatus, selectedCardId, selectedCycleId } = detailState;
   const sortedCycles = useMemo(
     () =>
@@ -106,6 +117,32 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
 
   return (
     <section className="history-view" aria-label="Completed work history">
+      <div className="history-view__toolbar">
+        <div className="history-view__layout-toggle" aria-label="History layout">
+          <Button
+            aria-label="Grid view"
+            aria-pressed={historyLayout === 'grid'}
+            className="history-view__layout-button"
+            onClick={() => setHistoryLayout('grid')}
+            title="Grid view"
+            type="button"
+          >
+            <LayoutGrid size={15} />
+            <span>Grid</span>
+          </Button>
+          <Button
+            aria-label="List view"
+            aria-pressed={historyLayout === 'list'}
+            className="history-view__layout-button"
+            onClick={() => setHistoryLayout('list')}
+            title="List view"
+            type="button"
+          >
+            <List size={15} />
+            <span>List</span>
+          </Button>
+        </div>
+      </div>
       <div className="history-list">
         {sortedCycles.map((cycle) => (
           <section className="history-cycle" key={cycle.id}>
@@ -126,7 +163,9 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                 Completed without archived cards.
               </p>
             ) : (
-              <div className="history-cards">
+              <div
+                className={`history-cards history-cards--${historyLayout}`}
+              >
                 {cycle.cards.map((card) => {
                   const visibleTagNames = getVisibleTagNames(card, tags);
 
@@ -156,6 +195,9 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                           )}
                         </div>
                         <div className="card__metadata">
+                          <span className="history-card__created-date">
+                            Created {formatDate(card.createdAt)}
+                          </span>
                           <span
                             className={`card__priority card__priority--${card.priority}`}
                           >
