@@ -13,6 +13,8 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .editor-toolbar__button,
@@ -32,6 +34,7 @@
   justify-content: center;
   min-height: 30px;
   padding: 5px 7px;
+  position: relative;
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
@@ -104,7 +107,7 @@
 
 .editor-toolbar__select-positioner,
 .editor-url-popover__positioner {
-  z-index: 12;
+  z-index: 40;
 }
 
 .editor-toolbar__select-popup {
@@ -164,15 +167,30 @@
   font-weight: 650;
 }
 
-.tooltip-popup {
+.editor-toolbar__hover-label {
   background-color: var(--color-tooltip-bg);
   border-radius: var(--radius-sm);
   box-shadow: 0 6px 14px var(--color-shadow);
   color: var(--color-on-solid);
   font-size: 12px;
   font-weight: 600;
+  left: 50%;
+  line-height: 1.2;
+  max-width: min(220px, calc(100vw - 48px));
   padding: 6px 8px;
-  z-index: 20;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: normal;
+  z-index: 45;
+}
+
+.editor-toolbar__copy .editor-toolbar__hover-label {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .card-content-editor__surface {

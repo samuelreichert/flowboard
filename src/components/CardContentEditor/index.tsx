@@ -950,7 +950,6 @@ const CardContentEditor = ({
         onSetLinkUrl={interactions.setLinkUrl}
         onStrike={() => editor?.chain().focus().toggleStrike().run()}
         onUndo={() => editor?.chain().focus().undo().run()}
-        popoverPortalContainer={editorRootRef}
         toolbarState={toolbarState}
       />
       <EditorBubbleMenus
