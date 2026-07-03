@@ -1,8 +1,5 @@
-# project-readme-presentation Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change improve-project-readiness-and-pwa. Update Purpose after archive.
-## Requirements
 ### Requirement: README presents current Flowboard capabilities
 The project README SHALL describe current Flowboard capabilities, including columns, cards, rich card content, priorities, tags, the responsive app shell, theme selection, local browser storage, optional SQLite persistence, and offline app-shell behavior.
 

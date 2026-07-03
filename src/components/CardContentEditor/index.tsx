@@ -856,6 +856,7 @@ const CardContentEditor = ({
   onChange,
   value,
 }: CardContentEditorProps) => {
+  const editorRootRef = useRef<HTMLDivElement | null>(null);
   const editor = useCardContentTipTapEditor({ id, labelId, onChange, value });
   const toolbarState = useEditorState({
     editor,
@@ -874,6 +875,7 @@ const CardContentEditor = ({
       className="card-content-editor"
       onDrop={interactions.onFileDrop}
       onPaste={interactions.onFilePaste}
+      ref={editorRootRef}
     >
       <EditorToolbar
         copyStatus={interactions.copyStatus}
@@ -904,6 +906,7 @@ const CardContentEditor = ({
         onSetLinkUrl={interactions.setLinkUrl}
         onStrike={() => editor?.chain().focus().toggleStrike().run()}
         onUndo={() => editor?.chain().focus().undo().run()}
+        popoverPortalContainer={editorRootRef}
         toolbarState={toolbarState}
       />
       <EditorBubbleMenus
