@@ -4,12 +4,16 @@ import {
 } from './constants.js';
 import {
   CARD_PRIORITIES,
+  type ArchivedBoardCard,
+  type ArchivedCardTagSnapshot,
+  type BoardActiveWorkCycle,
   type BoardBackground,
   type BoardCard,
   type BoardColumn,
   type BoardState,
   type BoardTag,
   type CardPriority,
+  type CompletedWorkCycle,
 } from './types.js';
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -81,6 +85,63 @@ export const isBoardTag = (value: unknown): value is BoardTag => {
     typeof value.id === 'string' &&
     typeof value.name === 'string' &&
     value.name.trim().length > 0
+  );
+};
+
+export const isArchivedCardTagSnapshot = (
+  value: unknown
+): value is ArchivedCardTagSnapshot => {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string'
+  );
+};
+
+export const isArchivedBoardCard = (
+  value: unknown
+): value is ArchivedBoardCard => {
+  return (
+    isRecord(value) &&
+    isValidDateString(value.archivedAt) &&
+    typeof value.content === 'string' &&
+    value.content.length <= CARD_CONTENT_LIMIT &&
+    isValidDateString(value.createdAt) &&
+    typeof value.id === 'string' &&
+    isCardPriority(value.priority) &&
+    Array.isArray(value.tagIds) &&
+    value.tagIds.every((tagId) => typeof tagId === 'string') &&
+    Array.isArray(value.tagSnapshots) &&
+    value.tagSnapshots.every(isArchivedCardTagSnapshot) &&
+    typeof value.title === 'string'
+  );
+};
+
+export const isBoardActiveWorkCycle = (
+  value: unknown
+): value is BoardActiveWorkCycle => {
+  return (
+    isRecord(value) &&
+    (typeof value.completedColumnId === 'string' ||
+      value.completedColumnId === null) &&
+    isValidDateString(value.startDate)
+  );
+};
+
+export const isCompletedWorkCycle = (
+  value: unknown
+): value is CompletedWorkCycle => {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.cards) &&
+    value.cards.every(isArchivedBoardCard) &&
+    (typeof value.completedColumnId === 'string' ||
+      value.completedColumnId === null) &&
+    (typeof value.completedColumnTitle === 'string' ||
+      value.completedColumnTitle === null) &&
+    isValidDateString(value.endDate) &&
+    typeof value.id === 'string' &&
+    isValidDateString(value.startDate)
   );
 };
 
@@ -161,8 +222,11 @@ export const isBoardBackground = (
 export const isBoardState = (value: unknown): value is BoardState => {
   return (
     isRecord(value) &&
+    isBoardActiveWorkCycle(value.activeWorkCycle) &&
     Array.isArray(value.columns) &&
     value.columns.every(isBoardColumn) &&
+    Array.isArray(value.completedWorkCycles) &&
+    value.completedWorkCycles.every(isCompletedWorkCycle) &&
     isBoardBackground(value.background) &&
     Array.isArray(value.tags) &&
     value.tags.every(isBoardTag)
@@ -272,25 +336,90 @@ export const normalizeStoredCard = (
   });
 };
 
+const getOldestCardDate = (column: BoardColumn | undefined) => {
+  const sortedDates = (column?.cards ?? [])
+    .map((card) => card.createdAt)
+    .filter(isValidDateString)
+    .toSorted((first, second) => Date.parse(first) - Date.parse(second));
+
+  return sortedDates[0];
+};
+
+export const normalizeActiveWorkCycle = (
+  value: unknown,
+  columns: BoardColumn[],
+  migratedStartDate: string
+): BoardActiveWorkCycle => {
+  const columnIds = new Set(columns.map((column) => column.id));
+
+  if (isBoardActiveWorkCycle(value)) {
+    return {
+      completedColumnId:
+        value.completedColumnId && columnIds.has(value.completedColumnId)
+          ? value.completedColumnId
+          : null,
+      startDate: value.startDate,
+    };
+  }
+
+  const inferredDoneColumn = columns.find(
+    (column) => column.title.trim().toLowerCase() === 'done'
+  );
+
+  return {
+    completedColumnId: inferredDoneColumn?.id ?? null,
+    startDate: getOldestCardDate(inferredDoneColumn) ?? migratedStartDate,
+  };
+};
+
 export const normalizeBoardState = (value: unknown): unknown => {
   if (!isRecord(value) || !Array.isArray(value.columns)) {
     return value;
   }
 
   const migratedCreatedAt = new Date().toISOString();
+  const columns = value.columns.map((column) =>
+    isRecord(column) && Array.isArray(column.cards)
+      ? {
+          ...column,
+          cards: column.cards.map((card) =>
+            normalizeStoredCard(card, migratedCreatedAt)
+          ),
+        }
+      : column
+  );
+  const normalizedTags = Array.isArray(value.tags)
+    ? value.tags.filter(isBoardTag)
+    : [];
 
   return {
     ...value,
-    columns: value.columns.map((column) =>
-      isRecord(column) && Array.isArray(column.cards)
-        ? {
-            ...column,
-            cards: column.cards.map((card) =>
-              normalizeStoredCard(card, migratedCreatedAt)
-            ),
-          }
-        : column
+    activeWorkCycle: columns.every(isBoardColumn)
+      ? normalizeActiveWorkCycle(
+          value.activeWorkCycle,
+          columns,
+          migratedCreatedAt
+        )
+      : value.activeWorkCycle,
+    columns,
+    completedWorkCycles: Array.isArray(value.completedWorkCycles)
+      ? value.completedWorkCycles.filter(isCompletedWorkCycle)
+      : [],
+    tags: normalizedTags,
+  };
+};
+
+export const normalizeBoardStateForColumns = (
+  state: BoardState,
+  columns: BoardColumn[]
+): BoardState => {
+  return {
+    ...state,
+    activeWorkCycle: normalizeActiveWorkCycle(
+      state.activeWorkCycle,
+      columns,
+      new Date().toISOString()
     ),
-    tags: Array.isArray(value.tags) ? value.tags.filter(isBoardTag) : [],
+    columns,
   };
 };

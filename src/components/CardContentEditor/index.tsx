@@ -26,6 +26,11 @@ type CardContentEditorProps = {
   value: string;
 };
 
+type CardContentViewerProps = {
+  ariaLabel: string;
+  value: string;
+};
+
 const imageMimeTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/webp'];
 const headingLevels: Level[] = [1, 2, 3, 4];
 const alignValues: AlignValue[] = ['left', 'center', 'right', 'justify'];
@@ -434,6 +439,50 @@ const applyAlignChange = (editor: Editor | null, nextValue: AlignValue) => {
   chain.setTextAlign(nextValue).run();
 };
 
+const getCardContentExtensions = (options: { fileHandling: boolean }) => [
+  StarterKit.configure({
+    heading: false,
+    link: {
+      HTMLAttributes: {
+        rel: 'noopener noreferrer',
+        target: '_blank',
+      },
+      openOnClick: !options.fileHandling,
+    },
+    paragraph: false,
+  }),
+  RichParagraph,
+  RichHeading.configure({ levels: headingLevels }),
+  TaskList,
+  TaskItem.configure({
+    a11y: {
+      checkboxLabel: (node, checked) =>
+        `${checked ? 'Completed' : 'Incomplete'} task: ${node.textContent || 'empty task item'}`,
+    },
+    nested: true,
+  }),
+  TextAlign.configure({
+    types: ['heading', 'paragraph'],
+  }),
+  Image.configure({ allowBase64: true }),
+  ...(options.fileHandling
+    ? [
+        FileHandler.configure({
+          allowedMimeTypes: imageMimeTypes,
+          onDrop: (currentEditor, files, position) => {
+            void insertImageFiles(currentEditor, files, position);
+          },
+          onPaste: (currentEditor, files) => {
+            void insertImageFiles(currentEditor, files);
+          },
+        }),
+      ]
+    : []),
+  Markdown.configure({
+    indentation: { size: 2, style: 'space' },
+  }),
+];
+
 const useCardContentTipTapEditor = ({
   id,
   labelId,
@@ -473,45 +522,7 @@ const useCardContentTipTapEditor = ({
         return true;
       },
     },
-    extensions: [
-      StarterKit.configure({
-        heading: false,
-        link: {
-          HTMLAttributes: {
-            rel: 'noopener noreferrer',
-            target: '_blank',
-          },
-          openOnClick: false,
-        },
-        paragraph: false,
-      }),
-      RichParagraph,
-      RichHeading.configure({ levels: headingLevels }),
-      TaskList,
-      TaskItem.configure({
-        a11y: {
-          checkboxLabel: (node, checked) =>
-            `${checked ? 'Completed' : 'Incomplete'} task: ${node.textContent || 'empty task item'}`,
-        },
-        nested: true,
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Image.configure({ allowBase64: true }),
-      FileHandler.configure({
-        allowedMimeTypes: imageMimeTypes,
-        onDrop: (currentEditor, files, position) => {
-          void insertImageFiles(currentEditor, files, position);
-        },
-        onPaste: (currentEditor, files) => {
-          void insertImageFiles(currentEditor, files);
-        },
-      }),
-      Markdown.configure({
-        indentation: { size: 2, style: 'space' },
-      }),
-    ],
+    extensions: getCardContentExtensions({ fileHandling: true }),
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => {
       const markdown = getEditorMarkdown(currentEditor);
@@ -533,6 +544,39 @@ const useCardContentTipTapEditor = ({
   }, [editor, value]);
 
   return editor;
+};
+
+export const CardContentViewer = ({
+  ariaLabel,
+  value,
+}: CardContentViewerProps) => {
+  const editor = useEditor({
+    content: normalizeMarkdownForEditor(value),
+    contentType: 'markdown',
+    editable: false,
+    editorProps: {
+      attributes: {
+        'aria-label': ariaLabel,
+        class:
+          'card-content-editor__surface card-content-editor__surface--readonly',
+      },
+    },
+    extensions: getCardContentExtensions({ fileHandling: false }),
+    immediatelyRender: false,
+  });
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    editor.commands.setContent(normalizeMarkdownForEditor(value), {
+      contentType: 'markdown',
+      emitUpdate: false,
+    });
+  }, [editor, value]);
+
+  return <EditorContent editor={editor} />;
 };
 
 const useCardContentEditorInteractions = (

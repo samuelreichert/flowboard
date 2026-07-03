@@ -10,7 +10,7 @@ import { vi } from 'vitest';
 
 import App from './App';
 import { reorderCard } from './dnd';
-import { fetchStorage, fetchTagStorage } from './storage';
+import { fetchBoardState, fetchStorage, fetchTagStorage } from './storage';
 import type { BoardColumn } from './types';
 
 const CREATED_AT = '2026-06-03T12:34:56.000Z';
@@ -37,6 +37,17 @@ test('renders the Flowboard app shell and quiet board heading', () => {
     'aria-current',
     'page'
   );
+  expect(
+    within(
+      screen.getByRole('complementary', { name: /flowboard navigation/i })
+    ).queryByRole('button', { name: /complete work/i })
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('region', { name: /board workspace/i })).getByRole(
+      'button',
+      { name: /complete work/i }
+    )
+  ).toBeInTheDocument();
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
 });
 
@@ -991,27 +1002,309 @@ test('clears the board only after confirmation', async () => {
   render(<App />);
 
   await addColumn(user, 'Todo');
+  await openBoardSettings(user);
   await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
 
+  await openBoardSettings(user);
   await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /^clear board$/i }));
   expect(readColumns()).toEqual([]);
 });
 
-test('clear board sidebar command appears only when the board can be cleared', async () => {
+test('clear board lives in board settings only when the board can be cleared', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const sidebar = screen.getByRole('complementary', {
+    name: /flowboard navigation/i,
+  });
 
   expect(
-    screen.queryByRole('button', { name: /clear board/i })
+    within(sidebar).queryByRole('button', { name: /clear board/i })
   ).not.toBeInTheDocument();
 
   await addColumn(user, 'Todo');
   expect(
+    within(sidebar).queryByRole('button', { name: /clear board/i })
+  ).not.toBeInTheDocument();
+  await openBoardSettings(user);
+  expect(
     screen.getByRole('button', { name: /clear board/i })
   ).toBeInTheDocument();
+});
+
+test('configures completed column and preserves it through rename and delete', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Done');
+  await openBoardSettings(user);
+  await chooseSelectOption(user, 'Completed column', 'Done');
+  await user.click(screen.getByRole('button', { name: /^done$/i }));
+  const doneColumnId = fetchBoardState().columns.find(
+    (column) => column.title === 'Done'
+  )?.id;
+
+  expect(fetchBoardState().activeWorkCycle.completedColumnId).toBe(
+    doneColumnId
+  );
+
+  await openColumnActions(user, 'Done');
+  await user.click(
+    await screen.findByRole('menuitem', { name: /rename column/i })
+  );
+  await user.clear(screen.getByLabelText('Column title'));
+  await user.type(screen.getByLabelText('Column title'), 'Finished');
+  await user.click(screen.getByRole('button', { name: /close dialog/i }));
+
+  expect(fetchBoardState().activeWorkCycle.completedColumnId).toBe(
+    doneColumnId
+  );
+  const renamedColumnTitle =
+    fetchBoardState().columns.find((column) => column.id === doneColumnId)
+      ?.title ?? 'Finished';
+
+  await openColumnActions(user, renamedColumnTitle);
+  await user.click(
+    await screen.findByRole('menuitem', { name: /delete column/i })
+  );
+  await user.click(screen.getByRole('button', { name: /^delete column$/i }));
+
+  expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
+});
+
+test('guides completion setup to board settings when no completed column exists', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+
+  expect(
+    screen.getByRole('dialog', { name: /board settings/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/create a column before choosing/i)
+  ).toBeInTheDocument();
+});
+
+test('completes work after confirmation and moves done cards to history', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Done');
+  await addCard(user, 'Done', 'Ship it', 'Release the new Flowboard build.');
+  await openBoardSettings(user);
+  await chooseSelectOption(user, 'Completed column', 'Done');
+  await user.click(screen.getByRole('button', { name: /^done$/i }));
+
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  expect(
+    screen.getByText(/archive 1 card from Done and start a new work cycle/i)
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /cancel/i }));
+  expect(readColumns().find((column) => column.title === 'Done')?.cards).toHaveLength(1);
+
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  await user.click(screen.getByRole('button', { name: /^complete work$/i }));
+
+  expect(readColumns().find((column) => column.title === 'Done')?.cards).toEqual(
+    []
+  );
+  expect(fetchBoardState().completedWorkCycles[0].cards[0].title).toBe(
+    'Ship it'
+  );
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(screen.getByText('Ship it')).toBeInTheDocument();
+  await user.click(screen.getByText('Ship it'));
+  expect(
+    screen.getByText('Release the new Flowboard build.')
+  ).toBeInTheDocument();
+});
+
+test('completes an empty work cycle and renders an empty history group', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Done');
+  await openBoardSettings(user);
+  await chooseSelectOption(user, 'Completed column', 'Done');
+  await user.click(screen.getByRole('button', { name: /^done$/i }));
+
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  expect(
+    screen.getByText(/there are no cards in Done/i)
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /^complete work$/i }));
+
+  expect(fetchBoardState().completedWorkCycles[0].cards).toEqual([]);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(screen.getByText(/0 cards/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/completed without archived cards/i)
+  ).toBeInTheDocument();
+});
+
+test('history follows tag renames and falls back to archived tag snapshots after delete', async () => {
+  const user = userEvent.setup();
+  localStorage.setItem(
+    'columnsList',
+    JSON.stringify([
+      {
+        cards: [
+          {
+            content: '',
+            createdAt: CREATED_AT,
+            id: 'card-1',
+            priority: 'medium',
+            tagIds: ['tag-1'],
+            title: 'Tagged card',
+          },
+        ],
+        id: 'done',
+        position: 0,
+        title: 'Done',
+      },
+    ])
+  );
+  localStorage.setItem('boardTags', JSON.stringify([{ id: 'tag-1', name: 'Launch' }]));
+  localStorage.setItem(
+    'activeWorkCycle',
+    JSON.stringify({ completedColumnId: 'done', startDate: CREATED_AT })
+  );
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  await user.click(screen.getByRole('button', { name: /^complete work$/i }));
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+
+  expect(screen.getByText('Launch')).toBeInTheDocument();
+
+  await openTagManager(user);
+  await user.click(screen.getByRole('button', { name: /rename launch tag/i }));
+  await user.clear(screen.getByLabelText('Edit Launch tag'));
+  await user.type(screen.getByLabelText('Edit Launch tag'), 'Customer');
+  await user.click(screen.getByLabelText('New tag'));
+  await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+
+  expect(screen.getByText('Customer')).toBeInTheDocument();
+
+  await openTagManager(user);
+  await user.click(screen.getByRole('button', { name: /remove customer tag/i }));
+  await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+
+  expect(screen.getByText('Launch')).toBeInTheDocument();
+});
+
+test('opens archived cards with metadata, rich content, and Markdown copy', async () => {
+  const user = userEvent.setup();
+  const writeText = vi
+    .spyOn(navigator.clipboard, 'writeText')
+    .mockResolvedValue(undefined);
+  const markdown = '# Release Notes\n\n- `Ship` the update';
+  localStorage.setItem(
+    'boardTags',
+    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
+  );
+  localStorage.setItem(
+    'completedWorkCycles',
+    JSON.stringify([
+      {
+        cards: [
+          {
+            archivedAt: CREATED_AT,
+            content: markdown,
+            createdAt: CREATED_AT,
+            id: 'archived-1',
+            priority: 'high',
+            tagIds: ['tag-1'],
+            tagSnapshots: [{ id: 'tag-1', name: 'Launch' }],
+            title: 'Archived release',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: CREATED_AT,
+        id: 'cycle-1',
+        startDate: CREATED_AT,
+      },
+    ])
+  );
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  await user.click(screen.getByText('Archived release'));
+  const dialog = screen.getByRole('dialog', { name: /archived release/i });
+
+  expect(within(dialog).getByText(/^Created \d/i)).toBeInTheDocument();
+  expect(within(dialog).getByText(/^Archived \d/i)).toBeInTheDocument();
+  expect(within(dialog).getByText('Priority')).toBeInTheDocument();
+  expect(within(dialog).getByText('Tags')).toBeInTheDocument();
+  expect(within(dialog).getByText('High')).toBeInTheDocument();
+  expect(within(dialog).getByText('Launch')).toBeInTheDocument();
+  expect(
+    await within(dialog).findByRole('heading', {
+      level: 1,
+      name: 'Release Notes',
+    })
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText('Ship')).toBeInTheDocument();
+
+  await user.click(within(dialog).getByRole('button', { name: /copy markdown/i }));
+
+  expect(writeText).toHaveBeenCalledWith(markdown);
+  expect(within(dialog).getByText('Copied')).toBeInTheDocument();
+});
+
+test('switches completed work history between grid and list layouts', async () => {
+  const user = userEvent.setup();
+  localStorage.setItem(
+    'completedWorkCycles',
+    JSON.stringify([
+      {
+        cards: [
+          {
+            archivedAt: CREATED_AT,
+            content: '',
+            createdAt: CREATED_AT,
+            id: 'archived-1',
+            priority: 'medium',
+            tagIds: [],
+            tagSnapshots: [],
+            title: 'Archived release',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: CREATED_AT,
+        id: 'cycle-1',
+        startDate: CREATED_AT,
+      },
+    ])
+  );
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(screen.getByRole('button', { name: /grid view/i })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+
+  await user.click(screen.getByRole('button', { name: /list view/i }));
+
+  expect(screen.getByRole('button', { name: /list view/i })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  expect(screen.getByText('Archived release')).toBeInTheDocument();
+  expect(screen.getByText(/^Created \d/i)).toBeInTheDocument();
 });
 
 test('closes a create dialog with Escape without saving', async () => {
@@ -1131,6 +1424,11 @@ const chooseSelectOption = async (
 const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /manage tags/i }));
   await screen.findByRole('dialog', { name: /manage tags/i });
+};
+
+const openBoardSettings = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /board settings/i }));
+  await screen.findByRole('dialog', { name: /board settings/i });
 };
 
 const readColumns = () =>
