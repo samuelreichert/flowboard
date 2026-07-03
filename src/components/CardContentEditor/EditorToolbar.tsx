@@ -2,7 +2,6 @@ import { Button } from '@base-ui/react/button';
 import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
 import { Select } from '@base-ui/react/select';
-import { Tooltip } from '@base-ui/react/tooltip';
 import { Toolbar } from '@base-ui/react/toolbar';
 import {
   AlignCenter,
@@ -31,8 +30,8 @@ import {
   Strikethrough,
   Undo2,
 } from 'lucide-react';
-import { useId } from 'react';
-import type { FormEvent, ReactNode, RefObject } from 'react';
+import { useId, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 
 import type {
   AlignValue,
@@ -58,6 +57,19 @@ type ToolbarSelectProps<TValue extends string> = {
   onValueChange: (value: TValue) => void;
   options: ToolbarSelectOption<TValue>[];
   value: TValue;
+};
+
+type ToolbarHintProps = {
+  children: (props: {
+    hint: ReactNode;
+    hintTriggerProps: {
+      onBlur: () => void;
+      onFocus: () => void;
+      onPointerEnter: () => void;
+      onPointerLeave: () => void;
+    };
+  }) => ReactNode;
+  label: string;
 };
 
 type EditorToolbarProps = {
@@ -89,7 +101,6 @@ type EditorToolbarProps = {
   onSetLinkUrl: (value: string) => void;
   onStrike: () => void;
   onUndo: () => void;
-  popoverPortalContainer: RefObject<HTMLDivElement | null>;
   toolbarState: EditorToolbarState;
 };
 
@@ -120,6 +131,26 @@ const defaultListOption: ToolbarSelectOption<ListValue> = {
   value: 'none',
 };
 
+const ToolbarHint = ({ children, label }: ToolbarHintProps) => {
+  const [open, setOpen] = useState(false);
+  const hintId = useId();
+  const hint = open ? (
+    <span aria-hidden="true" className="editor-toolbar__hover-label" id={hintId}>
+      {label}
+    </span>
+  ) : null;
+
+  return children({
+    hint,
+    hintTriggerProps: {
+      onBlur: () => setOpen(false),
+      onFocus: () => setOpen(true),
+      onPointerEnter: () => setOpen(true),
+      onPointerLeave: () => setOpen(false),
+    },
+  });
+};
+
 const ToolbarButton = ({
   active = false,
   disabled = false,
@@ -127,34 +158,32 @@ const ToolbarButton = ({
   onClick,
   children,
 }: ToolbarButtonProps) => (
-  <Tooltip.Root>
-    <Tooltip.Trigger
-      aria-label={label}
-      aria-disabled={disabled}
-      aria-pressed={active}
-      className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
-      data-disabled={disabled ? '' : undefined}
-      onClick={(event) => {
-        if (disabled) {
-          event.preventDefault();
-          return;
-        }
+  <ToolbarHint label={label}>
+    {({ hint, hintTriggerProps }) => (
+      <Toolbar.Button
+        aria-label={label}
+        aria-disabled={disabled}
+        aria-pressed={active}
+        className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
+        data-disabled={disabled ? '' : undefined}
+        onClick={(event) => {
+          if (disabled) {
+            event.preventDefault();
+            return;
+          }
 
-        onClick();
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-      render={<Toolbar.Button />}
-      tabIndex={disabled ? -1 : undefined}
-      type="button"
-    >
-      {children}
-    </Tooltip.Trigger>
-    <Tooltip.Portal>
-      <Tooltip.Positioner sideOffset={8}>
-        <Tooltip.Popup className="tooltip-popup">{label}</Tooltip.Popup>
-      </Tooltip.Positioner>
-    </Tooltip.Portal>
-  </Tooltip.Root>
+          onClick();
+        }}
+        onMouseDown={(event) => event.preventDefault()}
+        tabIndex={disabled ? -1 : undefined}
+        type="button"
+        {...hintTriggerProps}
+      >
+        {children}
+        {hint}
+      </Toolbar.Button>
+    )}
+  </ToolbarHint>
 );
 
 const ToolbarSelect = <TValue extends string>({
@@ -183,28 +212,27 @@ const ToolbarSelect = <TValue extends string>({
       <span className="editor-toolbar__accessible-label" id={selectLabelId}>
         {label}
       </span>
-      <Tooltip.Root>
-        <Tooltip.Trigger
-          aria-labelledby={selectLabelId}
-          aria-pressed={active}
-          aria-label={`${label}: ${triggerLabel}`}
-          className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
-          disabled={disabled}
-          render={<Toolbar.Button disabled={disabled} render={<Select.Trigger />} />}
-        >
-          <span className="editor-toolbar__select-trigger-icon" title={triggerLabel}>
-            {selectedOption.icon}
-          </span>
-          <Select.Icon className="editor-toolbar__select-icon">
-            <ChevronDown size={14} />
-          </Select.Icon>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Positioner sideOffset={8}>
-            <Tooltip.Popup className="tooltip-popup">{triggerLabel}</Tooltip.Popup>
-          </Tooltip.Positioner>
-        </Tooltip.Portal>
-      </Tooltip.Root>
+      <ToolbarHint label={triggerLabel}>
+        {({ hint, hintTriggerProps }) => (
+          <Toolbar.Button
+            aria-labelledby={selectLabelId}
+            aria-pressed={active}
+            aria-label={`${label}: ${triggerLabel}`}
+            className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
+            disabled={disabled}
+            render={<Select.Trigger />}
+            {...hintTriggerProps}
+          >
+            <span className="editor-toolbar__select-trigger-icon" title={triggerLabel}>
+              {selectedOption.icon}
+            </span>
+            <Select.Icon className="editor-toolbar__select-icon">
+              <ChevronDown size={14} />
+            </Select.Icon>
+            {hint}
+          </Toolbar.Button>
+        )}
+      </ToolbarHint>
       <Select.Portal>
         <Select.Positioner
           align="start"
@@ -267,7 +295,6 @@ export const EditorToolbar = ({
   onSetLinkUrl,
   onStrike,
   onUndo,
-  popoverPortalContainer,
   toolbarState,
 }: EditorToolbarProps) => (
   <Toolbar.Root className="editor-toolbar" aria-label="Content formatting">
@@ -351,28 +378,27 @@ export const EditorToolbar = ({
       <Code2 size={16} />
     </ToolbarButton>
     <Popover.Root onOpenChange={onLinkPopoverOpenChange} open={linkPopoverOpen}>
-      <Tooltip.Root>
-        <Tooltip.Trigger
-          aria-label="Link"
-          aria-pressed={toolbarState.isLink}
-          className={`editor-toolbar__button ${toolbarState.isLink ? 'editor-toolbar__button--active' : ''}`}
-          disabled={!editorReady}
-          onClick={onLinkPopoverOpen}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            onLinkMouseDown();
-          }}
-          render={<Popover.Trigger render={<Toolbar.Button disabled={!editorReady} />} />}
-        >
-          <LinkIcon size={16} />
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Positioner sideOffset={8}>
-            <Tooltip.Popup className="tooltip-popup">Link</Tooltip.Popup>
-          </Tooltip.Positioner>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-      <Popover.Portal container={popoverPortalContainer}>
+      <ToolbarHint label="Link">
+        {({ hint, hintTriggerProps }) => (
+          <Toolbar.Button
+            aria-label="Link"
+            aria-pressed={toolbarState.isLink}
+            className={`editor-toolbar__button ${toolbarState.isLink ? 'editor-toolbar__button--active' : ''}`}
+            disabled={!editorReady}
+            onClick={onLinkPopoverOpen}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              onLinkMouseDown();
+            }}
+            render={<Popover.Trigger />}
+            {...hintTriggerProps}
+          >
+            <LinkIcon size={16} />
+            {hint}
+          </Toolbar.Button>
+        )}
+      </ToolbarHint>
+      <Popover.Portal>
         <Popover.Positioner
           align="start"
           className="editor-url-popover__positioner"
@@ -424,24 +450,23 @@ export const EditorToolbar = ({
       </Popover.Portal>
     </Popover.Root>
     <Popover.Root onOpenChange={onImagePopoverOpenChange} open={imagePopoverOpen}>
-      <Tooltip.Root>
-        <Tooltip.Trigger
-          aria-label="Insert image URL"
-          className={`editor-toolbar__button ${toolbarState.isImage ? 'editor-toolbar__button--active' : ''}`}
-          disabled={!editorReady}
-          aria-pressed={toolbarState.isImage}
-          onMouseDown={(event) => event.preventDefault()}
-          render={<Popover.Trigger render={<Toolbar.Button disabled={!editorReady} />} />}
-        >
-          <ImageIcon size={16} />
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Positioner sideOffset={8}>
-            <Tooltip.Popup className="tooltip-popup">Insert image URL</Tooltip.Popup>
-          </Tooltip.Positioner>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-      <Popover.Portal container={popoverPortalContainer}>
+      <ToolbarHint label="Insert image URL">
+        {({ hint, hintTriggerProps }) => (
+          <Toolbar.Button
+            aria-label="Insert image URL"
+            className={`editor-toolbar__button ${toolbarState.isImage ? 'editor-toolbar__button--active' : ''}`}
+            disabled={!editorReady}
+            aria-pressed={toolbarState.isImage}
+            onMouseDown={(event) => event.preventDefault()}
+            render={<Popover.Trigger />}
+            {...hintTriggerProps}
+          >
+            <ImageIcon size={16} />
+            {hint}
+          </Toolbar.Button>
+        )}
+      </ToolbarHint>
+      <Popover.Portal>
         <Popover.Positioner
           align="start"
           className="editor-url-popover__positioner"
@@ -485,24 +510,22 @@ export const EditorToolbar = ({
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-    <Tooltip.Root>
-      <Tooltip.Trigger
-        aria-label="Copy Markdown"
-        className="editor-toolbar__copy"
-        disabled={!editorReady}
-        onClick={onCopyMarkdown}
-        render={<Button disabled={!editorReady} />}
-        type="button"
-      >
-        <Copy size={16} />
-        <strong>.MD</strong>
-        {copyStatus && <span className="editor-toolbar__copy-status">{copyStatus}</span>}
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Positioner sideOffset={8}>
-          <Tooltip.Popup className="tooltip-popup">Copy Markdown</Tooltip.Popup>
-        </Tooltip.Positioner>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+    <ToolbarHint label="Copy Markdown">
+      {({ hint, hintTriggerProps }) => (
+        <Button
+          aria-label="Copy Markdown"
+          className="editor-toolbar__copy"
+          disabled={!editorReady}
+          onClick={onCopyMarkdown}
+          type="button"
+          {...hintTriggerProps}
+        >
+          <Copy size={16} />
+          <strong>.MD</strong>
+          {copyStatus && <span className="editor-toolbar__copy-status">{copyStatus}</span>}
+          {hint}
+        </Button>
+      )}
+    </ToolbarHint>
   </Toolbar.Root>
 );
