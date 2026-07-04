@@ -9,7 +9,7 @@
   color: var(--color-text);
   cursor: pointer;
   display: grid;
-  padding: 9px 8px;
+  padding: 0;
   position: relative;
   transition:
     border-color 140ms ease,
@@ -36,11 +36,6 @@
   transform: scale(0.985);
 }
 
-.card:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .card__title {
   flex: 1;
   font-size: 13px;
@@ -51,12 +46,23 @@
 }
 
 .card__body {
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
   color: inherit;
+  cursor: pointer;
   display: grid;
   font: inherit;
   gap: 7px;
   min-width: 0;
+  padding: 9px 8px;
   text-align: left;
+  width: 100%;
+}
+
+.card__body:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .card__title-row {
@@ -164,17 +170,24 @@
 @media (max-width: 640px) {
   .card {
     min-height: 44px;
+  }
+
+  .card__body {
+    min-height: 44px;
     padding: 10px 8px;
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card {
+  .card,
+  .card__body {
     cursor: grab;
   }
 
   .card:active,
-  .card--dragging {
+  .card--dragging,
+  .card:active .card__body,
+  .card--dragging .card__body {
     cursor: grabbing;
   }
 

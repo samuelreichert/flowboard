@@ -438,7 +438,7 @@ test('opens card details from the card title, metadata, and background', async (
   expectCardDialogTitle('Review surfaces');
   await closeCardDialog(user);
 
-  fireEvent.click(getBoardCard('Review surfaces'));
+  await user.click(getBoardCardButton('Review surfaces'));
   expectCardDialogTitle('Review surfaces');
 });
 
@@ -1474,15 +1474,8 @@ const selectText = (element: HTMLElement) => {
   fireEvent.mouseUp(element);
 };
 
-const getBoardCard = (title: string) => {
-  const card = screen.getByText(title).closest('.card');
-
-  if (!(card instanceof HTMLElement)) {
-    throw new Error(`Card not found: ${title}`);
-  }
-
-  return card;
-};
+const getBoardCardButton = (title: string) =>
+  screen.getByRole('button', { name: `Open ${title}` });
 
 const expectCardDialogTitle = (title: string) => {
   const dialog = screen.getByRole('dialog', { name: /card/i });

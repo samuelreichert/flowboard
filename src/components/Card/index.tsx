@@ -9,7 +9,7 @@ import {
 } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { AlignLeft } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 
 import CardDialog from '../CardDialog';
@@ -82,6 +82,7 @@ const Card = ({
   tags,
 }: CardProps) => {
   const cardRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLSpanElement | null>(null);
   const ignoreNextClickRef = useRef(false);
   const resetIgnoreClickTimerRef = useRef<number | null>(null);
   const [state, dispatch] = useReducer(cardReducer, {
@@ -158,6 +159,27 @@ const Card = ({
     return cleanup;
   }, [card.id, columnId]);
 
+  useEffect(() => {
+    const titleElement = titleRef.current;
+
+    if (!titleElement) {
+      return;
+    }
+
+    const disableDragging = () => setCardDraggingEnabled(false);
+    const enableDragging = () => setCardDraggingEnabled(true);
+
+    titleElement.addEventListener('mouseenter', disableDragging);
+    titleElement.addEventListener('mousedown', disableDragging);
+    titleElement.addEventListener('mouseleave', enableDragging);
+
+    return () => {
+      titleElement.removeEventListener('mouseenter', disableDragging);
+      titleElement.removeEventListener('mousedown', disableDragging);
+      titleElement.removeEventListener('mouseleave', enableDragging);
+    };
+  }, []);
+
   useEffect(
     () => () => {
       if (resetIgnoreClickTimerRef.current) {
@@ -183,15 +205,6 @@ const Card = ({
     openCard();
   };
 
-  const onCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    openCard();
-  };
-
   const cardTags = card.tagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
     .filter((tag): tag is BoardTag => Boolean(tag));
@@ -203,27 +216,22 @@ const Card = ({
   return (
     <>
       <article
-        aria-label={`Open ${card.title}`}
         className={`card ${isDragging ? 'card--dragging' : ''}`}
-        onClick={onCardClick}
-        onKeyDown={onCardKeyDown}
         ref={cardRef}
-        role="button"
-        tabIndex={0}
       >
         {closestEdge && (
           <span
             className={`card__drop-indicator card__drop-indicator--${closestEdge}`}
           />
         )}
-        <div className="card__body">
+        <button
+          aria-label={`Open ${card.title}`}
+          className="card__body"
+          onClick={onCardClick}
+          type="button"
+        >
           <div className="card__title-row">
-            <span
-              className="card__title"
-              onMouseDown={() => setCardDraggingEnabled(false)}
-              onMouseEnter={() => setCardDraggingEnabled(false)}
-              onMouseLeave={() => setCardDraggingEnabled(true)}
-            >
+            <span className="card__title" draggable={false} ref={titleRef}>
               {card.title}
             </span>
             {card.content && (
@@ -249,7 +257,7 @@ const Card = ({
               </span>
             )}
           </div>
-        </div>
+        </button>
       </article>
       <CardDialog
         card={card}
