@@ -423,6 +423,55 @@ test('shows and edits card details in the modal', async () => {
   expect(readColumns()[0].cards[0].content).toContain('Ready to ship');
 });
 
+test('opens card details from the card title, metadata, and background', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Review surfaces', 'First content');
+
+  await user.click(screen.getByText('Review surfaces'));
+  expectCardDialogTitle('Review surfaces');
+  await closeCardDialog(user);
+
+  await user.click(screen.getByText('Medium'));
+  expectCardDialogTitle('Review surfaces');
+  await closeCardDialog(user);
+
+  fireEvent.click(getBoardCard('Review surfaces'));
+  expectCardDialogTitle('Review surfaces');
+});
+
+test('keeps card title text selectable without opening details', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Selectable title');
+
+  const title = screen.getByText('Selectable title');
+  selectText(title);
+  fireEvent.click(title);
+
+  expect(window.getSelection()?.toString()).toBe('Selectable title');
+  expect(
+    screen.queryByRole('dialog', { name: /selectable title/i })
+  ).not.toBeInTheDocument();
+  expect(readColumns()[0].cards[0].title).toBe('Selectable title');
+});
+
+test('does not expose a dedicated card drag-handle control', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Move me');
+
+  expect(
+    screen.queryByRole('button', { name: /drag move me/i })
+  ).not.toBeInTheDocument();
+});
+
 test('deletes only the selected duplicate-title card from the modal', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -1351,6 +1400,18 @@ const addCard = async (
   await user.click(screen.getByRole('button', { name: /^create$/i }));
 };
 
+const closeCardDialog = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  );
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-base-ui-inert]')
+    ).not.toBeInTheDocument()
+  );
+};
+
 const openCreateCard = async (
   _user: ReturnType<typeof userEvent.setup>,
   columnTitle: string
@@ -1400,6 +1461,35 @@ const selectEditorNodeContents = (element: HTMLElement, target: Element) => {
   document.dispatchEvent(new Event('selectionchange'));
   fireEvent.mouseUp(element);
   fireEvent.keyUp(element);
+};
+
+const selectText = (element: HTMLElement) => {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  document.dispatchEvent(new Event('selectionchange'));
+  fireEvent.mouseUp(element);
+};
+
+const getBoardCard = (title: string) => {
+  const card = screen.getByText(title).closest('.card');
+
+  if (!(card instanceof HTMLElement)) {
+    throw new Error(`Card not found: ${title}`);
+  }
+
+  return card;
+};
+
+const expectCardDialogTitle = (title: string) => {
+  const dialog = screen.getByRole('dialog', { name: /card/i });
+
+  expect(
+    within(dialog).getByRole('heading', { name: title })
+  ).toBeInTheDocument();
 };
 
 const openColumnActions = async (
