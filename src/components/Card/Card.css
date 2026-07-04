@@ -8,10 +8,8 @@
     0 2px 5px var(--color-shadow-soft);
   color: var(--color-text);
   cursor: pointer;
-  display: flex;
-  gap: 6px;
-  justify-content: flex-start;
-  padding: 9px 8px;
+  display: grid;
+  padding: 0;
   position: relative;
   transition:
     border-color 140ms ease,
@@ -38,62 +36,31 @@
   transform: scale(0.985);
 }
 
-.card__drag-handle {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-soft);
-  cursor: grab;
-  display: flex;
-  flex: 0 0 auto;
-  justify-content: center;
-  margin: -4px 0 -4px -3px;
-  padding: 4px 1px;
-  transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    opacity 140ms ease;
-}
-
-.card__drag-handle:hover {
-  background-color: var(--color-hover);
-  color: var(--color-text-muted);
-}
-
-.card__drag-handle:active {
-  cursor: grabbing;
-}
-
-.card__drag-handle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
 .card__title {
   flex: 1;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
+  user-select: text;
 }
 
 .card__body {
   background: transparent;
   border: 0;
+  border-radius: inherit;
   color: inherit;
   cursor: pointer;
   display: grid;
-  flex: 1;
   font: inherit;
   gap: 7px;
-  padding: 0;
-  text-align: left;
   min-width: 0;
+  padding: 9px 8px;
+  text-align: left;
+  width: 100%;
 }
 
 .card__body:focus-visible {
-  border-radius: var(--radius-sm);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -203,23 +170,28 @@
 @media (max-width: 640px) {
   .card {
     min-height: 44px;
-    padding: 10px 8px;
   }
 
-  .card__drag-handle {
-    min-height: 32px;
-    min-width: 28px;
+  .card__body {
+    min-height: 44px;
+    padding: 10px 8px;
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card__drag-handle {
-    opacity: 0;
+  .card,
+  .card__body {
+    cursor: grab;
   }
 
-  .card:hover .card__drag-handle,
-  .card:focus-within .card__drag-handle,
-  .card--dragging .card__drag-handle {
-    opacity: 1;
+  .card:active,
+  .card--dragging,
+  .card:active .card__body,
+  .card--dragging .card__body {
+    cursor: grabbing;
+  }
+
+  .card__title {
+    cursor: text;
   }
 }
