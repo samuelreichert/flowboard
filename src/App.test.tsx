@@ -1179,7 +1179,7 @@ test('completes work after confirmation and moves done cards to history', async 
   ).toBeInTheDocument();
 });
 
-test('completes an empty work cycle and renders an empty history group', async () => {
+test('disables completing work when the completed column is empty', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -1188,19 +1188,16 @@ test('completes an empty work cycle and renders an empty history group', async (
   await chooseSelectOption(user, 'Completed column', 'Done');
   await user.click(screen.getByRole('button', { name: /^done$/i }));
 
-  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  const completeWork = screen.getByRole('button', { name: /complete work/i });
+  expect(completeWork).toBeDisabled();
+  await user.click(completeWork);
   expect(
-    screen.getByText(/there are no cards in Done/i)
-  ).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /^complete work$/i }));
-
-  expect(fetchBoardState().completedWorkCycles[0].cards).toEqual([]);
-
-  await user.click(screen.getByRole('button', { name: /^history$/i }));
-  expect(screen.getByText(/0 cards/i)).toBeInTheDocument();
+    screen.queryByRole('alertdialog', { name: /complete work/i })
+  ).not.toBeInTheDocument();
+  expect(fetchBoardState().completedWorkCycles).toEqual([]);
   expect(
-    screen.getByText(/completed without archived cards/i)
-  ).toBeInTheDocument();
+    screen.queryByText(/completed without archived cards/i)
+  ).not.toBeInTheDocument();
 });
 
 test('history follows tag renames and falls back to archived tag snapshots after delete', async () => {

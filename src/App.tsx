@@ -329,6 +329,7 @@ const AppSidebar = ({
 );
 
 type AppWorkspaceProps = {
+  canCompleteWork: boolean;
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppState['currentView'];
@@ -342,6 +343,7 @@ type AppWorkspaceProps = {
 };
 
 const AppWorkspace = ({
+  canCompleteWork,
   completedWorkCycles,
   completionPulse,
   currentView,
@@ -379,8 +381,13 @@ const AppWorkspace = ({
             <Button
               aria-label="Complete work"
               className="button button--primary board__complete-work"
+              disabled={!canCompleteWork}
               onClick={onCompleteWorkClick}
-              title="Complete work"
+              title={
+                canCompleteWork
+                  ? 'Complete work'
+                  : 'Add cards to the completed column before completing work'
+              }
               type="button"
             >
               <CheckCircle2 size={16} />
@@ -488,15 +495,13 @@ const AppDialogs = ({
       confirmVariant="primary"
       description={
         completedColumn
-          ? completedCardCount > 0
-            ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
-            : `There are no cards in ${completedColumn.title}. Complete this work cycle and save an empty history entry?`
+          ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
           : 'Choose a completed column in board settings before completing work.'
       }
       onConfirm={onCompleteWork}
       onOpenChange={onCompleteWorkOpenChange}
       open={completeWorkOpen}
-      title={completedCardCount > 0 ? 'Complete work?' : 'Complete empty work?'}
+      title="Complete work?"
     />
   </>
 );
@@ -659,13 +664,31 @@ const App = () => {
     }
 
     dispatch({ state: latestState, type: 'boardStateChanged' });
+
+    if (completedColumn.cards.length === 0) {
+      return;
+    }
+
     dispatch({ open: true, type: 'completeWorkOpenChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
   const confirmCompleteWork = () => {
     const completedAt = new Date().toISOString();
-    const nextState = completeWorkCycle(fetchBoardState(), completedAt);
+    const latestState = fetchBoardState();
+    const completedColumn = latestState.columns.find(
+      (column) => column.id === latestState.activeWorkCycle.completedColumnId
+    );
+
+    if (!completedColumn || completedColumn.cards.length === 0) {
+      if (!completedColumn) {
+        openBoardSettings();
+      }
+
+      return;
+    }
+
+    const nextState = completeWorkCycle(latestState, completedAt);
 
     if (!nextState) {
       openBoardSettings();
@@ -697,6 +720,8 @@ const App = () => {
     (column) => column.id === activeWorkCycle.completedColumnId
   );
   const completedCardCount = completedColumn?.cards.length ?? 0;
+  const canCompleteWork =
+    !activeWorkCycle.completedColumnId || completedCardCount > 0;
 
   return (
     <main
@@ -723,6 +748,7 @@ const App = () => {
         themePreference={themePreference}
       />
       <AppWorkspace
+        canCompleteWork={canCompleteWork}
         completedWorkCycles={completedWorkCycles}
         completionPulse={completionPulse}
         currentView={currentView}
