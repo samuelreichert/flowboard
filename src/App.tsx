@@ -55,6 +55,9 @@ const getTagUsageCount = (tagId: string) =>
     0
   );
 
+const getThemeIconSrc = (theme: ResolvedTheme) =>
+  theme === 'dark' ? '/icon-dark.svg' : '/icon-light.svg';
+
 type AppState = {
   activeWorkCycle: BoardActiveWorkCycle;
   boardSettingsOpen: boolean;
@@ -209,6 +212,7 @@ type AppSidebarProps = {
   onManageTagsClick: () => void;
   onThemePreferenceChange: (preference: ThemePreference) => void;
   onToggleSidebar: () => void;
+  resolvedTheme: ResolvedTheme;
   sidebarExpanded: boolean;
   themePreference: ThemePreference;
 };
@@ -222,6 +226,7 @@ const AppSidebar = ({
   onManageTagsClick,
   onThemePreferenceChange,
   onToggleSidebar,
+  resolvedTheme,
   sidebarExpanded,
   themePreference,
 }: AppSidebarProps) => (
@@ -244,9 +249,12 @@ const AppSidebar = ({
         )}
       </Button>
       <div className="app-sidebar__brand">
-        <span aria-hidden="true" className="app-sidebar__mark">
-          F
-        </span>
+        <img
+          alt=""
+          aria-hidden="true"
+          className="app-sidebar__brand-icon"
+          src={getThemeIconSrc(resolvedTheme)}
+        />
         <span className="app-sidebar__brand-text">Flowboard</span>
       </div>
       <Button
@@ -574,6 +582,17 @@ const App = () => {
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;
+    let favicon = document.querySelector<HTMLLinkElement>('#flowboard-favicon');
+
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.id = 'flowboard-favicon';
+      favicon.rel = 'icon';
+      favicon.type = 'image/svg+xml';
+      document.head.append(favicon);
+    }
+
+    favicon.href = getThemeIconSrc(resolvedTheme);
   }, [resolvedTheme]);
 
   useEffect(
@@ -748,6 +767,7 @@ const App = () => {
         onManageTagsClick={openTagManager}
         onThemePreferenceChange={chooseThemePreference}
         onToggleSidebar={toggleSidebar}
+        resolvedTheme={resolvedTheme}
         sidebarExpanded={sidebarExpanded}
         themePreference={themePreference}
       />

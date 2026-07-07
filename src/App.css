@@ -152,17 +152,14 @@
   min-width: 0;
 }
 
-.app-sidebar__mark {
-  align-items: center;
-  background-color: var(--color-text);
+.app-sidebar__brand-icon {
   border-radius: var(--radius-md);
-  color: var(--color-sidebar-bg);
-  display: inline-flex;
+  box-shadow:
+    0 1px 2px var(--color-shadow-soft),
+    0 0 0 1px var(--color-border);
   flex: 0 0 auto;
-  font-size: 13px;
-  font-weight: 740;
   height: 28px;
-  justify-content: center;
+  object-fit: contain;
   width: 28px;
 }
 

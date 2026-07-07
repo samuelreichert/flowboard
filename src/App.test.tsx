@@ -93,6 +93,12 @@ test('changes and persists the app theme preference from the sidebar footer', as
     'data-selected-theme',
     'dark'
   );
+  expect(
+    document.querySelector<HTMLImageElement>('.app-sidebar__brand-icon')?.src
+  ).toMatch(/\/icon-dark\.svg$/);
+  expect(
+    document.querySelector<HTMLLinkElement>('#flowboard-favicon')?.href
+  ).toMatch(/\/icon-dark\.svg$/);
   expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
 });
 
