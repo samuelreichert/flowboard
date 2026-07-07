@@ -30,6 +30,20 @@ type EditorBubbleMenusProps = {
   onSetLinkBubbleUrl: (value: string) => void;
 };
 
+const getEditorBubbleMenuAppendTarget = () => document.body;
+
+const editorBubbleMenuOptions = {
+  flip: {
+    padding: 12,
+  },
+  inline: true,
+  offset: 8,
+  shift: {
+    padding: 12,
+  },
+  strategy: 'fixed' as const,
+};
+
 export const EditorBubbleMenus = ({
   currentHref,
   currentImageSrc,
@@ -60,10 +74,13 @@ export const EditorBubbleMenus = ({
   return (
     <>
       <BubbleMenu
+        appendTo={getEditorBubbleMenuAppendTarget}
         className="editor-link-bubble"
         editor={editor}
+        options={editorBubbleMenuOptions}
         pluginKey="linkBubbleMenu"
         shouldShow={({ editor: currentEditor }) => currentEditor.isActive('link')}
+        style={{ zIndex: 60 }}
       >
         {linkBubbleEditing ? (
           <form
@@ -140,13 +157,16 @@ export const EditorBubbleMenus = ({
         )}
       </BubbleMenu>
       <BubbleMenu
+        appendTo={getEditorBubbleMenuAppendTarget}
         className="editor-link-bubble editor-image-bubble"
         editor={editor}
+        options={editorBubbleMenuOptions}
         pluginKey="imageBubbleMenu"
         shouldShow={({ editor: currentEditor }) => {
           const { selection } = currentEditor.state;
           return selection instanceof NodeSelection && selection.node.type.name === 'image';
         }}
+        style={{ zIndex: 60 }}
       >
         {imageBubbleEditing ? (
           <form className="editor-link-bubble__form" onSubmit={onApplyImageBubble}>

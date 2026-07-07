@@ -788,6 +788,11 @@ test('creates, opens, edits, and removes links from editor surfaces', async () =
 
   selectEditorContents(content);
   await user.click(await screen.findByRole('button', { name: /open link/i }));
+  const linkBubble = screen
+    .getByRole('button', { name: /open link/i })
+    .closest('.editor-link-bubble');
+  expect(linkBubble?.parentElement).toBe(document.body);
+  expect(window.getComputedStyle(linkBubble as Element).zIndex).toBe('60');
   expect(open).toHaveBeenCalledWith(
     'https://tiptap.dev',
     '_blank',
