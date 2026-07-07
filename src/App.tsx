@@ -304,7 +304,11 @@ const AppSidebar = ({
     </nav>
     <div className="app-sidebar__footer">
       <p className="app-sidebar__footer-label">Theme</p>
-      <fieldset aria-label="Theme preference" className="theme-switcher">
+      <fieldset
+        aria-label="Theme preference"
+        className="theme-switcher"
+        data-selected-theme={themePreference}
+      >
         {THEME_OPTIONS.map((option) => {
           const Icon = option.icon;
 

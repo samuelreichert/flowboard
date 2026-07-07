@@ -89,6 +89,10 @@ test('changes and persists the app theme preference from the sidebar footer', as
     'data-theme-preference',
     'dark'
   );
+  expect(screen.getByRole('group', { name: /theme preference/i })).toHaveAttribute(
+    'data-selected-theme',
+    'dark'
+  );
   expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
 });
 
