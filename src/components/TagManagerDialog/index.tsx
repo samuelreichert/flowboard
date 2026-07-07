@@ -1,13 +1,13 @@
 import { Button } from '@base-ui/react/button';
-import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
-import { Pencil, Tag, Trash2, X } from 'lucide-react';
+import { Pencil, Tag, Trash2 } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import ConfirmDialog from '../ConfirmDialog';
+import DialogShell from '../DialogShell';
+import { InlineEmptyState } from '../EmptyState';
 import type { BoardTag } from '../../types';
-import '../IconButton/IconButton.css';
 import './TagManagerDialog.css';
 
 type TagManagerDialogProps = {
@@ -205,157 +205,131 @@ const TagManagerDialog = ({
 
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={onOpenChange}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="dialog-backdrop" />
-          <Dialog.Viewport className="dialog-viewport">
-            <Dialog.Popup className="dialog-popup">
-              <div className="dialog-header">
-                <div>
-                  <Dialog.Title className="dialog-title">
-                    Manage tags
-                  </Dialog.Title>
-                  <Dialog.Description className="dialog-description">
-                    Create reusable tags for cards on this board.
-                  </Dialog.Description>
-                </div>
-                <Dialog.Close
-                  aria-label="Close tag manager"
-                  className="icon-button dialog-close"
-                  render={<Button />}
-                >
-                  <X size={17} />
-                </Dialog.Close>
+      <DialogShell
+        closeLabel="Close tag manager"
+        description="Create reusable tags for cards on this board."
+        onOpenChange={onOpenChange}
+        open={open}
+        title="Manage tags"
+      >
+        <div className="tag-manager__create">
+          <Field.Root className="dialog-field" invalid={Boolean(createError)}>
+            <Field.Label>New tag</Field.Label>
+            <div className="tag-manager__create-row">
+              <div className="tag-manager__input">
+                <Tag size={15} />
+                <Field.Control
+                  autoFocus
+                  maxLength={60}
+                  onValueChange={(value) => {
+                    dispatch({
+                      name: value,
+                      type: 'createNameChanged',
+                    });
+                  }}
+                  onKeyDown={onCreateKeyDown}
+                  placeholder="Design"
+                  type="text"
+                  value={newTagName}
+                />
               </div>
-              <div className="tag-manager__create">
-                <Field.Root
-                  className="dialog-field"
-                  invalid={Boolean(createError)}
+            </div>
+            <Field.Error className="dialog-error" match={Boolean(createError)}>
+              {createError}
+            </Field.Error>
+          </Field.Root>
+        </div>
+        <div className="tag-manager__list">
+          {tags.length > 0 ? (
+            tags.map((tag) => {
+              const isEditing = editingTagId === tag.id;
+
+              return (
+                <div
+                  className={`tag-manager__item${isEditing ? ' tag-manager__item--editing' : ''}`}
+                  key={tag.id}
                 >
-                  <Field.Label>New tag</Field.Label>
-                  <div className="tag-manager__create-row">
-                    <div className="tag-manager__input">
-                      <Tag size={15} />
+                  {isEditing ? (
+                    <Field.Root
+                      className="tag-manager__edit-field"
+                      invalid={Boolean(editError)}
+                    >
                       <Field.Control
+                        aria-label={`Edit ${tag.name} tag`}
                         autoFocus
+                        className="dialog-input tag-manager__edit-input"
                         maxLength={60}
+                        onBlur={() =>
+                          saveRename(tag.id, { revertInvalid: true })
+                        }
                         onValueChange={(value) => {
                           dispatch({
                             name: value,
-                            type: 'createNameChanged',
+                            type: 'editNameChanged',
                           });
                         }}
-                        onKeyDown={onCreateKeyDown}
-                        placeholder="Design"
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            saveRename(tag.id);
+                          }
+
+                          if (event.key === 'Escape') {
+                            event.preventDefault();
+                            dispatch({ type: 'editingCanceled' });
+                          }
+                        }}
                         type="text"
-                        value={newTagName}
+                        value={editingTagName}
                       />
-                    </div>
-                  </div>
-                  <Field.Error
-                    className="dialog-error"
-                    match={Boolean(createError)}
-                  >
-                    {createError}
-                  </Field.Error>
-                </Field.Root>
-              </div>
-              <div className="tag-manager__list">
-                {tags.length > 0 ? (
-                  tags.map((tag) => {
-                    const isEditing = editingTagId === tag.id;
-
-                    return (
-                      <div
-                        className={`tag-manager__item${isEditing ? ' tag-manager__item--editing' : ''}`}
-                        key={tag.id}
+                      <Field.Error
+                        className="dialog-error tag-manager__edit-error"
+                        match={Boolean(editError)}
                       >
-                        {isEditing ? (
-                          <Field.Root
-                            className="tag-manager__edit-field"
-                            invalid={Boolean(editError)}
-                          >
-                            <Field.Control
-                              aria-label={`Edit ${tag.name} tag`}
-                              autoFocus
-                              className="dialog-input tag-manager__edit-input"
-                              maxLength={60}
-                              onBlur={() =>
-                                saveRename(tag.id, { revertInvalid: true })
-                              }
-                              onValueChange={(value) => {
-                                dispatch({
-                                  name: value,
-                                  type: 'editNameChanged',
-                                });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  saveRename(tag.id);
-                                }
-
-                                if (event.key === 'Escape') {
-                                  event.preventDefault();
-                                  dispatch({ type: 'editingCanceled' });
-                                }
-                              }}
-                              type="text"
-                              value={editingTagName}
-                            />
-                            <Field.Error
-                              className="dialog-error tag-manager__edit-error"
-                              match={Boolean(editError)}
-                            >
-                              {editError}
-                            </Field.Error>
-                          </Field.Root>
-                        ) : (
-                          <>
-                            <div>
-                              <span className="tag-manager__name">
-                                {tag.name}
-                              </span>
-                              <span className="tag-manager__usage">
-                                {getTagUsageCount(tag.id)} cards
-                              </span>
-                            </div>
-                            <div className="tag-manager__actions">
-                              <Button
-                                aria-label={`Rename ${tag.name} tag`}
-                                className="icon-button"
-                                onClick={() => {
-                                  dispatch({
-                                    tag,
-                                    type: 'renameStarted',
-                                  });
-                                }}
-                                type="button"
-                              >
-                                <Pencil size={15} />
-                              </Button>
-                              <Button
-                                aria-label={`Remove ${tag.name} tag`}
-                                className="icon-button tag-manager__delete"
-                                onClick={() => requestDelete(tag)}
-                                type="button"
-                              >
-                                <Trash2 size={15} />
-                              </Button>
-                            </div>
-                          </>
-                        )}
+                        {editError}
+                      </Field.Error>
+                    </Field.Root>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="tag-manager__name">{tag.name}</span>
+                        <span className="tag-manager__usage">
+                          {getTagUsageCount(tag.id)} cards
+                        </span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="tag-manager__empty">No tags yet.</p>
-                )}
-              </div>
-            </Dialog.Popup>
-          </Dialog.Viewport>
-        </Dialog.Portal>
-      </Dialog.Root>
+                      <div className="tag-manager__actions">
+                        <Button
+                          aria-label={`Rename ${tag.name} tag`}
+                          className="icon-button"
+                          onClick={() => {
+                            dispatch({
+                              tag,
+                              type: 'renameStarted',
+                            });
+                          }}
+                          type="button"
+                        >
+                          <Pencil size={15} />
+                        </Button>
+                        <Button
+                          aria-label={`Remove ${tag.name} tag`}
+                          className="icon-button tag-manager__delete"
+                          onClick={() => requestDelete(tag)}
+                          type="button"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <InlineEmptyState variant="list">No tags yet.</InlineEmptyState>
+          )}
+        </div>
+      </DialogShell>
       {pendingDelete && (
         <ConfirmDialog
           confirmLabel="Remove tag"

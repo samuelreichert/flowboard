@@ -400,12 +400,6 @@
   color: var(--color-text);
 }
 
-.tag-select__empty {
-  color: var(--color-text-soft);
-  font-size: 12px;
-  margin: 8px;
-}
-
 .tag-select__create {
   border-top: 1px solid var(--color-border);
   margin-top: 3px;

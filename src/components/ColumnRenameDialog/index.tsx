@@ -1,11 +1,8 @@
-import { Button } from '@base-ui/react/button';
-import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
-import { X } from 'lucide-react';
 import { useState } from 'react';
 
+import DialogShell from '../DialogShell';
 import '../ContentDialog/ContentDialog.css';
-import '../IconButton/IconButton.css';
 
 type ColumnRenameDialogProps = {
   initialValue: string;
@@ -75,44 +72,28 @@ const ColumnRenameDialogContent = ({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onDialogOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="dialog-backdrop" />
-        <Dialog.Viewport className="dialog-viewport">
-          <Dialog.Popup className="dialog-popup">
-            <div className="dialog-header">
-              <Dialog.Title className="dialog-title">
-                Rename column
-              </Dialog.Title>
-              <Dialog.Close
-                aria-label="Close dialog"
-                className="icon-button dialog-close"
-                render={<Button />}
-              >
-                <X size={17} />
-              </Dialog.Close>
-            </div>
-            <Dialog.Description className="dialog-description dialog-description--compact">
-              Choose a clear name for this workflow stage.
-            </Dialog.Description>
-            <Field.Root className="dialog-field" invalid={Boolean(error)}>
-              <Field.Label>Column title</Field.Label>
-              <Field.Control
-                autoFocus
-                className="dialog-input"
-                maxLength={80}
-                onValueChange={onValueChange}
-                type="text"
-                value={value}
-              />
-              <Field.Error className="dialog-error" match={Boolean(error)}>
-                {error}
-              </Field.Error>
-            </Field.Root>
-          </Dialog.Popup>
-        </Dialog.Viewport>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogShell
+      description="Choose a clear name for this workflow stage."
+      descriptionClassName="dialog-description--compact"
+      onOpenChange={onDialogOpenChange}
+      open={open}
+      title="Rename column"
+    >
+      <Field.Root className="dialog-field" invalid={Boolean(error)}>
+        <Field.Label>Column title</Field.Label>
+        <Field.Control
+          autoFocus
+          className="dialog-input"
+          maxLength={80}
+          onValueChange={onValueChange}
+          type="text"
+          value={value}
+        />
+        <Field.Error className="dialog-error" match={Boolean(error)}>
+          {error}
+        </Field.Error>
+      </Field.Root>
+    </DialogShell>
   );
 };
 

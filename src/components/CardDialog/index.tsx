@@ -2,13 +2,14 @@ import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
-import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
 import type { FormEvent } from 'react';
 
 import CardContentEditor from '../CardContentEditor';
 import ConfirmDialog from '../ConfirmDialog';
+import DialogSelect from '../DialogSelect';
+import { InlineEmptyState } from '../EmptyState';
 import type {
   BoardCard,
   BoardColumn,
@@ -321,11 +322,9 @@ const CardDialogContent = ({
     saveExistingCard({ columnId: value });
   };
 
-  const onPriorityChange = (value: string) => {
-    const nextPriority = value as CardPriority;
-
-    dispatch({ type: 'fieldsChanged', values: { priority: nextPriority } });
-    saveExistingCard({ priority: nextPriority });
+  const onPriorityChange = (value: CardPriority) => {
+    dispatch({ type: 'fieldsChanged', values: { priority: value } });
+    saveExistingCard({ priority: value });
   };
 
   const toggleTag = (tagId: string) => {
@@ -492,111 +491,30 @@ const CardDialogContent = ({
                       </time>
                     )}
                   </div>
-                  <Select.Root
+                  <DialogSelect
+                    label="Column"
                     name="column"
-                    onValueChange={(value) => {
-                      if (value) {
-                        onColumnChange(value);
-                      }
-                    }}
+                    onValueChange={onColumnChange}
+                    options={columns.map((column) => ({
+                      label: column.title,
+                      value: column.id,
+                    }))}
+                    renderValue={(value) =>
+                      columns.find((column) => column.id === value)?.title ??
+                      'Choose column'
+                    }
                     value={selectedColumnId}
-                  >
-                    <div className="dialog-field">
-                      <Select.Label className="dialog-label">
-                        Column
-                      </Select.Label>
-                      <Select.Trigger className="dialog-input dialog-select__trigger">
-                        <Select.Value className="dialog-select__value">
-                          {(value: string | null) =>
-                            columns.find((column) => column.id === value)
-                              ?.title ?? 'Choose column'
-                          }
-                        </Select.Value>
-                        <Select.Icon className="dialog-select__icon">
-                          <ChevronDown size={17} />
-                        </Select.Icon>
-                      </Select.Trigger>
-                    </div>
-                    <Select.Portal>
-                      <Select.Positioner
-                        align="start"
-                        className="dialog-select__positioner"
-                        sideOffset={5}
-                      >
-                        <Select.Popup className="dialog-select__popup">
-                          <Select.List>
-                            {columns.map((column) => (
-                              <Select.Item
-                                className="dialog-select__item"
-                                key={column.id}
-                                value={column.id}
-                              >
-                                <Select.ItemText>
-                                  {column.title}
-                                </Select.ItemText>
-                                <Select.ItemIndicator>
-                                  <Check size={15} />
-                                </Select.ItemIndicator>
-                              </Select.Item>
-                            ))}
-                          </Select.List>
-                        </Select.Popup>
-                      </Select.Positioner>
-                    </Select.Portal>
-                  </Select.Root>
-                  <Select.Root
+                  />
+                  <DialogSelect
+                    label="Priority"
                     name="priority"
-                    onValueChange={(value) => {
-                      if (value) {
-                        onPriorityChange(value);
-                      }
-                    }}
+                    onValueChange={onPriorityChange}
+                    options={PRIORITY_OPTIONS}
+                    renderValue={(value) =>
+                      value ? formatPriorityLabel(value) : 'Choose priority'
+                    }
                     value={priority}
-                  >
-                    <div className="dialog-field">
-                      <Select.Label className="dialog-label">
-                        Priority
-                      </Select.Label>
-                      <Select.Trigger className="dialog-input dialog-select__trigger">
-                        <Select.Value className="dialog-select__value">
-                          {(value: CardPriority | null) =>
-                            value
-                              ? formatPriorityLabel(value)
-                              : 'Choose priority'
-                          }
-                        </Select.Value>
-                        <Select.Icon className="dialog-select__icon">
-                          <ChevronDown size={17} />
-                        </Select.Icon>
-                      </Select.Trigger>
-                    </div>
-                    <Select.Portal>
-                      <Select.Positioner
-                        align="start"
-                        className="dialog-select__positioner"
-                        sideOffset={5}
-                      >
-                        <Select.Popup className="dialog-select__popup">
-                          <Select.List>
-                            {PRIORITY_OPTIONS.map((option) => (
-                              <Select.Item
-                                className="dialog-select__item"
-                                key={option.value}
-                                value={option.value}
-                              >
-                                <Select.ItemText>
-                                  {option.label}
-                                </Select.ItemText>
-                                <Select.ItemIndicator>
-                                  <Check size={15} />
-                                </Select.ItemIndicator>
-                              </Select.Item>
-                            ))}
-                          </Select.List>
-                        </Select.Popup>
-                      </Select.Positioner>
-                    </Select.Portal>
-                  </Select.Root>
+                  />
                   <div className="dialog-field">
                     <span className="dialog-label">Tags</span>
                     <Popover.Root
@@ -643,7 +561,9 @@ const CardDialogContent = ({
                                 );
                               })
                             ) : (
-                              <p className="tag-select__empty">No tags yet</p>
+                              <InlineEmptyState variant="dropdown">
+                                No tags yet
+                              </InlineEmptyState>
                             )}
                             <div className="tag-select__create">
                               {creatingTag ? (
