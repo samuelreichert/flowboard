@@ -197,11 +197,8 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                             0,
                             visibleTagNames.length - 2
                           )}
-                          leading={
-                            <span className="history-card__created-date">
-                              Created {formatDate(card.createdAt)}
-                            </span>
-                          }
+                          leadingClassName="history-card__created-date"
+                          leadingText={`Created ${formatDate(card.createdAt)}`}
                           priority={card.priority}
                           tags={visibleTagNames.slice(0, 2).map((tagName) => ({
                             id: tagName,

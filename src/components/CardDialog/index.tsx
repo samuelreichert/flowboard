@@ -4,7 +4,7 @@ import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
 import { Check, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 
 import CardContentEditor from '../CardContentEditor';
 import ConfirmDialog from '../ConfirmDialog';
@@ -150,10 +150,299 @@ const CardDialog = (props: CardDialogProps) => {
     ? (props.card?.id ?? `new-${props.columnId}`)
     : 'closed';
 
-  return <CardDialogContent key={dialogKey} {...props} />;
+  return <CardDialogContent {...props} key={dialogKey} />;
 };
 
-const CardDialogContent = ({
+type DiscardNewCardConfirmationProps = {
+  onCancel: () => void;
+  onDiscard: () => void;
+};
+
+const DiscardNewCardConfirmation = ({
+  onCancel,
+  onDiscard,
+}: DiscardNewCardConfirmationProps) => (
+  <>
+    <Dialog.Title className="dialog-title">Discard new card?</Dialog.Title>
+    <Dialog.Description className="dialog-description">
+      This will close the new card without saving its title, content, or tags.
+    </Dialog.Description>
+    <div className="dialog-actions">
+      <Button
+        className="button button--subtle"
+        onClick={onCancel}
+        type="button"
+      >
+        Cancel
+      </Button>
+      <Button
+        className="button button--danger"
+        onClick={onDiscard}
+        type="button"
+      >
+        Discard card
+      </Button>
+    </div>
+  </>
+);
+
+type CardTitleFieldProps = {
+  card: BoardCard | undefined;
+  createdAtLabel: string;
+  fallbackTitle: string;
+  onEditClick: () => void;
+  onTitleBlur: () => void;
+  onTitleChange: (value: string) => void;
+  title: string;
+  titleEditing: boolean;
+  titleInputRef: RefObject<HTMLInputElement | null>;
+};
+
+const CardTitleField = ({
+  card,
+  createdAtLabel,
+  fallbackTitle,
+  onEditClick,
+  onTitleBlur,
+  onTitleChange,
+  title,
+  titleEditing,
+  titleInputRef,
+}: CardTitleFieldProps) => (
+  <div className="card-title-row">
+    <h2 className="card-title-field">
+      {titleEditing ? (
+        <Field.Control
+          aria-label="Card title"
+          className="card-title-field__input"
+          maxLength={120}
+          onBlur={onTitleBlur}
+          onValueChange={onTitleChange}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onTitleBlur();
+            }
+          }}
+          ref={titleInputRef}
+          type="text"
+          value={title}
+        />
+      ) : (
+        <Button
+          aria-label="Edit card title"
+          className="card-title-field__display"
+          onClick={onEditClick}
+          type="button"
+        >
+          {title.trim() || fallbackTitle || 'Untitled card'}
+        </Button>
+      )}
+    </h2>
+    {createdAtLabel && (
+      <time className="card-created-at" dateTime={card?.createdAt}>
+        Created {createdAtLabel}
+      </time>
+    )}
+  </div>
+);
+
+type TagSelectFieldProps = {
+  creatingTag: boolean;
+  newTagName: string;
+  onCreateTag: () => void;
+  onCreateTagClick: () => void;
+  onNewTagNameChange: (value: string) => void;
+  onTagToggle: (tagId: string) => void;
+  onTagsOpenChange: (open: boolean) => void;
+  selectedTagIds: string[];
+  tagError: string;
+  tagSummary: string;
+  tags: BoardTag[];
+  tagsOpen: boolean;
+};
+
+const TagSelectField = ({
+  creatingTag,
+  newTagName,
+  onCreateTag,
+  onCreateTagClick,
+  onNewTagNameChange,
+  onTagToggle,
+  onTagsOpenChange,
+  selectedTagIds,
+  tagError,
+  tagSummary,
+  tags,
+  tagsOpen,
+}: TagSelectFieldProps) => (
+  <div className="dialog-field">
+    <span className="dialog-label">Tags</span>
+    <Popover.Root modal={false} onOpenChange={onTagsOpenChange} open={tagsOpen}>
+      <Popover.Trigger
+        className="dialog-input tag-select__trigger"
+        render={<Button />}
+      >
+        <span>{tagSummary}</span>
+        <ChevronDown size={17} />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner
+          align="start"
+          className="tag-select__positioner"
+          sideOffset={5}
+        >
+          <Popover.Popup
+            className="tag-select__dropdown"
+            initialFocus={false}
+            role="listbox"
+          >
+            {tags.length > 0 ? (
+              tags.map((tag) => {
+                const selected = selectedTagIds.includes(tag.id);
+
+                return (
+                  <Button
+                    aria-selected={selected}
+                    className="tag-select__option"
+                    key={tag.id}
+                    onClick={() => onTagToggle(tag.id)}
+                    role="option"
+                    type="button"
+                  >
+                    <span>{tag.name}</span>
+                    {selected && <Check size={15} />}
+                  </Button>
+                );
+              })
+            ) : (
+              <InlineEmptyState variant="dropdown">
+                No tags yet
+              </InlineEmptyState>
+            )}
+            <div className="tag-select__create">
+              {creatingTag ? (
+                <Field.Root invalid={Boolean(tagError)}>
+                  <Field.Control
+                    aria-label="New tag name"
+                    autoFocus
+                    maxLength={60}
+                    onValueChange={onNewTagNameChange}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        onCreateTag();
+                      }
+
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        onTagsOpenChange(false);
+                      }
+                    }}
+                    placeholder="New tag name"
+                    type="text"
+                    value={newTagName}
+                  />
+                  <Field.Error
+                    className="tag-select__error"
+                    match={Boolean(tagError)}
+                  >
+                    {tagError}
+                  </Field.Error>
+                </Field.Root>
+              ) : (
+                <Button
+                  className="tag-select__create-button"
+                  onClick={onCreateTagClick}
+                  type="button"
+                >
+                  <Plus size={15} />
+                  Create tag
+                </Button>
+              )}
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  </div>
+);
+
+type CardContentFieldProps = {
+  card: BoardCard | undefined;
+  columnId: string;
+  content: string;
+  onContentChange: (value: string) => void;
+};
+
+const CardContentField = ({
+  card,
+  columnId,
+  content,
+  onContentChange,
+}: CardContentFieldProps) => {
+  const contentId = card?.id ?? columnId;
+
+  return (
+    <div className="dialog-field">
+      <span className="dialog-label" id={`card-content-label-${contentId}`}>
+        Content
+      </span>
+      <CardContentEditor
+        id={`card-content-editor-${contentId}`}
+        labelId={`card-content-label-${contentId}`}
+        onChange={onContentChange}
+        value={content}
+      />
+    </div>
+  );
+};
+
+type CardDialogFooterProps = {
+  card: BoardCard | undefined;
+  error: string;
+  onDeleteClick: () => void;
+};
+
+const CardDialogFooter = ({
+  card,
+  error,
+  onDeleteClick,
+}: CardDialogFooterProps) => (
+  <>
+    <Field.Root className="dialog-form-error" invalid={Boolean(error)}>
+      <Field.Error className="dialog-error" match={Boolean(error)}>
+        {error}
+      </Field.Error>
+    </Field.Root>
+    {card ? (
+      <div className="dialog-actions dialog-actions--spread">
+        <div />
+        <div className="dialog-actions__group">
+          <Button
+            className="button button--danger"
+            onClick={onDeleteClick}
+            type="button"
+          >
+            <Trash2 size={16} />
+            Delete card
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <div className="dialog-actions">
+        <Dialog.Close className="button button--subtle" render={<Button />}>
+          Cancel
+        </Dialog.Close>
+        <Button className="button button--primary" type="submit">
+          Create
+        </Button>
+      </div>
+    )}
+  </>
+);
+
+const useCardDialogController = ({
   card,
   columnId,
   columns,
@@ -380,6 +669,48 @@ const CardDialogContent = ({
     dispatch({ type: 'fieldsChanged', values: { titleEditing: false } });
   };
 
+  const cancelDiscardNewCard = () =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: { discardOpen: false },
+    });
+
+  const editTitle = () =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: { titleEditing: true },
+    });
+
+  const openDeleteConfirmation = () =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: { deleteOpen: true },
+    });
+
+  const onDeleteOpenChange = (nextOpen: boolean) =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: { deleteOpen: nextOpen },
+    });
+
+  const onNewTagNameChange = (value: string) =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: {
+        newTagName: value,
+        tagError: '',
+      },
+    });
+
+  const startCreatingTag = () =>
+    dispatch({
+      type: 'fieldsChanged',
+      values: {
+        creatingTag: true,
+        tagError: '',
+      },
+    });
+
   const createdAtLabel = card?.createdAt ? formatCreatedAt(card.createdAt) : '';
   const selectedTags = selectedTagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
@@ -388,6 +719,94 @@ const CardDialogContent = ({
     selectedTags.length > 0
       ? selectedTags.map((tag) => tag.name).join(', ')
       : 'No tags';
+
+  return {
+    cancelDiscardNewCard,
+    card,
+    closeCardDialog,
+    columnId,
+    columns,
+    content,
+    createdAtLabel,
+    createTag,
+    creatingTag,
+    deleteOpen,
+    discardOpen,
+    editTitle,
+    error,
+    lastValidTitle: lastValidTitleRef.current,
+    newTagName,
+    onCardOpenChange,
+    onColumnChange,
+    onConfirmDeleteCard,
+    onContentChange,
+    onDeleteOpenChange,
+    onNewTagNameChange,
+    onPriorityChange,
+    onSubmit,
+    onTagsOpenChange,
+    onTitleBlur,
+    onTitleChange,
+    open,
+    openDeleteConfirmation,
+    priority,
+    selectedColumnId,
+    selectedTagIds,
+    startCreatingTag,
+    tagError,
+    tagSummary,
+    tags,
+    tagsOpen,
+    title,
+    titleEditing,
+    titleInputRef,
+    toggleTag,
+  };
+};
+
+const CardDialogContent = (props: CardDialogProps) => {
+  const {
+    cancelDiscardNewCard,
+    card,
+    closeCardDialog,
+    columnId,
+    columns,
+    content,
+    createdAtLabel,
+    createTag,
+    creatingTag,
+    deleteOpen,
+    discardOpen,
+    editTitle,
+    error,
+    lastValidTitle,
+    newTagName,
+    onCardOpenChange,
+    onColumnChange,
+    onConfirmDeleteCard,
+    onContentChange,
+    onDeleteOpenChange,
+    onNewTagNameChange,
+    onPriorityChange,
+    onSubmit,
+    onTagsOpenChange,
+    onTitleBlur,
+    onTitleChange,
+    open,
+    openDeleteConfirmation,
+    priority,
+    selectedColumnId,
+    selectedTagIds,
+    startCreatingTag,
+    tagError,
+    tagSummary,
+    tags,
+    tagsOpen,
+    title,
+    titleEditing,
+    titleInputRef,
+    toggleTag,
+  } = useCardDialogController(props);
 
   return (
     <>
@@ -400,36 +819,10 @@ const CardDialogContent = ({
               role={discardOpen ? 'alertdialog' : 'dialog'}
             >
               {discardOpen ? (
-                <>
-                  <Dialog.Title className="dialog-title">
-                    Discard new card?
-                  </Dialog.Title>
-                  <Dialog.Description className="dialog-description">
-                    This will close the new card without saving its title,
-                    content, or tags.
-                  </Dialog.Description>
-                  <div className="dialog-actions">
-                    <Button
-                      className="button button--subtle"
-                      onClick={() =>
-                        dispatch({
-                          type: 'fieldsChanged',
-                          values: { discardOpen: false },
-                        })
-                      }
-                      type="button"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="button button--danger"
-                      onClick={closeCardDialog}
-                      type="button"
-                    >
-                      Discard card
-                    </Button>
-                  </div>
-                </>
+                <DiscardNewCardConfirmation
+                  onCancel={cancelDiscardNewCard}
+                  onDiscard={closeCardDialog}
+                />
               ) : (
                 <form onSubmit={onSubmit}>
                   <div className="dialog-header">
@@ -445,52 +838,17 @@ const CardDialogContent = ({
                       <X size={17} />
                     </Button>
                   </div>
-                  <div className="card-title-row">
-                    <h2 className="card-title-field">
-                      {titleEditing ? (
-                        <Field.Control
-                          aria-label="Card title"
-                          className="card-title-field__input"
-                          maxLength={120}
-                          onBlur={onTitleBlur}
-                          onValueChange={onTitleChange}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              onTitleBlur();
-                            }
-                          }}
-                          ref={titleInputRef}
-                          type="text"
-                          value={title}
-                        />
-                      ) : (
-                        <Button
-                          aria-label="Edit card title"
-                          className="card-title-field__display"
-                          onClick={() =>
-                            dispatch({
-                              type: 'fieldsChanged',
-                              values: { titleEditing: true },
-                            })
-                          }
-                          type="button"
-                        >
-                          {title.trim() ||
-                            lastValidTitleRef.current ||
-                            'Untitled card'}
-                        </Button>
-                      )}
-                    </h2>
-                    {createdAtLabel && (
-                      <time
-                        className="card-created-at"
-                        dateTime={card?.createdAt}
-                      >
-                        Created {createdAtLabel}
-                      </time>
-                    )}
-                  </div>
+                  <CardTitleField
+                    card={card}
+                    createdAtLabel={createdAtLabel}
+                    fallbackTitle={lastValidTitle}
+                    onEditClick={editTitle}
+                    onTitleBlur={onTitleBlur}
+                    onTitleChange={onTitleChange}
+                    title={title}
+                    titleEditing={titleEditing}
+                    titleInputRef={titleInputRef}
+                  />
                   <DialogSelect
                     label="Column"
                     name="column"
@@ -515,175 +873,31 @@ const CardDialogContent = ({
                     }
                     value={priority}
                   />
-                  <div className="dialog-field">
-                    <span className="dialog-label">Tags</span>
-                    <Popover.Root
-                      modal={false}
-                      onOpenChange={onTagsOpenChange}
-                      open={tagsOpen}
-                    >
-                      <Popover.Trigger
-                        className="dialog-input tag-select__trigger"
-                        render={<Button />}
-                      >
-                        <span>{tagSummary}</span>
-                        <ChevronDown size={17} />
-                      </Popover.Trigger>
-                      <Popover.Portal>
-                        <Popover.Positioner
-                          align="start"
-                          className="tag-select__positioner"
-                          sideOffset={5}
-                        >
-                          <Popover.Popup
-                            className="tag-select__dropdown"
-                            initialFocus={false}
-                            role="listbox"
-                          >
-                            {tags.length > 0 ? (
-                              tags.map((tag) => {
-                                const selected = selectedTagIds.includes(
-                                  tag.id
-                                );
-
-                                return (
-                                  <Button
-                                    aria-selected={selected}
-                                    className="tag-select__option"
-                                    key={tag.id}
-                                    onClick={() => toggleTag(tag.id)}
-                                    role="option"
-                                    type="button"
-                                  >
-                                    <span>{tag.name}</span>
-                                    {selected && <Check size={15} />}
-                                  </Button>
-                                );
-                              })
-                            ) : (
-                              <InlineEmptyState variant="dropdown">
-                                No tags yet
-                              </InlineEmptyState>
-                            )}
-                            <div className="tag-select__create">
-                              {creatingTag ? (
-                                <Field.Root invalid={Boolean(tagError)}>
-                                  <Field.Control
-                                    aria-label="New tag name"
-                                    autoFocus
-                                    maxLength={60}
-                                    onValueChange={(value) => {
-                                      dispatch({
-                                        type: 'fieldsChanged',
-                                        values: {
-                                          newTagName: value,
-                                          tagError: '',
-                                        },
-                                      });
-                                    }}
-                                    onKeyDown={(event) => {
-                                      if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        createTag();
-                                      }
-
-                                      if (event.key === 'Escape') {
-                                        event.preventDefault();
-                                        onTagsOpenChange(false);
-                                      }
-                                    }}
-                                    placeholder="New tag name"
-                                    type="text"
-                                    value={newTagName}
-                                  />
-                                  <Field.Error
-                                    className="tag-select__error"
-                                    match={Boolean(tagError)}
-                                  >
-                                    {tagError}
-                                  </Field.Error>
-                                </Field.Root>
-                              ) : (
-                                <Button
-                                  className="tag-select__create-button"
-                                  onClick={() => {
-                                    dispatch({
-                                      type: 'fieldsChanged',
-                                      values: {
-                                        creatingTag: true,
-                                        tagError: '',
-                                      },
-                                    });
-                                  }}
-                                  type="button"
-                                >
-                                  <Plus size={15} />
-                                  Create tag
-                                </Button>
-                              )}
-                            </div>
-                          </Popover.Popup>
-                        </Popover.Positioner>
-                      </Popover.Portal>
-                    </Popover.Root>
-                  </div>
-                  <div className="dialog-field">
-                    <span
-                      className="dialog-label"
-                      id={`card-content-label-${card?.id ?? columnId}`}
-                    >
-                      Content
-                    </span>
-                    <CardContentEditor
-                      id={`card-content-editor-${card?.id ?? columnId}`}
-                      labelId={`card-content-label-${card?.id ?? columnId}`}
-                      onChange={onContentChange}
-                      value={content}
-                    />
-                  </div>
-                  <Field.Root
-                    className="dialog-form-error"
-                    invalid={Boolean(error)}
-                  >
-                    <Field.Error
-                      className="dialog-error"
-                      match={Boolean(error)}
-                    >
-                      {error}
-                    </Field.Error>
-                  </Field.Root>
-                  {card ? (
-                    <div className="dialog-actions dialog-actions--spread">
-                      <div />
-                      <div className="dialog-actions__group">
-                        <Button
-                          className="button button--danger"
-                          onClick={() =>
-                            dispatch({
-                              type: 'fieldsChanged',
-                              values: { deleteOpen: true },
-                            })
-                          }
-                          type="button"
-                        >
-                          <Trash2 size={16} />
-                          Delete card
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="dialog-actions">
-                      <Dialog.Close
-                        className="button button--subtle"
-                        render={<Button />}
-                      >
-                        Cancel
-                      </Dialog.Close>
-                      <Button className="button button--primary" type="submit">
-                        Create
-                      </Button>
-                    </div>
-                  )}
+                  <TagSelectField
+                    creatingTag={creatingTag}
+                    newTagName={newTagName}
+                    onCreateTag={createTag}
+                    onCreateTagClick={startCreatingTag}
+                    onNewTagNameChange={onNewTagNameChange}
+                    onTagToggle={toggleTag}
+                    onTagsOpenChange={onTagsOpenChange}
+                    selectedTagIds={selectedTagIds}
+                    tagError={tagError}
+                    tagSummary={tagSummary}
+                    tags={tags}
+                    tagsOpen={tagsOpen}
+                  />
+                  <CardContentField
+                    card={card}
+                    columnId={columnId}
+                    content={content}
+                    onContentChange={onContentChange}
+                  />
+                  <CardDialogFooter
+                    card={card}
+                    error={error}
+                    onDeleteClick={openDeleteConfirmation}
+                  />
                 </form>
               )}
             </Dialog.Popup>
@@ -693,14 +907,9 @@ const CardDialogContent = ({
       {card && (
         <ConfirmDialog
           confirmLabel="Delete card"
-          description={`This will permanently delete ${title.trim() || lastValidTitleRef.current || 'this card'}.`}
+          description={`This will permanently delete ${title.trim() || lastValidTitle || 'this card'}.`}
           onConfirm={onConfirmDeleteCard}
-          onOpenChange={(nextOpen) =>
-            dispatch({
-              type: 'fieldsChanged',
-              values: { deleteOpen: nextOpen },
-            })
-          }
+          onOpenChange={onDeleteOpenChange}
           open={deleteOpen}
           title="Delete this card?"
         />

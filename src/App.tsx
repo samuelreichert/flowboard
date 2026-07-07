@@ -502,7 +502,7 @@ const AppDialogs = ({
   </>
 );
 
-const App = () => {
+const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
   const completionPulseTimeoutRef = useRef<number | null>(null);
   const {
@@ -723,12 +723,121 @@ const App = () => {
       type: 'sidebarExpandedChanged',
     });
 
+  const openMobileSidebar = () =>
+    dispatch({ open: true, type: 'mobileSidebarOpenChanged' });
+
+  const updateColumnCount = (nextColumnCount: number) =>
+    dispatch({
+      columnCount: nextColumnCount,
+      type: 'columnCountChanged',
+    });
+
+  const setBoardSettingsOpen = (open: boolean) =>
+    dispatch({ open, type: 'boardSettingsOpenChanged' });
+
+  const setClearBoardOpen = (open: boolean) =>
+    dispatch({ open, type: 'clearBoardOpenChanged' });
+
+  const setCompleteWorkOpen = (open: boolean) =>
+    dispatch({ open, type: 'completeWorkOpenChanged' });
+
+  const setTagManagerOpen = (open: boolean) =>
+    dispatch({ open, type: 'tagManagerOpenChanged' });
+
   const completedColumn = columns.find(
     (column) => column.id === activeWorkCycle.completedColumnId
   );
   const completedCardCount = completedColumn?.cards.length ?? 0;
   const canCompleteWork =
     !activeWorkCycle.completedColumnId || completedCardCount > 0;
+
+  return {
+    activeWorkCycle,
+    boardSettingsOpen,
+    canCompleteWork,
+    chooseCompletedColumn,
+    chooseThemePreference,
+    clearBoard,
+    clearBoardOpen,
+    closeMobileSidebar,
+    columnCount,
+    columns,
+    completeWorkOpen,
+    completedCardCount,
+    completedColumn,
+    completedWorkCycles,
+    completionPulse,
+    confirmCompleteWork,
+    currentView,
+    deleteTag,
+    mobileSidebarOpen,
+    openBoard,
+    openBoardSettings,
+    openClearBoardConfirmation,
+    openCompleteWorkConfirmation,
+    openHistory,
+    openMobileSidebar,
+    openTagManager,
+    resolvedTheme,
+    setBoardSettingsOpen,
+    setClearBoardOpen,
+    setCompleteWorkOpen,
+    setTagManagerOpen,
+    sidebarExpanded,
+    storageVersion,
+    syncBoardState,
+    tagManagerOpen,
+    tags,
+    themePreference,
+    toggleSidebar,
+    updateColumnCount,
+    updateTags,
+  };
+};
+
+const App = () => {
+  const {
+    activeWorkCycle,
+    boardSettingsOpen,
+    canCompleteWork,
+    chooseCompletedColumn,
+    chooseThemePreference,
+    clearBoard,
+    clearBoardOpen,
+    closeMobileSidebar,
+    columnCount,
+    columns,
+    completeWorkOpen,
+    completedCardCount,
+    completedColumn,
+    completedWorkCycles,
+    completionPulse,
+    confirmCompleteWork,
+    currentView,
+    deleteTag,
+    mobileSidebarOpen,
+    openBoard,
+    openBoardSettings,
+    openClearBoardConfirmation,
+    openCompleteWorkConfirmation,
+    openHistory,
+    openMobileSidebar,
+    openTagManager,
+    resolvedTheme,
+    setBoardSettingsOpen,
+    setClearBoardOpen,
+    setCompleteWorkOpen,
+    setTagManagerOpen,
+    sidebarExpanded,
+    storageVersion,
+    syncBoardState,
+    tagManagerOpen,
+    tags,
+    themePreference,
+    toggleSidebar,
+    updateColumnCount,
+    updateTags,
+  } = useAppController();
 
   return (
     <main
@@ -761,16 +870,9 @@ const App = () => {
         completionPulse={completionPulse}
         currentView={currentView}
         onBoardStateChange={syncBoardState}
-        onColumnCountChange={(nextColumnCount) =>
-          dispatch({
-            columnCount: nextColumnCount,
-            type: 'columnCountChanged',
-          })
-        }
+        onColumnCountChange={updateColumnCount}
         onCompleteWorkClick={openCompleteWorkConfirmation}
-        onOpenMobileSidebar={() =>
-          dispatch({ open: true, type: 'mobileSidebarOpenChanged' })
-        }
+        onOpenMobileSidebar={openMobileSidebar}
         onTagsChange={updateTags}
         storageVersion={storageVersion}
         tags={tags}
@@ -784,23 +886,15 @@ const App = () => {
         completeWorkOpen={completeWorkOpen}
         completedCardCount={completedCardCount}
         completedColumn={completedColumn}
-        onBoardSettingsOpenChange={(open) =>
-          dispatch({ open, type: 'boardSettingsOpenChanged' })
-        }
+        onBoardSettingsOpenChange={setBoardSettingsOpen}
         onClearBoard={clearBoard}
-        onClearBoardOpenChange={(open) =>
-          dispatch({ open, type: 'clearBoardOpenChanged' })
-        }
+        onClearBoardOpenChange={setClearBoardOpen}
         onClearBoardRequest={openClearBoardConfirmation}
         onCompleteWork={confirmCompleteWork}
-        onCompleteWorkOpenChange={(open) =>
-          dispatch({ open, type: 'completeWorkOpenChanged' })
-        }
+        onCompleteWorkOpenChange={setCompleteWorkOpen}
         onCompletedColumnChange={chooseCompletedColumn}
         onDeleteTag={deleteTag}
-        onTagManagerOpenChange={(open) =>
-          dispatch({ open, type: 'tagManagerOpenChanged' })
-        }
+        onTagManagerOpenChange={setTagManagerOpen}
         onTagsChange={updateTags}
         tagManagerOpen={tagManagerOpen}
         tags={tags}

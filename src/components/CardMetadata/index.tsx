@@ -1,51 +1,29 @@
-import type { ReactNode } from 'react';
-
 import type { CardPriority } from '../../types';
+import PriorityBadge from './PriorityBadge';
+import TagChip from './TagChip';
 
 type MetadataTag = {
   id: string;
   name: string;
 };
 
-type PriorityBadgeProps = {
-  priority: CardPriority;
-};
-
-type TagChipProps = {
-  children: ReactNode;
-  overflow?: boolean;
-};
-
 type CardMetadataProps = {
   hiddenTagCount?: number;
-  leading?: ReactNode;
+  leadingClassName?: string;
+  leadingText?: string;
   priority: CardPriority;
   tags: MetadataTag[];
 };
 
-export const formatPriorityLabel = (priority: CardPriority) =>
-  priority.charAt(0).toUpperCase() + priority.slice(1);
-
-export const PriorityBadge = ({ priority }: PriorityBadgeProps) => (
-  <span className={`card__priority card__priority--${priority}`}>
-    {formatPriorityLabel(priority)}
-  </span>
-);
-
-export const TagChip = ({ children, overflow = false }: TagChipProps) => (
-  <span className={`card__tag${overflow ? ' card__tag--overflow' : ''}`}>
-    {children}
-  </span>
-);
-
 const CardMetadata = ({
   hiddenTagCount = 0,
-  leading,
+  leadingClassName,
+  leadingText,
   priority,
   tags,
 }: CardMetadataProps) => (
   <div className="card__metadata">
-    {leading}
+    {leadingText && <span className={leadingClassName}>{leadingText}</span>}
     <PriorityBadge priority={priority} />
     {tags.map((tag) => (
       <TagChip key={tag.id}>{tag.name}</TagChip>
@@ -55,4 +33,7 @@ const CardMetadata = ({
 );
 
 export default CardMetadata;
+export { default as PriorityBadge } from './PriorityBadge';
+export { default as TagChip } from './TagChip';
+export { formatPriorityLabel } from './formatPriorityLabel';
 export type { MetadataTag };
