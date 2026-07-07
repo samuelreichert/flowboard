@@ -20,6 +20,8 @@ import BoardSettingsDialog from './components/BoardSettingsDialog';
 import Columns from './components/Columns';
 import ConfirmDialog from './components/ConfirmDialog';
 import HistoryView from './components/HistoryView';
+import SegmentedControl from './components/SegmentedControl';
+import type { SegmentedControlOption } from './components/SegmentedControl';
 import TagManagerDialog from './components/TagManagerDialog';
 import {
   fetchBoardState,
@@ -193,14 +195,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
   }
 };
 
-const THEME_OPTIONS: {
-  icon: typeof Monitor;
-  label: string;
-  value: ThemePreference;
-}[] = [
-  { icon: Monitor, label: 'System', value: 'system' },
-  { icon: Sun, label: 'Light', value: 'light' },
-  { icon: Moon, label: 'Dark', value: 'dark' },
+const THEME_OPTIONS: SegmentedControlOption<ThemePreference>[] = [
+  { icon: <Monitor size={16} />, label: 'System', value: 'system' },
+  { icon: <Sun size={16} />, label: 'Light', value: 'light' },
+  { icon: <Moon size={16} />, label: 'Dark', value: 'dark' },
 ];
 
 type AppSidebarProps = {
@@ -312,30 +310,16 @@ const AppSidebar = ({
     </nav>
     <div className="app-sidebar__footer">
       <p className="app-sidebar__footer-label">Theme</p>
-      <fieldset
-        aria-label="Theme preference"
-        className="theme-switcher"
-        data-selected-theme={themePreference}
-      >
-        {THEME_OPTIONS.map((option) => {
-          const Icon = option.icon;
-
-          return (
-            <Button
-              aria-label={`Use ${option.label.toLowerCase()} theme`}
-              aria-pressed={themePreference === option.value}
-              className="theme-switcher__button"
-              key={option.value}
-              onClick={() => onThemePreferenceChange(option.value)}
-              title={option.label}
-              type="button"
-            >
-              <Icon size={16} />
-              <span>{option.label}</span>
-            </Button>
-          );
-        })}
-      </fieldset>
+      <SegmentedControl
+        ariaLabel="Theme preference"
+        className="app-sidebar__theme-control"
+        onValueChange={onThemePreferenceChange}
+        options={THEME_OPTIONS.map((option) => ({
+          ...option,
+          ariaLabel: `Use ${option.label.toLowerCase()} theme`,
+        }))}
+        value={themePreference}
+      />
     </div>
   </aside>
 );

@@ -90,7 +90,7 @@ test('changes and persists the app theme preference from the sidebar footer', as
     'dark'
   );
   expect(screen.getByRole('group', { name: /theme preference/i })).toHaveAttribute(
-    'data-selected-theme',
+    'data-selected-value',
     'dark'
   );
   expect(

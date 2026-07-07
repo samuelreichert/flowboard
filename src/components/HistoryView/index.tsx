@@ -19,6 +19,8 @@ import type {
 } from '../../types';
 import { CardContentViewer } from '../CardContentEditor';
 import '../IconButton/IconButton.css';
+import SegmentedControl from '../SegmentedControl';
+import type { SegmentedControlOption } from '../SegmentedControl';
 
 type HistoryViewProps = {
   completedWorkCycles: CompletedWorkCycle[];
@@ -32,6 +34,21 @@ type HistoryDetailState = {
 };
 
 type HistoryLayout = 'grid' | 'list';
+
+const HISTORY_LAYOUT_OPTIONS: SegmentedControlOption<HistoryLayout>[] = [
+  {
+    ariaLabel: 'Grid view',
+    icon: <LayoutGrid size={15} />,
+    label: 'Grid',
+    value: 'grid',
+  },
+  {
+    ariaLabel: 'List view',
+    icon: <List size={15} />,
+    label: 'List',
+    value: 'list',
+  },
+];
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: '2-digit',
@@ -118,30 +135,13 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   return (
     <section className="history-view" aria-label="Completed work history">
       <div className="history-view__toolbar">
-        <div className="history-view__layout-toggle" aria-label="History layout">
-          <Button
-            aria-label="Grid view"
-            aria-pressed={historyLayout === 'grid'}
-            className="history-view__layout-button"
-            onClick={() => setHistoryLayout('grid')}
-            title="Grid view"
-            type="button"
-          >
-            <LayoutGrid size={15} />
-            <span>Grid</span>
-          </Button>
-          <Button
-            aria-label="List view"
-            aria-pressed={historyLayout === 'list'}
-            className="history-view__layout-button"
-            onClick={() => setHistoryLayout('list')}
-            title="List view"
-            type="button"
-          >
-            <List size={15} />
-            <span>List</span>
-          </Button>
-        </div>
+        <SegmentedControl
+          ariaLabel="History layout"
+          className="history-view__layout-toggle"
+          onValueChange={setHistoryLayout}
+          options={HISTORY_LAYOUT_OPTIONS}
+          value={historyLayout}
+        />
       </div>
       <div className="history-list">
         {sortedCycles.map((cycle) => (
