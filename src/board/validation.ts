@@ -1,7 +1,4 @@
-import {
-  CARD_CONTENT_LIMIT,
-  DEFAULT_CARD_PRIORITY,
-} from './constants.js';
+import { CARD_CONTENT_LIMIT, DEFAULT_CARD_PRIORITY } from './constants.js';
 import {
   CARD_PRIORITIES,
   type ArchivedBoardCard,
@@ -208,9 +205,7 @@ export const isBoardColumn = (value: unknown): value is BoardColumn => {
   );
 };
 
-export const isBoardBackground = (
-  value: unknown
-): value is BoardBackground => {
+export const isBoardBackground = (value: unknown): value is BoardBackground => {
   return (
     isRecord(value) &&
     typeof value.value === 'string' &&
@@ -337,12 +332,18 @@ export const normalizeStoredCard = (
 };
 
 const getOldestCardDate = (column: BoardColumn | undefined) => {
-  const sortedDates = (column?.cards ?? [])
-    .map((card) => card.createdAt)
-    .filter(isValidDateString)
-    .toSorted((first, second) => Date.parse(first) - Date.parse(second));
+  let oldestDate: string | undefined;
 
-  return sortedDates[0];
+  for (const card of column?.cards ?? []) {
+    if (
+      isValidDateString(card.createdAt) &&
+      (!oldestDate || Date.parse(card.createdAt) < Date.parse(oldestDate))
+    ) {
+      oldestDate = card.createdAt;
+    }
+  }
+
+  return oldestDate;
 };
 
 export const normalizeActiveWorkCycle = (

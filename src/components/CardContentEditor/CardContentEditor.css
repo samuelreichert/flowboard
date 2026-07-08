@@ -450,6 +450,7 @@
   gap: 8px;
   max-width: min(440px, calc(100vw - 32px));
   padding: 7px;
+  z-index: 60;
 }
 
 .editor-link-bubble__href {

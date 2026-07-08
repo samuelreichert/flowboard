@@ -12,6 +12,7 @@ import { useEffect, useReducer, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 
+import CardMetadata from '../CardMetadata';
 import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
@@ -46,7 +47,7 @@ const hasSelectionInside = (element: HTMLElement) => {
 
   return Boolean(
     (selection.anchorNode && element.contains(selection.anchorNode)) ||
-      (selection.focusNode && element.contains(selection.focusNode))
+    (selection.focusNode && element.contains(selection.focusNode))
   );
 };
 
@@ -210,8 +211,6 @@ const Card = ({
     .filter((tag): tag is BoardTag => Boolean(tag));
   const visibleTags = cardTags.slice(0, 2);
   const hiddenTagCount = cardTags.length - visibleTags.length;
-  const priorityLabel =
-    card.priority.charAt(0).toUpperCase() + card.priority.slice(1);
 
   return (
     <>
@@ -242,21 +241,11 @@ const Card = ({
               />
             )}
           </div>
-          <div className="card__metadata">
-            <span className={`card__priority card__priority--${card.priority}`}>
-              {priorityLabel}
-            </span>
-            {visibleTags.map((tag) => (
-              <span className="card__tag" key={tag.id}>
-                {tag.name}
-              </span>
-            ))}
-            {hiddenTagCount > 0 && (
-              <span className="card__tag card__tag--overflow">
-                +{hiddenTagCount}
-              </span>
-            )}
-          </div>
+          <CardMetadata
+            hiddenTagCount={hiddenTagCount}
+            priority={card.priority}
+            tags={visibleTags}
+          />
         </button>
       </article>
       <CardDialog

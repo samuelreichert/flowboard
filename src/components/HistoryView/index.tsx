@@ -1,5 +1,4 @@
 import { Button } from '@base-ui/react/button';
-import { Dialog } from '@base-ui/react/dialog';
 import {
   AlignLeft,
   CalendarDays,
@@ -7,7 +6,6 @@ import {
   Copy,
   LayoutGrid,
   List,
-  X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -17,8 +15,13 @@ import type {
   BoardTag,
   CompletedWorkCycle,
 } from '../../types';
+import CardMetadata, { PriorityBadge, TagChip } from '../CardMetadata';
 import { CardContentViewer } from '../CardContentEditor';
+import DialogShell from '../DialogShell';
+import { EmptyState, InlineEmptyState } from '../EmptyState';
 import '../IconButton/IconButton.css';
+import SegmentedControl from '../SegmentedControl';
+import type { SegmentedControlOption } from '../SegmentedControl';
 
 type HistoryViewProps = {
   completedWorkCycles: CompletedWorkCycle[];
@@ -32,6 +35,21 @@ type HistoryDetailState = {
 };
 
 type HistoryLayout = 'grid' | 'list';
+
+const HISTORY_LAYOUT_OPTIONS: SegmentedControlOption<HistoryLayout>[] = [
+  {
+    ariaLabel: 'Grid view',
+    icon: <LayoutGrid size={15} />,
+    label: 'Grid',
+    value: 'grid',
+  },
+  {
+    ariaLabel: 'List view',
+    icon: <List size={15} />,
+    label: 'List',
+    value: 'list',
+  },
+];
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: '2-digit',
@@ -49,9 +67,6 @@ const formatDate = (value: string) => {
   return dateFormatter.format(date);
 };
 
-const formatPriorityLabel = (priority: ArchivedBoardCard['priority']) =>
-  priority.charAt(0).toUpperCase() + priority.slice(1);
-
 const getVisibleTagNames = (card: ArchivedBoardCard, tags: BoardTag[]) =>
   card.tagIds
     .map((tagId) => resolveArchivedTagName(tagId, card, tags))
@@ -68,8 +83,9 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   const sortedCycles = useMemo(
     () =>
       completedWorkCycles.toSorted(
-        (first, second) => Date.parse(second.endDate) - Date.parse(first.endDate)
-    ),
+        (first, second) =>
+          Date.parse(second.endDate) - Date.parse(first.endDate)
+      ),
     [completedWorkCycles]
   );
   const selectedCard = useMemo(
@@ -106,11 +122,12 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   if (sortedCycles.length === 0) {
     return (
       <section className="history-view" aria-label="Completed work history">
-        <div className="history-empty">
-          <CheckCircle2 size={22} />
-          <h2>No completed work yet</h2>
-          <p>Complete work from the board to start building your history.</p>
-        </div>
+        <EmptyState
+          icon={<CheckCircle2 size={22} />}
+          title="No completed work yet"
+        >
+          Complete work from the board to start building your history.
+        </EmptyState>
       </section>
     );
   }
@@ -118,30 +135,13 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   return (
     <section className="history-view" aria-label="Completed work history">
       <div className="history-view__toolbar">
-        <div className="history-view__layout-toggle" aria-label="History layout">
-          <Button
-            aria-label="Grid view"
-            aria-pressed={historyLayout === 'grid'}
-            className="history-view__layout-button"
-            onClick={() => setHistoryLayout('grid')}
-            title="Grid view"
-            type="button"
-          >
-            <LayoutGrid size={15} />
-            <span>Grid</span>
-          </Button>
-          <Button
-            aria-label="List view"
-            aria-pressed={historyLayout === 'list'}
-            className="history-view__layout-button"
-            onClick={() => setHistoryLayout('list')}
-            title="List view"
-            type="button"
-          >
-            <List size={15} />
-            <span>List</span>
-          </Button>
-        </div>
+        <SegmentedControl
+          ariaLabel="History layout"
+          className="history-view__layout-toggle"
+          onValueChange={setHistoryLayout}
+          options={HISTORY_LAYOUT_OPTIONS}
+          value={historyLayout}
+        />
       </div>
       <div className="history-list">
         {sortedCycles.map((cycle) => (
@@ -159,13 +159,11 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
               </span>
             </header>
             {cycle.cards.length === 0 ? (
-              <p className="history-cycle__empty">
+              <InlineEmptyState>
                 Completed without archived cards.
-              </p>
+              </InlineEmptyState>
             ) : (
-              <div
-                className={`history-cards history-cards--${historyLayout}`}
-              >
+              <div className={`history-cards history-cards--${historyLayout}`}>
                 {cycle.cards.map((card) => {
                   const visibleTagNames = getVisibleTagNames(card, tags);
 
@@ -194,26 +192,19 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                             />
                           )}
                         </div>
-                        <div className="card__metadata">
-                          <span className="history-card__created-date">
-                            Created {formatDate(card.createdAt)}
-                          </span>
-                          <span
-                            className={`card__priority card__priority--${card.priority}`}
-                          >
-                            {formatPriorityLabel(card.priority)}
-                          </span>
-                          {visibleTagNames.slice(0, 2).map((tagName) => (
-                            <span className="card__tag" key={tagName}>
-                              {tagName}
-                            </span>
-                          ))}
-                          {visibleTagNames.length > 2 && (
-                            <span className="card__tag card__tag--overflow">
-                              +{visibleTagNames.length - 2}
-                            </span>
+                        <CardMetadata
+                          hiddenTagCount={Math.max(
+                            0,
+                            visibleTagNames.length - 2
                           )}
-                        </div>
+                          leadingClassName="history-card__created-date"
+                          leadingText={`Created ${formatDate(card.createdAt)}`}
+                          priority={card.priority}
+                          tags={visibleTagNames.slice(0, 2).map((tagName) => ({
+                            id: tagName,
+                            name: tagName,
+                          }))}
+                        />
                       </Button>
                     </article>
                   );
@@ -223,7 +214,13 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
           </section>
         ))}
       </div>
-      <Dialog.Root
+      <DialogShell
+        closeLabel="Close archived card"
+        description={
+          selectedCard
+            ? `Created ${formatDate(selectedCard.createdAt)}`
+            : undefined
+        }
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
           if (!open) {
@@ -234,104 +231,74 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
             });
           }
         }}
+        popupClassName="dialog-popup--card"
+        title={selectedCard?.title ?? 'Archived card'}
       >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="dialog-backdrop" />
-          <Dialog.Viewport className="dialog-viewport">
-            <Dialog.Popup className="dialog-popup dialog-popup--card">
-              <div className="dialog-header">
-                <div>
-                  <Dialog.Title className="dialog-title">
-                    {selectedCard?.title ?? 'Archived card'}
-                  </Dialog.Title>
-                  {selectedCard && (
-                    <Dialog.Description className="dialog-description">
-                      Created {formatDate(selectedCard.createdAt)}
-                    </Dialog.Description>
-                  )}
+        {selectedCard && (
+          <div className="history-card-detail__body">
+            <div className="history-card-detail__toolbar">
+              <div className="history-card-detail__metadata">
+                <div className="history-card-detail__metadata-row">
+                  <span className="history-card-detail__metadata-label">
+                    Priority
+                  </span>
+                  <span className="history-card-detail__metadata-chips">
+                    <PriorityBadge priority={selectedCard.priority} />
+                  </span>
                 </div>
-                <Dialog.Close
-                  aria-label="Close archived card"
-                  className="icon-button dialog-close"
-                  render={<Button />}
-                >
-                  <X size={17} />
-                </Dialog.Close>
+                <div className="history-card-detail__metadata-row">
+                  <span className="history-card-detail__metadata-label">
+                    Tags
+                  </span>
+                  <span className="history-card-detail__metadata-chips">
+                    {selectedTagNames.length > 0 ? (
+                      selectedTagNames.map((tagName) => (
+                        <TagChip key={tagName}>{tagName}</TagChip>
+                      ))
+                    ) : (
+                      <InlineEmptyState variant="soft">
+                        No tags
+                      </InlineEmptyState>
+                    )}
+                  </span>
+                </div>
               </div>
-              {selectedCard && (
-                <div className="history-card-detail__body">
-                  <div className="history-card-detail__toolbar">
-                    <div className="history-card-detail__metadata">
-                      <div className="history-card-detail__metadata-row">
-                        <span className="history-card-detail__metadata-label">
-                          Priority
-                        </span>
-                        <span className="history-card-detail__metadata-chips">
-                          <span
-                            className={`card__priority card__priority--${selectedCard.priority}`}
-                          >
-                            {formatPriorityLabel(selectedCard.priority)}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="history-card-detail__metadata-row">
-                        <span className="history-card-detail__metadata-label">
-                          Tags
-                        </span>
-                        <span className="history-card-detail__metadata-chips">
-                          {selectedTagNames.length > 0 ? (
-                            selectedTagNames.map((tagName) => (
-                              <span className="card__tag" key={tagName}>
-                                {tagName}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="history-card-detail__empty-tag">
-                              No tags
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      aria-label="Copy Markdown"
-                      className="button button--subtle history-card-detail__copy"
-                      onClick={copySelectedCardMarkdown}
-                      type="button"
-                    >
-                      <Copy size={15} />
-                      <span>Copy Markdown</span>
-                      {copyStatus && (
-                        <span className="history-card-detail__copy-status">
-                          {copyStatus}
-                        </span>
-                      )}
-                    </Button>
-                  </div>
-                  {selectedCard.content ? (
-                    <div className="history-card-detail__content">
-                      <CardContentViewer
-                        ariaLabel={`${selectedCard.title} content`}
-                        value={selectedCard.content}
-                      />
-                    </div>
-                  ) : (
-                    <p className="history-card-detail__empty">
-                      This archived card has no content.
-                    </p>
-                  )}
-                </div>
-              )}
-              {selectedCard && (
-                <div className="history-card-detail__meta">
-                  <CalendarDays size={14} />
-                  <span>Archived {formatDate(selectedCard.archivedAt)}</span>
-                </div>
-              )}
-            </Dialog.Popup>
-          </Dialog.Viewport>
-        </Dialog.Portal>
-      </Dialog.Root>
+              <Button
+                aria-label="Copy Markdown"
+                className="button button--subtle history-card-detail__copy"
+                onClick={copySelectedCardMarkdown}
+                type="button"
+              >
+                <Copy size={15} />
+                <span>Copy Markdown</span>
+                {copyStatus && (
+                  <span className="history-card-detail__copy-status">
+                    {copyStatus}
+                  </span>
+                )}
+              </Button>
+            </div>
+            {selectedCard.content ? (
+              <div className="history-card-detail__content">
+                <CardContentViewer
+                  ariaLabel={`${selectedCard.title} content`}
+                  value={selectedCard.content}
+                />
+              </div>
+            ) : (
+              <InlineEmptyState>
+                This archived card has no content.
+              </InlineEmptyState>
+            )}
+          </div>
+        )}
+        {selectedCard && (
+          <div className="history-card-detail__meta">
+            <CalendarDays size={14} />
+            <span>Archived {formatDate(selectedCard.archivedAt)}</span>
+          </div>
+        )}
+      </DialogShell>
     </section>
   );
 };

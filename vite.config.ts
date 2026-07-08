@@ -9,6 +9,8 @@ export default defineConfig({
       includeAssets: [
         'favicon.ico',
         'favicon.svg',
+        'icon-dark.svg',
+        'icon-light.svg',
         'flowboard-background.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
@@ -19,8 +21,8 @@ export default defineConfig({
         short_name: 'Flowboard',
         description:
           'A focused local-first visual workflow board for organizing columns, cards, priorities, and tags.',
-        theme_color: '#11265f',
-        background_color: '#102b50',
+        theme_color: '#000000',
+        background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {

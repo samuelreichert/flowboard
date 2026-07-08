@@ -1,20 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="sky" x1="10" x2="56" y1="6" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#18c9e8" />
-      <stop offset=".48" stop-color="#3265d6" />
-      <stop offset="1" stop-color="#6d4ab7" />
-    </linearGradient>
-    <linearGradient id="glow" x1="17" x2="48" y1="18" y2="48" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#d7fbff" />
-      <stop offset="1" stop-color="#d9d0ff" />
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="#11265f" />
-  <rect x="5" y="5" width="54" height="54" rx="13" fill="url(#sky)" />
-  <path d="M11 43c8-7 13-8 20-5 7 3 12 2 22-6v18H11Z" fill="#18275d" fill-opacity=".58" />
-  <rect x="15" y="16" width="10" height="31" rx="4" fill="url(#glow)" />
-  <rect x="28" y="16" width="10" height="23" rx="4" fill="#fff" fill-opacity=".88" />
-  <rect x="41" y="16" width="8" height="16" rx="4" fill="#fff" fill-opacity=".7" />
-  <circle cx="51" cy="12" r="2" fill="#fff" fill-opacity=".9" />
+  <style>
+    .tile { fill: #fff; }
+    .mark { fill: #050505; }
+    .cutout { fill: #fff; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #050505; }
+      .mark { fill: #fff; }
+      .cutout { fill: #050505; }
+    }
+  </style>
+  <rect class="tile" x="4" y="4" width="56" height="56" rx="16" />
+  <rect class="mark" x="12" y="15" width="40" height="34" rx="12" />
+  <rect class="cutout" x="18" y="22" width="10" height="8" rx="4" />
+  <rect class="cutout" x="31" y="22" width="15" height="8" rx="4" />
+  <rect class="cutout" x="18" y="34" width="15" height="8" rx="4" />
+  <rect class="cutout" x="36" y="34" width="10" height="8" rx="4" />
 </svg>

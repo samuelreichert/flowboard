@@ -1,10 +1,9 @@
-import { Button } from '@base-ui/react/button';
-import { Field } from '@base-ui/react/field';
 import type { Editor } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { BubbleMenu } from '@tiptap/react/menus';
-import { Check, Edit3, ExternalLink, Trash2, X } from 'lucide-react';
 import type { FormEvent } from 'react';
+
+import EditorAssetBubble from './EditorAssetBubble';
 
 type EditorBubbleMenusProps = {
   currentHref: string;
@@ -28,6 +27,20 @@ type EditorBubbleMenusProps = {
   onRemoveLink: () => void;
   onSetImageBubbleUrl: (value: string) => void;
   onSetLinkBubbleUrl: (value: string) => void;
+};
+
+const getEditorBubbleMenuAppendTarget = () => document.body;
+
+const editorBubbleMenuOptions = {
+  flip: {
+    padding: 12,
+  },
+  inline: true,
+  offset: 8,
+  shift: {
+    padding: 12,
+  },
+  strategy: 'fixed' as const,
 };
 
 export const EditorBubbleMenus = ({
@@ -60,160 +73,62 @@ export const EditorBubbleMenus = ({
   return (
     <>
       <BubbleMenu
+        appendTo={getEditorBubbleMenuAppendTarget}
         className="editor-link-bubble"
         editor={editor}
+        options={editorBubbleMenuOptions}
         pluginKey="linkBubbleMenu"
-        shouldShow={({ editor: currentEditor }) => currentEditor.isActive('link')}
+        shouldShow={({ editor: currentEditor }) =>
+          currentEditor.isActive('link')
+        }
+        style={{ zIndex: 60 }}
       >
-        {linkBubbleEditing ? (
-          <form
-            className="editor-link-bubble__form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onApplyLinkBubble();
-            }}
-          >
-            <Field.Root invalid={Boolean(linkBubbleError)}>
-              <Field.Label className="editor-link-bubble__label">Link URL</Field.Label>
-              <Field.Control
-                autoFocus
-                className="editor-link-bubble__input"
-                inputMode="url"
-                maxLength={2048}
-                onValueChange={onSetLinkBubbleUrl}
-                type="text"
-                value={linkBubbleUrl}
-              />
-              <Field.Error className="editor-link-bubble__error" match={Boolean(linkBubbleError)}>
-                {linkBubbleError}
-              </Field.Error>
-            </Field.Root>
-            <div className="editor-link-bubble__actions">
-              <Button
-                aria-label="Cancel link edit"
-                className="editor-link-bubble__icon-button"
-                onClick={onCancelLinkEdit}
-                type="button"
-              >
-                <X size={14} />
-              </Button>
-              <Button
-                aria-label="Apply link edit"
-                className="editor-link-bubble__icon-button editor-link-bubble__icon-button--primary"
-                type="submit"
-              >
-                <Check size={14} />
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <span className="editor-link-bubble__href">{currentHref}</span>
-            <div className="editor-link-bubble__actions">
-              <Button
-                aria-label="Edit link"
-                className="editor-link-bubble__icon-button"
-                onClick={onEditLink}
-                type="button"
-              >
-                <Edit3 size={14} />
-              </Button>
-              <Button
-                aria-label="Open link"
-                className="editor-link-bubble__icon-button"
-                onClick={onOpenLink}
-                type="button"
-              >
-                <ExternalLink size={14} />
-              </Button>
-              <Button
-                aria-label="Remove link"
-                className="editor-link-bubble__icon-button"
-                onClick={onRemoveLink}
-                type="button"
-              >
-                <Trash2 size={14} />
-              </Button>
-            </div>
-          </>
-        )}
+        <EditorAssetBubble
+          assetLabel="Link"
+          currentUrl={currentHref}
+          editing={linkBubbleEditing}
+          error={linkBubbleError}
+          onCancelEdit={onCancelLinkEdit}
+          onEdit={onEditLink}
+          onOpen={onOpenLink}
+          onRemove={onRemoveLink}
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onApplyLinkBubble();
+          }}
+          onUrlChange={onSetLinkBubbleUrl}
+          url={linkBubbleUrl}
+        />
       </BubbleMenu>
       <BubbleMenu
+        appendTo={getEditorBubbleMenuAppendTarget}
         className="editor-link-bubble editor-image-bubble"
         editor={editor}
+        options={editorBubbleMenuOptions}
         pluginKey="imageBubbleMenu"
         shouldShow={({ editor: currentEditor }) => {
           const { selection } = currentEditor.state;
-          return selection instanceof NodeSelection && selection.node.type.name === 'image';
+          return (
+            selection instanceof NodeSelection &&
+            selection.node.type.name === 'image'
+          );
         }}
+        style={{ zIndex: 60 }}
       >
-        {imageBubbleEditing ? (
-          <form className="editor-link-bubble__form" onSubmit={onApplyImageBubble}>
-            <Field.Root invalid={Boolean(imageBubbleError)}>
-              <Field.Label className="editor-link-bubble__label">Image URL</Field.Label>
-              <Field.Control
-                autoFocus
-                className="editor-link-bubble__input"
-                inputMode="url"
-                maxLength={2048}
-                onValueChange={onSetImageBubbleUrl}
-                type="text"
-                value={imageBubbleUrl}
-              />
-              <Field.Error className="editor-link-bubble__error" match={Boolean(imageBubbleError)}>
-                {imageBubbleError}
-              </Field.Error>
-            </Field.Root>
-            <div className="editor-link-bubble__actions">
-              <Button
-                aria-label="Cancel image edit"
-                className="editor-link-bubble__icon-button"
-                onClick={onCancelImageEdit}
-                type="button"
-              >
-                <X size={14} />
-              </Button>
-              <Button
-                aria-label="Apply image edit"
-                className="editor-link-bubble__icon-button editor-link-bubble__icon-button--primary"
-                type="submit"
-              >
-                <Check size={14} />
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <span className="editor-link-bubble__href">{currentImageSrc}</span>
-            <div className="editor-link-bubble__actions">
-              <Button
-                aria-label="Edit image"
-                className="editor-link-bubble__icon-button"
-                onClick={onEditImage}
-                type="button"
-              >
-                <Edit3 size={14} />
-              </Button>
-              <Button
-                aria-label="Open image"
-                className="editor-link-bubble__icon-button"
-                onClick={onOpenImage}
-                type="button"
-              >
-                <ExternalLink size={14} />
-              </Button>
-              <Button
-                aria-label="Remove image"
-                className="editor-link-bubble__icon-button"
-                onClick={onRemoveImage}
-                type="button"
-              >
-                <Trash2 size={14} />
-              </Button>
-            </div>
-          </>
-        )}
+        <EditorAssetBubble
+          assetLabel="Image"
+          currentUrl={currentImageSrc}
+          editing={imageBubbleEditing}
+          error={imageBubbleError}
+          onCancelEdit={onCancelImageEdit}
+          onEdit={onEditImage}
+          onOpen={onOpenImage}
+          onRemove={onRemoveImage}
+          onSubmit={onApplyImageBubble}
+          onUrlChange={onSetImageBubbleUrl}
+          url={imageBubbleUrl}
+        />
       </BubbleMenu>
     </>
   );
