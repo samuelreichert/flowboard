@@ -1,4 +1,3 @@
-import { Button } from '@base-ui/react/button';
 import {
   History,
   KanbanSquare,
@@ -14,6 +13,8 @@ import {
 
 import SegmentedControl from '../components/SegmentedControl';
 import type { SegmentedControlOption } from '../components/SegmentedControl';
+import Sidebar from '../components/Sidebar';
+import type { SidebarNavItem } from '../components/Sidebar';
 import type { ResolvedTheme, ThemePreference } from '../theme';
 import { getThemeIconSrc } from './appTheme';
 import type { AppView } from './appTypes';
@@ -50,101 +51,70 @@ const AppSidebar = ({
   resolvedTheme,
   sidebarExpanded,
   themePreference,
-}: AppSidebarProps) => (
-  <aside
-    aria-label="Flowboard navigation"
-    className="app-sidebar"
-    data-expanded={sidebarExpanded}
-  >
-    <div className="app-sidebar__header">
-      <Button
-        aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-        className="icon-button app-sidebar__toggle"
-        onClick={onToggleSidebar}
-        type="button"
-      >
-        {sidebarExpanded ? (
-          <PanelLeftClose size={18} />
-        ) : (
-          <PanelLeftOpen size={18} />
-        )}
-      </Button>
-      <div className="app-sidebar__brand">
-        <img
-          alt=""
-          aria-hidden="true"
-          className="app-sidebar__brand-icon"
-          src={getThemeIconSrc(resolvedTheme)}
+}: AppSidebarProps) => {
+  const navItems: SidebarNavItem[] = [
+    {
+      active: currentView === 'board',
+      icon: <KanbanSquare size={18} />,
+      id: 'board',
+      label: 'Board',
+      onClick: onBoardClick,
+    },
+    {
+      active: currentView === 'history',
+      icon: <History size={18} />,
+      id: 'history',
+      label: 'History',
+      onClick: onHistoryClick,
+    },
+    {
+      ariaLabel: 'Manage tags',
+      icon: <Tags size={18} />,
+      id: 'tags',
+      label: 'Tags',
+      onClick: onManageTagsClick,
+    },
+    {
+      icon: <Settings size={18} />,
+      id: 'settings',
+      label: 'Board settings',
+      onClick: onBoardSettingsClick,
+    },
+  ];
+
+  return (
+    <Sidebar
+      ariaLabel="Flowboard navigation"
+      brand={{
+        iconSrc: getThemeIconSrc(resolvedTheme),
+        text: 'Flowboard',
+      }}
+      closeIcon={<X size={18} />}
+      closeLabel="Close navigation"
+      collapseIcon={<PanelLeftClose size={18} />}
+      collapseLabel="Collapse sidebar"
+      expandIcon={<PanelLeftOpen size={18} />}
+      expandLabel="Expand sidebar"
+      expanded={sidebarExpanded}
+      footer={
+        <SegmentedControl
+          ariaLabel="Theme preference"
+          className="app-sidebar__theme-control"
+          onValueChange={onThemePreferenceChange}
+          options={THEME_OPTIONS.map((option) => ({
+            ...option,
+            ariaLabel: `Use ${option.label.toLowerCase()} theme`,
+          }))}
+          value={themePreference}
         />
-        <span className="app-sidebar__brand-text">Flowboard</span>
-      </div>
-      <Button
-        aria-label="Close navigation"
-        className="icon-button app-sidebar__mobile-close"
-        onClick={onCloseMobileSidebar}
-        type="button"
-      >
-        <X size={18} />
-      </Button>
-    </div>
-    <nav className="app-sidebar__nav" aria-label="Primary navigation">
-      <Button
-        aria-current={currentView === 'board' ? 'page' : undefined}
-        aria-label="Board"
-        className={`app-sidebar__nav-item ${currentView === 'board' ? 'app-sidebar__nav-item--active' : ''}`}
-        onClick={onBoardClick}
-        title="Board"
-        type="button"
-      >
-        <KanbanSquare size={18} />
-        <span>Board</span>
-      </Button>
-      <Button
-        aria-current={currentView === 'history' ? 'page' : undefined}
-        aria-label="History"
-        className={`app-sidebar__nav-item ${currentView === 'history' ? 'app-sidebar__nav-item--active' : ''}`}
-        onClick={onHistoryClick}
-        title="History"
-        type="button"
-      >
-        <History size={18} />
-        <span>History</span>
-      </Button>
-      <Button
-        aria-label="Manage tags"
-        className="app-sidebar__nav-item"
-        onClick={onManageTagsClick}
-        title="Tags"
-        type="button"
-      >
-        <Tags size={18} />
-        <span>Tags</span>
-      </Button>
-      <Button
-        aria-label="Board settings"
-        className="app-sidebar__nav-item"
-        onClick={onBoardSettingsClick}
-        title="Board settings"
-        type="button"
-      >
-        <Settings size={18} />
-        <span>Board settings</span>
-      </Button>
-    </nav>
-    <div className="app-sidebar__footer">
-      <p className="app-sidebar__footer-label">Theme</p>
-      <SegmentedControl
-        ariaLabel="Theme preference"
-        className="app-sidebar__theme-control"
-        onValueChange={onThemePreferenceChange}
-        options={THEME_OPTIONS.map((option) => ({
-          ...option,
-          ariaLabel: `Use ${option.label.toLowerCase()} theme`,
-        }))}
-        value={themePreference}
-      />
-    </div>
-  </aside>
-);
+      }
+      footerLabel="Theme"
+      navAriaLabel="Primary navigation"
+      navItems={navItems}
+      onClose={onCloseMobileSidebar}
+      onToggle={onToggleSidebar}
+    />
+  );
+};
 
 export default AppSidebar;
