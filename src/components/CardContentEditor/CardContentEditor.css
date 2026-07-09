@@ -5,6 +5,13 @@
   overflow: hidden;
 }
 
+.card-content-editor--loading {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  min-height: 180px;
+  padding: 16px;
+}
+
 .editor-toolbar {
   align-items: center;
   background-color: var(--color-surface);

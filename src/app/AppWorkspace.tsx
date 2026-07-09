@@ -1,10 +1,12 @@
 import { Button } from '@base-ui/react/button';
 import { CheckCircle2, Menu as MenuIcon } from 'lucide-react';
+import { lazy, Suspense } from 'react';
 
 import Columns from '../components/Columns';
-import HistoryView from '../components/HistoryView';
 import type { BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
+
+const HistoryView = lazy(() => import('../components/HistoryView'));
 
 type AppWorkspaceProps = {
   canCompleteWork: boolean;
@@ -91,7 +93,16 @@ const AppWorkspace = ({
           />
         </section>
       ) : (
-        <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
+        <Suspense
+          fallback={
+            <section
+              aria-label="Completed work history"
+              className="history-view"
+            />
+          }
+        >
+          <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
+        </Suspense>
       )}
     </section>
   );

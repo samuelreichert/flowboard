@@ -3,6 +3,28 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'editor-core',
+              test: /node_modules\/@tiptap\/(core|pm|react)\//,
+            },
+            {
+              name: 'editor-extensions',
+              test: /node_modules\/@tiptap\/(extension-|extensions|starter-kit)\//,
+            },
+            {
+              name: 'editor-markdown',
+              test: /node_modules\/@tiptap\/markdown\//,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
