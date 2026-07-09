@@ -4,7 +4,6 @@ import {
   Monitor,
   Moon,
   PanelLeftClose,
-  PanelLeftOpen,
   Settings,
   Sun,
   Tags,
@@ -93,7 +92,14 @@ const AppSidebar = ({
       closeLabel="Close navigation"
       collapseIcon={<PanelLeftClose size={18} />}
       collapseLabel="Collapse sidebar"
-      expandIcon={<PanelLeftOpen size={18} />}
+      expandIcon={
+        <img
+          alt=""
+          aria-hidden="true"
+          className="app-sidebar__toggle-brand-icon"
+          src={getThemeIconSrc(resolvedTheme)}
+        />
+      }
       expandLabel="Expand sidebar"
       expanded={sidebarExpanded}
       footer={

@@ -262,13 +262,16 @@ const useAppController = () => {
     (column) => column.id === activeWorkCycle.completedColumnId
   );
   const completedCardCount = completedColumn?.cards.length ?? 0;
-  const canCompleteWork =
-    !activeWorkCycle.completedColumnId || completedCardCount > 0;
+  const canCompleteWork = Boolean(completedColumn && completedCardCount > 0);
+  const completeWorkDisabledReason = activeWorkCycle.completedColumnId
+    ? 'Add cards to the completed column before completing work'
+    : 'Choose a completed column in board settings before completing work';
 
   return {
     activeWorkCycle,
     boardSettingsOpen,
     canCompleteWork,
+    completeWorkDisabledReason,
     chooseCompletedColumn,
     chooseThemePreference,
     clearBoard,

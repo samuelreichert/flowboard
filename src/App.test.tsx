@@ -1139,18 +1139,24 @@ test('configures completed column and preserves it through rename and delete', a
   expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
 });
 
-test('guides completion setup to board settings when no completed column exists', async () => {
+test('disables completing work when no completed column exists', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Unassigned completion card');
 
+  const completeWork = screen.getByRole('button', { name: /complete work/i });
+
+  expect(completeWork).toBeDisabled();
+  expect(completeWork).toHaveAttribute(
+    'title',
+    'Choose a completed column in board settings before completing work'
+  );
+  await user.click(completeWork);
   expect(
-    screen.getByRole('dialog', { name: /board settings/i })
-  ).toBeInTheDocument();
-  expect(
-    screen.getByText(/create a column before choosing/i)
-  ).toBeInTheDocument();
+    screen.queryByRole('dialog', { name: /board settings/i })
+  ).not.toBeInTheDocument();
 });
 
 test('completes work after confirmation and moves done cards to history', async () => {
@@ -1182,10 +1188,10 @@ test('completes work after confirmation and moves done cards to history', async 
   );
 
   await user.click(screen.getByRole('button', { name: /^history$/i }));
-  expect(screen.getByText('Ship it')).toBeInTheDocument();
+  expect(await screen.findByText('Ship it')).toBeInTheDocument();
   await user.click(screen.getByText('Ship it'));
   expect(
-    screen.getByText('Release the new Flowboard build.')
+    await screen.findByText('Release the new Flowboard build.')
   ).toBeInTheDocument();
 });
 
@@ -1406,8 +1412,9 @@ const addCard = async (
   await openCreateCard(user, columnTitle);
   await user.type(await screen.findByLabelText('Card title'), title);
   if (content) {
-    await user.click(screen.getByLabelText('Content'));
-    pasteText(screen.getByLabelText('Content'), content);
+    const contentEditor = await screen.findByLabelText('Content');
+    await user.click(contentEditor);
+    pasteText(contentEditor, content);
   }
   await user.click(screen.getByRole('button', { name: /^create$/i }));
 };
