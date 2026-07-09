@@ -1139,18 +1139,24 @@ test('configures completed column and preserves it through rename and delete', a
   expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
 });
 
-test('guides completion setup to board settings when no completed column exists', async () => {
+test('disables completing work when no completed column exists', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Unassigned completion card');
 
+  const completeWork = screen.getByRole('button', { name: /complete work/i });
+
+  expect(completeWork).toBeDisabled();
+  expect(completeWork).toHaveAttribute(
+    'title',
+    'Choose a completed column in board settings before completing work'
+  );
+  await user.click(completeWork);
   expect(
-    screen.getByRole('dialog', { name: /board settings/i })
-  ).toBeInTheDocument();
-  expect(
-    screen.getByText(/create a column before choosing/i)
-  ).toBeInTheDocument();
+    screen.queryByRole('dialog', { name: /board settings/i })
+  ).not.toBeInTheDocument();
 });
 
 test('completes work after confirmation and moves done cards to history', async () => {

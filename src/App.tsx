@@ -10,6 +10,7 @@ const App = () => {
     activeWorkCycle,
     boardSettingsOpen,
     canCompleteWork,
+    completeWorkDisabledReason,
     chooseCompletedColumn,
     chooseThemePreference,
     clearBoard,
@@ -76,6 +77,7 @@ const App = () => {
       />
       <AppWorkspace
         canCompleteWork={canCompleteWork}
+        completeWorkDisabledReason={completeWorkDisabledReason}
         completedWorkCycles={completedWorkCycles}
         completionPulse={completionPulse}
         currentView={currentView}

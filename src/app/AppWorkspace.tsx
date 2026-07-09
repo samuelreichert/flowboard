@@ -10,6 +10,7 @@ const HistoryView = lazy(() => import('../components/HistoryView'));
 
 type AppWorkspaceProps = {
   canCompleteWork: boolean;
+  completeWorkDisabledReason: string;
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
@@ -24,6 +25,7 @@ type AppWorkspaceProps = {
 
 const AppWorkspace = ({
   canCompleteWork,
+  completeWorkDisabledReason,
   completedWorkCycles,
   completionPulse,
   currentView,
@@ -66,7 +68,7 @@ const AppWorkspace = ({
               title={
                 canCompleteWork
                   ? 'Complete work'
-                  : 'Add cards to the completed column before completing work'
+                  : completeWorkDisabledReason
               }
               type="button"
             >
