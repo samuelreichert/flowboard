@@ -36,7 +36,13 @@ export default defineConfig({
         'flowboard-background.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'pwa-light-192x192.png',
+        'pwa-light-512x512.png',
+        'pwa-dark-192x192.png',
+        'pwa-dark-512x512.png',
         'maskable-icon-512x512.png',
+        'maskable-icon-light-512x512.png',
+        'maskable-icon-dark-512x512.png',
       ],
       manifest: {
         name: 'Flowboard',
