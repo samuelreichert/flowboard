@@ -300,7 +300,7 @@
     0 2px 5px var(--color-shadow-soft);
   display: grid;
   gap: 2px;
-  max-height: 230px;
+  max-height: min(230px, var(--available-height));
   overflow: auto;
   padding: 5px;
   width: 100%;
@@ -367,7 +367,7 @@
     0 2px 5px var(--color-shadow-soft);
   display: grid;
   gap: 2px;
-  max-height: 230px;
+  max-height: min(230px, var(--available-height));
   overflow: auto;
   padding: 5px;
   width: 100%;

@@ -62,7 +62,9 @@ const DialogSelect = <T extends string>({
     <Select.Portal>
       <Select.Positioner
         align="start"
+        alignItemWithTrigger={false}
         className="dialog-select__positioner"
+        collisionPadding={8}
         sideOffset={5}
       >
         <Select.Popup className="dialog-select__popup">

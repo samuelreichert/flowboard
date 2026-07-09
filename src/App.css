@@ -141,6 +141,13 @@
   flex: 0 0 auto;
 }
 
+.app-sidebar__toggle-brand-icon {
+  border-radius: var(--radius-sm);
+  height: 22px;
+  object-fit: contain;
+  width: 22px;
+}
+
 .app-sidebar__mobile-close {
   display: none;
   margin-left: auto;
