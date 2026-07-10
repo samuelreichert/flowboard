@@ -12,6 +12,7 @@
 
 - Before finishing UI changes, compare related controls across the app for matching interaction patterns, sizing, spacing, icons, placeholder behavior, dialog header alignment, and dropdown visual treatment.
 - When one control is intended as the reference pattern, update comparable controls to match it or document why the difference is intentional.
+- Preserve a single source of truth for shared product concepts such as statuses, priorities, options, defaults, labels, and formatting. Do not duplicate enum values, option arrays, default values, or label formatters across components.
 - Treat visual references as directional mood and behavior. Implement them through existing Flowboard patterns, tokens, spacing, controls, and accessibility conventions rather than pixel-copying the reference.
 - For UI surfaces with sticky or fixed positioning, popovers, growing inputs, responsive behavior, or compact controls, verify the important visual states before calling the work done: empty, focused, disabled, long single-line content, multiline content, desktop and mobile viewports, open popup/dropdown state, bottom or edge clipping, and keyboard path.
 - For compact UI controls, separate shared interaction behavior from text chip/pill styling and icon-only round-button styling. Do not let icon-only controls inherit text-chip padding by accident.

@@ -1,5 +1,4 @@
-import { DEFAULT_CARD_PRIORITY } from '../CardDialog/constants';
-import type { CardPriority } from '../../types';
+import { DEFAULT_CARD_PRIORITY, type CardPriority } from '../../types';
 
 export type CardComposerState = {
   creatingTag: boolean;

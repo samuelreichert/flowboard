@@ -4,11 +4,10 @@ import { X } from 'lucide-react';
 
 import ConfirmDialog from '../ConfirmDialog';
 import DialogSelect from '../DialogSelect';
+import { CARD_PRIORITY_OPTIONS, formatPriorityLabel } from '../../types';
 import CardContentField from './CardContentField';
 import CardDialogFooter from './CardDialogFooter';
 import CardTitleField from './CardTitleField';
-import { PRIORITY_OPTIONS } from './constants';
-import { formatPriorityLabel } from './formatters';
 import TagSelectField from './TagSelectField';
 import type { CardDialogProps, CardDialogValues } from './types';
 import useCardDialogController from './useCardDialogController';
@@ -112,7 +111,7 @@ const CardDialogContent = (props: CardDialogProps) => {
                     label="Priority"
                     name="priority"
                     onValueChange={onPriorityChange}
-                    options={PRIORITY_OPTIONS}
+                    options={CARD_PRIORITY_OPTIONS}
                     renderValue={(value) =>
                       value ? formatPriorityLabel(value) : 'Choose priority'
                     }

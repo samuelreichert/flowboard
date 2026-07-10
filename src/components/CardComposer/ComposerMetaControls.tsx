@@ -4,8 +4,12 @@ import { Select } from '@base-ui/react/select';
 import { ArrowUp, Check, ChevronDown, Plus } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 
-import { formatPriorityLabel } from '../CardMetadata/formatPriorityLabel';
-import type { BoardColumn, BoardTag, CardPriority } from '../../types';
+import {
+  formatPriorityLabel,
+  type BoardColumn,
+  type BoardTag,
+  type CardPriority,
+} from '../../types';
 
 type PriorityOption = {
   label: string;

@@ -35,5 +35,4 @@ const CardMetadata = ({
 export default CardMetadata;
 export { default as PriorityBadge } from './PriorityBadge';
 export { default as TagChip } from './TagChip';
-export { formatPriorityLabel } from './formatPriorityLabel';
 export type { MetadataTag };

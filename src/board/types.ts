@@ -1,6 +1,4 @@
-export const CARD_PRIORITIES = ['low', 'medium', 'high'] as const;
-
-export type CardPriority = (typeof CARD_PRIORITIES)[number];
+import type { CardPriority } from './cardPriority.js';
 
 export type BoardTag = {
   id: string;

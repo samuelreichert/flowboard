@@ -2,7 +2,11 @@ import { useId, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
 import type { FormEvent } from 'react';
 
 import type { CardDialogValues } from '../CardDialog';
-import type { BoardColumn, BoardTag, CardPriority } from '../../types';
+import {
+  CARD_PRIORITY_OPTIONS,
+  type BoardColumn,
+  type BoardTag,
+} from '../../types';
 import ComposerInput from './ComposerInput';
 import ComposerMetaControls from './ComposerMetaControls';
 import {
@@ -20,12 +24,6 @@ type CardComposerProps = {
   onTagsChange: (tags: BoardTag[]) => void;
   tags: BoardTag[];
 };
-
-const PRIORITY_OPTIONS: { label: string; value: CardPriority }[] = [
-  { label: 'Low', value: 'low' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'High', value: 'high' },
-];
 
 const getFallbackColumnId = (columns: BoardColumn[]) => columns[0]?.id ?? '';
 
@@ -216,7 +214,7 @@ const CardComposer = ({
           open ? dispatch({ type: 'tagsOpened' }) : closeTags()
         }
         priority={priority}
-        priorityOptions={PRIORITY_OPTIONS}
+        priorityOptions={CARD_PRIORITY_OPTIONS}
         selectedColumnId={selectedColumnId}
         selectedTagIdSet={selectedTagIdSet}
         tagError={tagError}
