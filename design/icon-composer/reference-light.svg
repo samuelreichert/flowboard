@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="flowboardReferenceTileLight" x1="256" x2="768" y1="64" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" />
+      <stop offset="1" stop-color="#f2f2f2" />
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="256" fill="url(#flowboardReferenceTileLight)" />
+  <path
+    fill="#050505"
+    fill-rule="evenodd"
+    d="M384 240H640A192 192 0 0 1 832 432V592A192 192 0 0 1 640 784H384A192 192 0 0 1 192 592V432A192 192 0 0 1 384 240Z
+      M352 352H384A64 64 0 0 1 448 416A64 64 0 0 1 384 480H352A64 64 0 0 1 288 416A64 64 0 0 1 352 352Z
+      M560 352H672A64 64 0 0 1 736 416A64 64 0 0 1 672 480H560A64 64 0 0 1 496 416A64 64 0 0 1 560 352Z
+      M352 544H480A64 64 0 0 1 544 608A64 64 0 0 1 480 672H352A64 64 0 0 1 288 608A64 64 0 0 1 352 544Z
+      M640 544H672A64 64 0 0 1 736 608A64 64 0 0 1 672 672H640A64 64 0 0 1 576 608A64 64 0 0 1 640 544Z"
+  />
+</svg>
