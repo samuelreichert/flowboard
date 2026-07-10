@@ -4,38 +4,30 @@ import { X } from 'lucide-react';
 
 import ConfirmDialog from '../ConfirmDialog';
 import DialogSelect from '../DialogSelect';
+import { CARD_PRIORITY_OPTIONS, formatPriorityLabel } from '../../types';
 import CardContentField from './CardContentField';
 import CardDialogFooter from './CardDialogFooter';
 import CardTitleField from './CardTitleField';
-import { PRIORITY_OPTIONS } from './constants';
-import DiscardNewCardConfirmation from './DiscardNewCardConfirmation';
-import { formatPriorityLabel } from './formatters';
 import TagSelectField from './TagSelectField';
 import type { CardDialogProps, CardDialogValues } from './types';
 import useCardDialogController from './useCardDialogController';
 import '../IconButton/IconButton.css';
 
 const CardDialog = (props: CardDialogProps) => {
-  const dialogKey = props.open
-    ? (props.card?.id ?? `new-${props.columnId}`)
-    : 'closed';
+  const dialogKey = props.open ? props.card.id : 'closed';
 
   return <CardDialogContent key={dialogKey} {...props} />;
 };
 
 const CardDialogContent = (props: CardDialogProps) => {
   const {
-    cancelDiscardNewCard,
     card,
-    closeCardDialog,
-    columnId,
     columns,
     content,
     createdAtLabel,
     createTag,
     creatingTag,
     deleteOpen,
-    discardOpen,
     editTitle,
     error,
     lastValidTitle,
@@ -47,7 +39,6 @@ const CardDialogContent = (props: CardDialogProps) => {
     onDeleteOpenChange,
     onNewTagNameChange,
     onPriorityChange,
-    onSubmit,
     onTagsOpenChange,
     onTitleBlur,
     onTitleChange,
@@ -74,19 +65,13 @@ const CardDialogContent = (props: CardDialogProps) => {
           <Dialog.Backdrop className="dialog-backdrop" />
           <Dialog.Viewport className="dialog-viewport">
             <Dialog.Popup
-              className={`dialog-popup dialog-popup--card ${discardOpen ? 'dialog-popup--card-confirm' : ''}`}
-              role={discardOpen ? 'alertdialog' : 'dialog'}
+              className="dialog-popup dialog-popup--card"
+              role="dialog"
             >
-              {discardOpen ? (
-                <DiscardNewCardConfirmation
-                  onCancel={cancelDiscardNewCard}
-                  onDiscard={closeCardDialog}
-                />
-              ) : (
-                <form onSubmit={onSubmit}>
+                <form>
                   <div className="dialog-header">
                     <Dialog.Title className="dialog-title">
-                      {card ? 'Card' : 'New card'}
+                      Card
                     </Dialog.Title>
                     <Button
                       aria-label="Close card"
@@ -126,7 +111,7 @@ const CardDialogContent = (props: CardDialogProps) => {
                     label="Priority"
                     name="priority"
                     onValueChange={onPriorityChange}
-                    options={PRIORITY_OPTIONS}
+                    options={CARD_PRIORITY_OPTIONS}
                     renderValue={(value) =>
                       value ? formatPriorityLabel(value) : 'Choose priority'
                     }
@@ -148,31 +133,26 @@ const CardDialogContent = (props: CardDialogProps) => {
                   />
                   <CardContentField
                     card={card}
-                    columnId={columnId}
                     content={content}
                     onContentChange={onContentChange}
                   />
                   <CardDialogFooter
-                    card={card}
                     error={error}
                     onDeleteClick={openDeleteConfirmation}
                   />
                 </form>
-              )}
             </Dialog.Popup>
           </Dialog.Viewport>
         </Dialog.Portal>
       </Dialog.Root>
-      {card && (
-        <ConfirmDialog
-          confirmLabel="Delete card"
-          description={`This will permanently delete ${title.trim() || lastValidTitle || 'this card'}.`}
-          onConfirm={onConfirmDeleteCard}
-          onOpenChange={onDeleteOpenChange}
-          open={deleteOpen}
-          title="Delete this card?"
-        />
-      )}
+      <ConfirmDialog
+        confirmLabel="Delete card"
+        description={`This will permanently delete ${title.trim() || lastValidTitle || 'this card'}.`}
+        onConfirm={onConfirmDeleteCard}
+        onOpenChange={onDeleteOpenChange}
+        open={deleteOpen}
+        title="Delete this card?"
+      />
     </>
   );
 };

@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useRef } from 'react';
-import type { FormEvent } from 'react';
 
 import type { BoardTag, CardPriority } from '../../types';
 import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
@@ -21,13 +20,12 @@ const useCardDialogController = ({
     cardDialogReducer,
     createCardDialogState(card, columnId)
   );
-  const lastValidTitleRef = useRef(card?.title ?? '');
+  const lastValidTitleRef = useRef(card.title);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const {
     content,
     creatingTag,
     deleteOpen,
-    discardOpen,
     error,
     newTagName,
     priority,
@@ -52,39 +50,13 @@ const useCardDialogController = ({
     return () => window.clearTimeout(focusTitle);
   }, [open, titleEditing]);
 
-  const isNewCardDraftDirty = () =>
-    !card &&
-    (title.trim().length > 0 ||
-      content.trim().length > 0 ||
-      selectedTagIds.length > 0);
-
   const closeCardDialog = () => {
-    dispatch({ type: 'fieldsChanged', values: { discardOpen: false } });
     onOpenChange(false);
   };
 
   const onCardOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
       onOpenChange(true);
-      return;
-    }
-
-    if (discardOpen) {
-      dispatch({ type: 'fieldsChanged', values: { discardOpen: false } });
-      return;
-    }
-
-    if (isNewCardDraftDirty()) {
-      dispatch({
-        type: 'fieldsChanged',
-        values: {
-          creatingTag: false,
-          discardOpen: true,
-          newTagName: '',
-          tagError: '',
-          tagsOpen: false,
-        },
-      });
       return;
     }
 
@@ -96,10 +68,6 @@ const useCardDialogController = ({
       title?: string;
     }
   ) => {
-    if (!card) {
-      return;
-    }
-
     const nextTitle = nextValues.title ?? title;
     const trimmedTitle = nextTitle.trim();
     const titleToSave = trimmedTitle || lastValidTitleRef.current;
@@ -131,32 +99,8 @@ const useCardDialogController = ({
     }
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (card) {
-      closeCardDialog();
-      return;
-    }
-
-    const message = onSave({
-      columnId: selectedColumnId,
-      content: content.trim(),
-      priority,
-      tagIds: selectedTagIds,
-      title: title.trim(),
-    });
-
-    if (message) {
-      dispatch({ type: 'fieldsChanged', values: { error: message } });
-      return;
-    }
-
-    closeCardDialog();
-  };
-
   const onConfirmDeleteCard = () => {
-    onDelete?.();
+    onDelete();
     closeCardDialog();
   };
 
@@ -233,12 +177,6 @@ const useCardDialogController = ({
     dispatch({ type: 'fieldsChanged', values: { titleEditing: false } });
   };
 
-  const cancelDiscardNewCard = () =>
-    dispatch({
-      type: 'fieldsChanged',
-      values: { discardOpen: false },
-    });
-
   const editTitle = () =>
     dispatch({
       type: 'fieldsChanged',
@@ -275,7 +213,7 @@ const useCardDialogController = ({
       },
     });
 
-  const createdAtLabel = card?.createdAt ? formatCreatedAt(card.createdAt) : '';
+  const createdAtLabel = formatCreatedAt(card.createdAt);
   const tagNameById = new Map(tags.map((tag) => [tag.id, tag.name]));
   const selectedTagNames = selectedTagIds
     .map((tagId) => tagNameById.get(tagId))
@@ -284,17 +222,13 @@ const useCardDialogController = ({
     selectedTagNames.length > 0 ? selectedTagNames.join(', ') : 'No tags';
 
   return {
-    cancelDiscardNewCard,
     card,
-    closeCardDialog,
-    columnId,
     columns,
     content,
     createdAtLabel,
     createTag,
     creatingTag,
     deleteOpen,
-    discardOpen,
     editTitle,
     error,
     lastValidTitle: lastValidTitleRef.current,
@@ -306,7 +240,6 @@ const useCardDialogController = ({
     onDeleteOpenChange,
     onNewTagNameChange,
     onPriorityChange,
-    onSubmit,
     onTagsOpenChange,
     onTitleBlur,
     onTitleChange,

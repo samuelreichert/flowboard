@@ -1,5 +1,4 @@
-import type { CardPriority } from '../../types';
-import { formatPriorityLabel } from './formatPriorityLabel';
+import { formatPriorityLabel, type CardPriority } from '../../types';
 
 type PriorityBadgeProps = {
   priority: CardPriority;

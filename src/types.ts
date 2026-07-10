@@ -7,7 +7,12 @@ export type {
   BoardColumn,
   BoardState,
   BoardTag,
-  CardPriority,
   CompletedWorkCycle,
 } from './board/types';
-export { CARD_PRIORITIES } from './board/types';
+export {
+  CARD_PRIORITIES,
+  CARD_PRIORITY_OPTIONS,
+  DEFAULT_CARD_PRIORITY,
+  formatPriorityLabel,
+} from './board/cardPriority';
+export type { CardPriority } from './board/cardPriority';

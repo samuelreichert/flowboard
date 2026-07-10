@@ -208,20 +208,20 @@ test('migrates card descriptions to content', () => {
   expect(Date.parse(fetchStorage()[0].cards[0].createdAt)).not.toBeNaN();
 });
 
-test('creates columns and cards from dialogs', async () => {
+test('creates columns and cards from the global composer', async () => {
   const user = userEvent.setup();
   render(<App />);
 
+  expect(screen.getByLabelText('New card')).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: /add column first/i })
+  ).toBeInTheDocument();
+
   await addColumn(user, 'Todo');
   expect(screen.getByRole('heading', { name: 'Todo' })).toBeInTheDocument();
-
-  const column = screen
-    .getByRole('heading', { name: 'Todo' })
-    .closest('section') as HTMLElement;
-  fireEvent.click(within(column).getByRole('button', { name: /create card/i }));
-  const titleInput = await screen.findByLabelText('Card title');
-  await waitFor(() => expect(titleInput).toHaveFocus());
-  await user.click(screen.getByRole('button', { name: /close card/i }));
+  expect(
+    screen.queryByRole('button', { name: /create card/i })
+  ).not.toBeInTheDocument();
 
   await addCard(user, 'Todo', 'Ship it', 'Release the new Flowboard build.');
   expect(screen.getByText('Ship it')).toBeInTheDocument();
@@ -242,125 +242,71 @@ test('creates columns and cards from dialogs', async () => {
   );
 });
 
-test('closes an empty new-card draft without discard confirmation', async () => {
+test('composer validates empty drafts and preserves unsent text during board interactions', async () => {
   const user = userEvent.setup();
   render(<App />);
 
   await addColumn(user, 'Todo');
-  await openCreateCard(user, 'Todo');
-  expect(screen.getByRole('dialog', { name: /new card/i })).toBeInTheDocument();
-  await user.keyboard('{Escape}');
 
-  expect(
-    screen.queryByRole('alertdialog', { name: /discard new card/i })
-  ).not.toBeInTheDocument();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /add card/i })).toBeDisabled();
+  expect(screen.queryByText('Enter a card title.')).not.toBeInTheDocument();
   expect(readColumns()[0].cards).toEqual([]);
 
-  await openCreateCard(user, 'Todo');
-  await user.click(screen.getByRole('button', { name: /^cancel$/i }));
-
-  expect(
-    screen.queryByRole('alertdialog', { name: /discard new card/i })
-  ).not.toBeInTheDocument();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(readColumns()[0].cards).toEqual([]);
-});
-
-test('confirms before discarding a new-card draft with title text', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await addColumn(user, 'Todo');
-  await openCreateCard(user, 'Todo');
-  await user.type(screen.getByLabelText('Card title'), 'Draft card');
-  await user.keyboard('{Escape}');
-
-  const alert = screen.getByRole('alertdialog', {
-    name: /discard new card/i,
-  });
-  expect(alert).toBeInTheDocument();
-
-  await user.click(within(alert).getByRole('button', { name: /^cancel$/i }));
-  await waitFor(() =>
-    expect(
-      screen.queryByRole('alertdialog', { name: /discard new card/i })
-    ).not.toBeInTheDocument()
-  );
-  expect(await screen.findByLabelText('Card title')).toHaveValue('Draft card');
-
-  await user.click(screen.getByRole('button', { name: /close card/i }));
-  await user.click(screen.getByRole('button', { name: /discard card/i }));
-
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(readColumns()[0].cards).toEqual([]);
-});
-
-test('confirms before discarding a new-card draft with content', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await addColumn(user, 'Todo');
-  await openCreateCard(user, 'Todo');
-  await user.click(screen.getByLabelText('Content'));
-  pasteText(screen.getByLabelText('Content'), 'Unsaved details');
-  await user.click(screen.getByRole('button', { name: /close card/i }));
-
-  const alert = screen.getByRole('alertdialog', {
-    name: /discard new card/i,
-  });
-  expect(alert).toBeInTheDocument();
-
-  await user.click(
-    within(alert).getByRole('button', { name: /discard card/i })
-  );
-
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(readColumns()[0].cards).toEqual([]);
-});
-
-test('confirms before discarding a new-card draft with selected tags', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-
-  await addColumn(user, 'Todo');
-  await openTagManager(user);
-  await user.type(screen.getByLabelText('New tag'), 'Design{Enter}');
+  await user.type(screen.getByLabelText('New card'), 'Draft card');
+  await user.click(screen.getByRole('button', { name: /manage tags/i }));
+  expect(screen.getByRole('dialog', { name: /manage tags/i })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
 
-  await openCreateCard(user, 'Todo');
-  await user.click(screen.getByRole('button', { name: /no tags/i }));
-  await user.click(screen.getByRole('option', { name: 'Design' }));
-  await user.click(screen.getByRole('button', { name: /close card/i }));
-
-  const alert = screen.getByRole('alertdialog', {
-    name: /discard new card/i,
-  });
-  expect(alert).toBeInTheDocument();
-  await user.click(
-    within(alert).getByRole('button', { name: /discard card/i })
-  );
-
+  expect(screen.getByLabelText('New card')).toHaveValue('Draft card');
   expect(readColumns()[0].cards).toEqual([]);
-  expect(fetchTagStorage()).toEqual([
-    { id: expect.any(String), name: 'Design' },
-  ]);
 });
 
-test('closes a priority-only new-card draft without discard confirmation', async () => {
+test('composer creates cards with selected column, priority, and inline-created tags', async () => {
   const user = userEvent.setup();
   render(<App />);
 
   await addColumn(user, 'Todo');
-  await openCreateCard(user, 'Todo');
-  await chooseSelectOption(user, 'Priority', 'High');
-  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await addColumn(user, 'Review');
 
-  expect(
-    screen.queryByRole('alertdialog', { name: /discard new card/i })
-  ).not.toBeInTheDocument();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await chooseSelectOption(user, 'Destination column', 'Review');
+  await chooseSelectOption(user, 'Priority', 'High');
+  await user.click(screen.getByRole('button', { name: /^tags$/i }));
+  await user.click(screen.getByRole('button', { name: /create tag/i }));
+  await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('New card'), 'Polish composer');
+  await user.click(screen.getByRole('button', { name: /add card/i }));
+
   expect(readColumns()[0].cards).toEqual([]);
+  expect(readColumns()[1].cards[0]).toMatchObject({
+    content: '',
+    priority: 'high',
+    tagIds: [fetchTagStorage()[0].id],
+    title: 'Polish composer',
+  });
+  const card = getBoardCardButton('Polish composer');
+  expect(card).toBeInTheDocument();
+  expect(within(card).getByText('High')).toBeInTheDocument();
+  expect(within(card).getByText('Design')).toBeInTheDocument();
+  expect(screen.queryByText(/cmd\+enter/i)).not.toBeInTheDocument();
+});
+
+test('composer submits with command enter and preserves plain enter as content', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await user.type(screen.getByLabelText('New card'), 'Ship it{Enter}Body');
+  expect(screen.getByLabelText('New card')).toHaveValue('Ship it\nBody');
+  expect(readColumns()[0].cards).toEqual([]);
+
+  await user.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(readColumns()[0].cards[0]).toMatchObject({
+    content: 'Body',
+    title: 'Ship it',
+  });
+  expect(screen.getByLabelText('New card')).toHaveValue('');
 });
 
 test('renders column creation as a placeholder in the columns list', () => {
@@ -444,7 +390,7 @@ test('opens card details from the card title, metadata, and background', async (
   expectCardDialogTitle('Review surfaces');
   await closeCardDialog(user);
 
-  await user.click(screen.getByText('Medium'));
+  await user.click(screen.getAllByText('Medium')[0]);
   expectCardDialogTitle('Review surfaces');
   await closeCardDialog(user);
 
@@ -1023,6 +969,7 @@ test('renames and deletes a column with confirmation', async () => {
   const input = screen.getByLabelText('Column title');
   await user.clear(input);
   await user.type(input, 'Ready');
+  await waitFor(() => expect(input).toHaveValue('Ready'));
   expect(
     screen.queryByRole('button', { name: /save changes/i })
   ).not.toBeInTheDocument();
@@ -1409,14 +1356,12 @@ const addCard = async (
   title: string,
   content = ''
 ) => {
-  await openCreateCard(user, columnTitle);
-  await user.type(await screen.findByLabelText('Card title'), title);
-  if (content) {
-    const contentEditor = await screen.findByLabelText('Content');
-    await user.click(contentEditor);
-    pasteText(contentEditor, content);
-  }
-  await user.click(screen.getByRole('button', { name: /^create$/i }));
+  await chooseSelectOption(user, 'Destination column', columnTitle);
+  await user.type(
+    screen.getByLabelText('New card'),
+    content ? `${title}{Enter}${content}` : title
+  );
+  await user.click(screen.getByRole('button', { name: /add card/i }));
 };
 
 const closeCardDialog = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -1429,17 +1374,6 @@ const closeCardDialog = async (user: ReturnType<typeof userEvent.setup>) => {
       document.querySelector('[data-base-ui-inert]')
     ).not.toBeInTheDocument()
   );
-};
-
-const openCreateCard = async (
-  _user: ReturnType<typeof userEvent.setup>,
-  columnTitle: string
-) => {
-  const column = screen
-    .getByRole('heading', { name: columnTitle })
-    .closest('section') as HTMLElement;
-  fireEvent.click(within(column).getByRole('button', { name: /create card/i }));
-  await screen.findByLabelText('Card title');
 };
 
 const pasteText = (element: HTMLElement, text: string) => {
@@ -1519,7 +1453,10 @@ const chooseSelectOption = async (
   label: string,
   option: string
 ) => {
-  await user.click(screen.getByRole('combobox', { name: label }));
+  const dialog = screen.queryByRole('dialog');
+  const scope = dialog ? within(dialog) : screen;
+
+  await user.click(scope.getByRole('combobox', { name: label }));
   await user.click(await screen.findByRole('option', { name: option }));
 };
 

@@ -8,6 +8,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "./dist-server",
     "rootDir": ".",
+    "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
     "strict": true,
     "types": ["node"],

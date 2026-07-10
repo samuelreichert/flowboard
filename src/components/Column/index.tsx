@@ -1,11 +1,10 @@
 import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
-import { Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
 
 import Card from '../Card';
-import CardDialog from '../CardDialog';
 import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import type { CardDialogValues } from '../CardDialog';
@@ -27,19 +26,16 @@ type ColumnProps = {
   ) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
   renameColumn: (columnId: string, title: string) => string | void;
-  saveCard: (values: CardDialogValues) => string | void;
   tags: BoardTag[];
 };
 
 type ColumnState = {
-  addCardOpen: boolean;
   deleteOpen: boolean;
   isDragOver: boolean;
   renameOpen: boolean;
 };
 
 type ColumnAction =
-  | { type: 'addCardOpenChanged'; open: boolean }
   | { type: 'deleteOpenChanged'; open: boolean }
   | { type: 'dragOverChanged'; isDragOver: boolean }
   | { type: 'renameOpenChanged'; open: boolean };
@@ -49,8 +45,6 @@ const columnReducer = (
   action: ColumnAction
 ): ColumnState => {
   switch (action.type) {
-    case 'addCardOpenChanged':
-      return { ...state, addCardOpen: action.open };
     case 'deleteOpenChanged':
       return { ...state, deleteOpen: action.open };
     case 'dragOverChanged':
@@ -68,17 +62,15 @@ const Column = ({
   editCard,
   onTagsChange,
   renameColumn,
-  saveCard,
   tags,
 }: ColumnProps) => {
   const columnRef = useRef<HTMLElement | null>(null);
   const [state, dispatch] = useReducer(columnReducer, {
-    addCardOpen: false,
     deleteOpen: false,
     isDragOver: false,
     renameOpen: false,
   });
-  const { addCardOpen, deleteOpen, isDragOver, renameOpen } = state;
+  const { deleteOpen, isDragOver, renameOpen } = state;
 
   useEffect(() => {
     const columnElement = columnRef.current;
@@ -162,23 +154,7 @@ const Column = ({
         {isDragOver && column.cards.length === 0 && (
           <div className="column__empty-drop-indicator">Drop card here</div>
         )}
-        <Button
-          className="add-card-button"
-          onClick={() => dispatch({ open: true, type: 'addCardOpenChanged' })}
-        >
-          <Plus size={16} />
-          Create card
-        </Button>
       </section>
-      <CardDialog
-        columnId={column.id}
-        columns={columns}
-        onTagsChange={onTagsChange}
-        onOpenChange={(open) => dispatch({ open, type: 'addCardOpenChanged' })}
-        onSave={saveCard}
-        open={addCardOpen}
-        tags={tags}
-      />
       <ColumnRenameDialog
         initialValue={column.title}
         onOpenChange={(open) => dispatch({ open, type: 'renameOpenChanged' })}

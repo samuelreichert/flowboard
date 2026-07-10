@@ -1,10 +1,10 @@
 import { createServer } from 'node:http';
 
-import { createServerConfig } from './config.js';
-import { createBoardRepository } from './db/boardRepository.js';
-import { sendJson } from './http/json.js';
-import { serveProductionFile } from './http/static.js';
-import { handleBoardApiRequest } from './routes/board.js';
+import { createServerConfig } from './config.ts';
+import { createBoardRepository } from './db/boardRepository.ts';
+import { sendJson } from './http/json.ts';
+import { serveProductionFile } from './http/static.ts';
+import { handleBoardApiRequest } from './routes/board.ts';
 
 const config = createServerConfig();
 const boardRepository = createBoardRepository(config.databasePath);

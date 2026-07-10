@@ -1,6 +1,6 @@
-import { CARD_CONTENT_LIMIT, DEFAULT_CARD_PRIORITY } from './constants.js';
+import { CARD_PRIORITIES } from './cardPriority.ts';
+import { CARD_CONTENT_LIMIT, DEFAULT_CARD_PRIORITY } from './constants.ts';
 import {
-  CARD_PRIORITIES,
   type ArchivedBoardCard,
   type ArchivedCardTagSnapshot,
   type BoardActiveWorkCycle,
@@ -11,7 +11,7 @@ import {
   type BoardTag,
   type CardPriority,
   type CompletedWorkCycle,
-} from './types.js';
+} from './types.ts';
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
