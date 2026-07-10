@@ -1,4 +1,4 @@
-import { CARD_PRIORITIES } from './cardPriority.js';
+import { CARD_PRIORITIES } from './cardPriority';
 import { CARD_CONTENT_LIMIT, DEFAULT_CARD_PRIORITY } from './constants.js';
 import {
   type ArchivedBoardCard,

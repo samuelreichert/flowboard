@@ -1,4 +1,4 @@
-import type { CardPriority } from './cardPriority.js';
+import type { CardPriority } from './cardPriority';
 
 export type BoardTag = {
   id: string;
