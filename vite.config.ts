@@ -74,6 +74,9 @@ export default defineConfig({
         start_url: '/',
       },
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+      },
       workbox: {
         globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}'],
         navigateFallback: '/index.html',
