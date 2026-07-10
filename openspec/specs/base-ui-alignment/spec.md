@@ -1,19 +1,9 @@
 # base-ui-alignment Specification
 
 ## Purpose
-TBD - created by archiving change improve-project-readiness-and-pwa. Update Purpose after archive.
+Defines alignment between Base UI primitives and Flowboard interaction patterns.
+
 ## Requirements
-### Requirement: Background picker uses popup semantics
-The system SHALL implement the board background picker with a Base UI popup primitive that manages positioning, outside-click dismissal, Escape dismissal, and focus behavior.
-
-#### Scenario: Background picker opens from board actions
-- **WHEN** the user selects background settings from the board actions menu
-- **THEN** the system opens the background picker as an accessible popup surface
-
-#### Scenario: Background picker dismisses predictably
-- **WHEN** the background picker is open and the user presses Escape or clicks outside the popup
-- **THEN** the system closes the background picker without changing the selected background
-
 ### Requirement: Single-choice card metadata uses accessible selects
 The system SHALL expose card column and priority controls as accessible single-choice select controls.
 
@@ -38,4 +28,3 @@ The system SHALL expose rich-content formatting controls as a toolbar with keybo
 #### Scenario: User navigates editor formatting controls
 - **WHEN** the user focuses the card content formatting controls
 - **THEN** the system presents them as a toolbar with individual controls for formatting commands
-

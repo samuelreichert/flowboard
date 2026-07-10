@@ -1,35 +1,29 @@
 # board-ui-affordance Specification
 
 ## Purpose
-TBD - created by archiving change improve-project-readiness-and-pwa. Update Purpose after archive.
+Defines board-level control affordances and action availability.
+
 ## Requirements
-### Requirement: Board actions use a clear settings affordance
-The system SHALL expose board-level actions from a compact top-right trigger whose visual affordance communicates board settings or board tools rather than generic overflow.
+### Requirement: Board actions use sidebar commands
+The system SHALL expose board-level actions from sidebar commands rather than a compact top-right trigger.
 
-#### Scenario: Board actions trigger is visible
+#### Scenario: Board header is quiet
 - **WHEN** the board is displayed
-- **THEN** the system shows a top-right icon trigger for board-level actions
-- **AND** the trigger has an accessible name for opening board actions or board settings
+- **THEN** the board header does not show a top-right board actions trigger
+- **AND** sidebar commands remain available for board-level tools
 
-#### Scenario: Board actions menu opens
-- **WHEN** the user activates the board actions trigger
-- **THEN** the system displays the board actions menu with background settings, tag management, and clear board when clearing is available
+#### Scenario: Sidebar clear board command is available
+- **WHEN** the board has one or more columns
+- **THEN** the sidebar exposes a clear board command with an accessible name
+- **AND** activating it opens the existing clear board confirmation flow
 
-### Requirement: Board action affordance remains discoverable
-The system SHALL provide a discoverable label or tooltip for icon-only board action controls.
-
-#### Scenario: User identifies icon-only board trigger
-- **WHEN** the user focuses or hovers the top-right board actions trigger
-- **THEN** the system communicates the trigger purpose as board actions or board settings
-
-### Requirement: Existing board actions remain protected
-The system SHALL preserve existing confirmation and availability behavior for destructive board actions.
+### Requirement: Existing destructive board actions remain protected
+The system SHALL preserve existing confirmation and availability behavior for destructive board actions exposed from the sidebar.
 
 #### Scenario: Clear board remains confirmation-gated
-- **WHEN** the user chooses clear board from the board actions menu
+- **WHEN** the user chooses clear board from the sidebar
 - **THEN** the system asks for confirmation before deleting columns and cards
-  
+
 #### Scenario: Clear board is hidden when unavailable
 - **WHEN** the board has no columns
-- **THEN** the system does not offer clear board as an available menu action
-
+- **THEN** the system does not offer clear board as an available sidebar command

@@ -1,41 +1,34 @@
 # board-actions-menu Specification
 
 ## Purpose
-TBD - created by archiving change add-card-priority-and-tags. Update Purpose after archive.
+Defines where board-level actions are exposed and how destructive board actions are protected.
+
 ## Requirements
-### Requirement: Board actions are available from a top-right menu
+### Requirement: Board actions are available from the sidebar
 
-The system SHALL provide a single top-right board actions menu for board-level actions.
+The system SHALL provide board-level actions from the sidebar rather than from a top-right board actions menu.
 
-#### Scenario: User opens board actions
+#### Scenario: User uses sidebar board actions
 
-- **WHEN** a user activates the top-right board actions control
-- **THEN** the system displays menu entries for background settings, tag management, and clearing the board when clearing is available
+- **WHEN** a user views the sidebar
+- **THEN** the system displays tag management as a sidebar command
+- **AND** the system displays clear board as a sidebar command when clearing is available
+- **AND** the board header does not display a top-right board actions menu
 
-### Requirement: Background settings remain accessible
+### Requirement: Tag management opens from sidebar board actions
 
-The system SHALL keep the existing board background selection behavior accessible from the board actions menu.
-
-#### Scenario: User changes background from menu
-
-- **WHEN** a user opens background settings from the board actions menu and chooses a background
-- **THEN** the selected background is applied and persisted as before
-
-### Requirement: Tag management opens from board actions
-
-The system SHALL allow users to open tag management from the board actions menu.
+The system SHALL allow users to open tag management from the sidebar board actions.
 
 #### Scenario: User opens tag manager
 
-- **WHEN** a user selects tag management from the board actions menu
+- **WHEN** a user selects tag management from the sidebar
 - **THEN** the system displays controls to create, edit, and remove board tags
 
 ### Requirement: Clear board remains confirmation-gated
 
-The system SHALL preserve the existing clear-board confirmation behavior when clear board is moved into the board actions menu.
+The system SHALL preserve the existing clear-board confirmation behavior when clear board is exposed from the sidebar.
 
-#### Scenario: User chooses clear board from menu
+#### Scenario: User chooses clear board from the sidebar
 
-- **WHEN** a user selects clear board from the board actions menu
+- **WHEN** a user selects clear board from the sidebar
 - **THEN** the system asks for confirmation before deleting columns and cards
-
