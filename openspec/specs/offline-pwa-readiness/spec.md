@@ -11,26 +11,34 @@ The system SHALL cache the production app shell and bundled static assets so Flo
 - **THEN** the system loads the Flowboard application shell from cache
 
 ### Requirement: Local board edits continue offline
-The system SHALL allow board edits to continue using browser storage while network access or the optional board API is unavailable.
+The system SHALL allow local/static-mode board edits to continue using browser storage while network access or the optional local board API is unavailable, but authenticated production board edits SHALL NOT be presented as durably saved until the authenticated API confirms persistence.
 
-#### Scenario: User edits while offline
-- **WHEN** the app is loaded and the optional board API is unavailable
+#### Scenario: User edits in local/static mode while offline
+- **WHEN** the app is running in local/static mode and the optional local board API is unavailable
 - **THEN** the user can create, edit, move, and delete board content using local browser storage
 
-### Requirement: Optional API persistence does not block local use
-The system SHALL treat the optional `/api/board` SQLite persistence endpoint as a synchronization target rather than a prerequisite for local editing, regardless of whether the endpoint is served by the modular TypeScript local server.
+#### Scenario: Authenticated user edits while production API is unavailable
+- **WHEN** an authenticated user attempts to change server-backed board data while the production API is unavailable
+- **THEN** the system communicates that durable saving is unavailable instead of treating the edit as safely persisted
 
-#### Scenario: API hydration fails
-- **WHEN** the app starts and the optional board API cannot be reached
+### Requirement: Optional API persistence does not block local use
+The system SHALL treat the optional local SQLite persistence endpoint as a local/static synchronization target rather than a prerequisite for local editing, while authenticated production persistence SHALL use the authenticated API as the durable data source.
+
+#### Scenario: Local API hydration fails
+- **WHEN** the app is running in local/static mode and the optional local board API cannot be reached
 - **THEN** the system keeps using the locally stored board without clearing it
 
-#### Scenario: API write fails
-- **WHEN** a board change is made and the optional board API write fails
+#### Scenario: Local API write fails
+- **WHEN** the app is running in local/static mode and an optional local board API write fails
 - **THEN** the system preserves the local board state and does not block the user from continuing to edit
 
-#### Scenario: Modular server is unavailable
-- **WHEN** the modular TypeScript local server is not running
+#### Scenario: Modular server is unavailable in local/static mode
+- **WHEN** the modular TypeScript local server is not running in local/static mode
 - **THEN** the system continues to support local board editing through browser storage
+
+#### Scenario: Authenticated production data load fails
+- **WHEN** the app is running in authenticated production mode and server-backed board data cannot be loaded
+- **THEN** the system shows an unavailable or retry state rather than silently falling back to a different durable board source
 
 ### Requirement: PWA metadata supports installation
 The system SHALL provide web app manifest metadata and install icons suitable for browser PWA installation.
@@ -38,4 +46,3 @@ The system SHALL provide web app manifest metadata and install icons suitable fo
 #### Scenario: Browser inspects PWA metadata
 - **WHEN** a browser loads the production app
 - **THEN** the app exposes a manifest with Flowboard name, description, theme color, and required icons
-

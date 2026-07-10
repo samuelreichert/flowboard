@@ -15,15 +15,19 @@ The system SHALL define the optional local server in TypeScript and emit runnabl
 - **THEN** the server starts from emitted JavaScript and listens on the configured local port
 
 ### Requirement: Server responsibilities are modular
-The system SHALL separate server bootstrapping, runtime configuration, HTTP helpers, static SPA serving, board API routing, and SQLite board persistence into focused modules.
+The system SHALL separate server bootstrapping, runtime configuration, HTTP helpers, static SPA serving, Supabase auth verification, authenticated API routing, Prisma data access, and database persistence into focused modules.
 
 #### Scenario: Entrypoint composes modules
 - **WHEN** a maintainer opens the server entrypoint
-- **THEN** the entrypoint coordinates startup and request delegation without containing board validation, SQLite SQL statements, or static file serving internals
+- **THEN** the entrypoint coordinates startup and request delegation without containing board validation, auth verification internals, Prisma query details, or static file serving internals
 
 #### Scenario: Board persistence changes are isolated
 - **WHEN** board persistence behavior changes
-- **THEN** the persistence logic can be updated in the board repository module without changing static asset serving or Vite middleware code
+- **THEN** the persistence logic can be updated in focused Prisma-backed data access modules without changing static asset serving or Vite middleware code
+
+#### Scenario: Auth verification changes are isolated
+- **WHEN** Supabase auth verification behavior changes
+- **THEN** the auth helper or middleware can be updated without changing board-domain validation or static asset serving code
 
 ### Requirement: Board-domain validation is shared
 The system SHALL provide browser-safe board-state types, validation, and normalization utilities that are reused by both client storage hydration and server API handling.
@@ -37,23 +41,27 @@ The system SHALL provide browser-safe board-state types, validation, and normali
 - **THEN** the shared normalization logic maps the description into card content
 
 ### Requirement: Server refactor preserves board API contract
-The system SHALL preserve the existing `/api/board` endpoint path, supported methods, response shape, JSON content type, and validation failure behavior.
+The system SHALL replace the anonymous single-board `/api/board` production persistence contract with authenticated board/project API behavior while preserving any legacy local API compatibility only as an explicit local/static development mode.
 
-#### Scenario: Board is read from API
-- **WHEN** a client sends `GET /api/board`
-- **THEN** the server responds with JSON containing `state` as a valid board state or `null`
+#### Scenario: Authenticated board is read from API
+- **WHEN** an authenticated client requests board data through the production API
+- **THEN** the server verifies the user and responds with board data owned by or accessible to that user
 
-#### Scenario: Board is written to API
-- **WHEN** a client sends `PUT /api/board` with a valid board state payload
-- **THEN** the server persists the board state and responds with JSON containing the saved `state`
+#### Scenario: Authenticated board is written to API
+- **WHEN** an authenticated client submits a valid board-domain change through the production API
+- **THEN** the server verifies ownership, persists the change through Prisma, and responds with the saved result
 
 #### Scenario: Invalid board payload is rejected
-- **WHEN** a client sends `PUT /api/board` with invalid JSON or an invalid board state payload
-- **THEN** the server responds with a 400 JSON error without persisting the payload
+- **WHEN** a client submits invalid JSON or invalid board-domain data
+- **THEN** the server responds with an error without persisting the payload
 
-#### Scenario: Unsupported board API method is rejected
-- **WHEN** a client sends a request to `/api/board` with a method other than `GET` or `PUT`
-- **THEN** the server responds with a 405 JSON error
+#### Scenario: Anonymous production board access is rejected
+- **WHEN** a client sends an unauthenticated production API request for durable board data
+- **THEN** the server rejects the request without reading or writing user board data
+
+#### Scenario: Legacy local API mode is used
+- **WHEN** the app is running in an explicitly supported local/static compatibility mode
+- **THEN** any legacy anonymous board persistence behavior is isolated from authenticated production persistence
 
 ### Requirement: Server refactor preserves static and development serving
 The system SHALL preserve the current local production SPA serving behavior and Vite middleware behavior in development mode.
