@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { defineConfig, env } from 'prisma/config';
 
 const provider = process.env.PRISMA_PROVIDER === 'postgresql' ? 'postgresql' : 'sqlite';
@@ -7,7 +8,7 @@ export default defineConfig({
   schema: isPostgres ? 'prisma/schema.prisma' : 'prisma/schema.sqlite.prisma',
   datasource: {
     url: isPostgres
-      ? env('DATABASE_URL')
+      ? env('DIRECT_URL')
       : (process.env.DATABASE_URL ?? 'file:./data/flowboard.local.db'),
   },
   migrations: {
