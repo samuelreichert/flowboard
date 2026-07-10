@@ -4,6 +4,7 @@ import { Button } from '@base-ui/react/button';
 import { Columns3, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import CardComposer from '../CardComposer';
 import Column from '../Column';
 import ContentDialog from '../ContentDialog';
 import {
@@ -236,28 +237,38 @@ const Columns = ({
 
   return (
     <>
-      <div className="columns-list">
-        {sortedColumns.map((column) => (
-          <Column
-            column={column}
+      <div className="columns-board">
+        <div className="columns-list">
+          {sortedColumns.map((column) => (
+            <Column
+              column={column}
+              columns={sortedColumns}
+              deleteCard={onDeleteCard}
+              deleteColumn={onDeleteColumn}
+              editCard={onEditCard}
+              key={column.id}
+              onTagsChange={onTagsChange}
+              renameColumn={onRenameColumn}
+              tags={tags}
+            />
+          ))}
+          <Button
+            className="add-column-placeholder"
+            onClick={() => setAddColumnOpen(true)}
+          >
+            <Plus size={16} />
+            Add another column
+          </Button>
+        </div>
+        <div className="card-composer-dock">
+          <CardComposer
             columns={sortedColumns}
-            deleteCard={onDeleteCard}
-            deleteColumn={onDeleteColumn}
-            editCard={onEditCard}
-            key={column.id}
+            onAddColumnClick={() => setAddColumnOpen(true)}
+            onSave={onSaveCard}
             onTagsChange={onTagsChange}
-            renameColumn={onRenameColumn}
-            saveCard={onSaveCard}
             tags={tags}
           />
-        ))}
-        <Button
-          className="add-column-placeholder"
-          onClick={() => setAddColumnOpen(true)}
-        >
-          <Plus size={16} />
-          Add another column
-        </Button>
+        </div>
       </div>
       <ContentDialog
         description="Give the next stage of your workflow a clear name."

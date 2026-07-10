@@ -6,19 +6,17 @@ import '../CardContentEditor/CardContentEditor.css';
 const CardContentEditor = lazy(() => import('../CardContentEditor'));
 
 type CardContentFieldProps = {
-  card: BoardCard | undefined;
-  columnId: string;
+  card: BoardCard;
   content: string;
   onContentChange: (value: string) => void;
 };
 
 const CardContentField = ({
   card,
-  columnId,
   content,
   onContentChange,
 }: CardContentFieldProps) => {
-  const contentId = card?.id ?? columnId;
+  const contentId = card.id;
 
   return (
     <div className="dialog-field">

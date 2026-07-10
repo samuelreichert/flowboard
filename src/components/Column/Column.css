@@ -54,32 +54,6 @@
   background-color: var(--color-primary-subtle);
 }
 
-.add-card-button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-md);
-  color: var(--color-text-soft);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 540;
-  gap: 5px;
-  margin-top: 6px;
-  padding: 7px 3px;
-  transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    opacity 140ms ease;
-  width: 100%;
-}
-
-.add-card-button:hover {
-  background-color: var(--color-hover);
-  color: var(--color-text-muted);
-}
-
 .column__empty-drop-indicator {
   align-items: center;
   background-color: var(--color-primary-subtle);
@@ -92,12 +66,6 @@
   justify-content: center;
   margin-top: 4px;
   min-height: 52px;
-}
-
-@media (max-width: 640px) {
-  .add-card-button {
-    min-height: 44px;
-  }
 }
 
 @media (hover: hover) and (pointer: fine) {

@@ -14,10 +14,10 @@ export type CardDialogValues = {
 };
 
 export type CardDialogProps = {
-  card?: BoardCard;
+  card: BoardCard;
   columnId: string;
   columns: BoardColumn[];
-  onDelete?: () => void;
+  onDelete: () => void;
   onOpenChange: (open: boolean) => void;
   onSave: (values: CardDialogValues) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
@@ -29,7 +29,6 @@ export type CardDialogState = {
   content: string;
   creatingTag: boolean;
   deleteOpen: boolean;
-  discardOpen: boolean;
   error: string;
   newTagName: string;
   priority: CardPriority;
@@ -42,8 +41,6 @@ export type CardDialogState = {
 };
 
 export type CardDialogAction =
-  | { type: 'closed' }
   | { type: 'fieldsChanged'; values: Partial<CardDialogState> }
-  | { type: 'opened'; state: CardDialogState }
   | { type: 'tagCreated'; selectedTagIds: string[] }
   | { type: 'tagsClosed' };

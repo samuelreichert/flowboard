@@ -1,24 +1,22 @@
 import type { BoardCard } from '../../types';
-import { DEFAULT_CARD_PRIORITY } from './constants';
 import type { CardDialogAction, CardDialogState } from './types';
 
 export const createCardDialogState = (
-  card: BoardCard | undefined,
+  card: BoardCard,
   columnId: string
 ): CardDialogState => ({
-  content: card?.content ?? '',
+  content: card.content,
   creatingTag: false,
   deleteOpen: false,
-  discardOpen: false,
   error: '',
   newTagName: '',
-  priority: card?.priority ?? DEFAULT_CARD_PRIORITY,
+  priority: card.priority,
   selectedColumnId: columnId,
-  selectedTagIds: card?.tagIds ?? [],
+  selectedTagIds: card.tagIds,
   tagError: '',
   tagsOpen: false,
-  title: card?.title ?? '',
-  titleEditing: !card,
+  title: card.title,
+  titleEditing: false,
 });
 
 export const cardDialogReducer = (
@@ -26,20 +24,8 @@ export const cardDialogReducer = (
   action: CardDialogAction
 ): CardDialogState => {
   switch (action.type) {
-    case 'closed':
-      return {
-        ...state,
-        creatingTag: false,
-        deleteOpen: false,
-        discardOpen: false,
-        newTagName: '',
-        tagError: '',
-        tagsOpen: false,
-      };
     case 'fieldsChanged':
       return { ...state, ...action.values };
-    case 'opened':
-      return action.state;
     case 'tagCreated':
       return {
         ...state,

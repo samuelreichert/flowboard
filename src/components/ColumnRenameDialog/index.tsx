@@ -17,7 +17,7 @@ const ColumnRenameDialog = ({
   onSave,
   open,
 }: ColumnRenameDialogProps) => {
-  const dialogKey = open ? initialValue : 'closed';
+  const dialogKey = open ? 'open' : 'closed';
 
   return (
     <ColumnRenameDialogContent

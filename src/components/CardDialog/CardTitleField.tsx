@@ -5,7 +5,7 @@ import type { RefObject } from 'react';
 import type { BoardCard } from '../../types';
 
 type CardTitleFieldProps = {
-  card: BoardCard | undefined;
+  card: BoardCard;
   createdAtLabel: string;
   fallbackTitle: string;
   onEditClick: () => void;
@@ -58,7 +58,7 @@ const CardTitleField = ({
       )}
     </h2>
     {createdAtLabel && (
-      <time className="card-created-at" dateTime={card?.createdAt}>
+      <time className="card-created-at" dateTime={card.createdAt}>
         Created {createdAtLabel}
       </time>
     )}
