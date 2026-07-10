@@ -1,6 +1,8 @@
+import { Button } from '@base-ui/react/button';
 import {
   History,
   KanbanSquare,
+  LogOut,
   Monitor,
   Moon,
   PanelLeftClose,
@@ -25,12 +27,14 @@ const THEME_OPTIONS: SegmentedControlOption<ThemePreference>[] = [
 ];
 
 type AppSidebarProps = {
+  authEmail: string | null;
   currentView: AppView;
   onBoardClick: () => void;
   onBoardSettingsClick: () => void;
   onCloseMobileSidebar: () => void;
   onHistoryClick: () => void;
   onManageTagsClick: () => void;
+  onSignOut: () => void;
   onThemePreferenceChange: (preference: ThemePreference) => void;
   onToggleSidebar: () => void;
   resolvedTheme: ResolvedTheme;
@@ -39,12 +43,14 @@ type AppSidebarProps = {
 };
 
 const AppSidebar = ({
+  authEmail,
   currentView,
   onBoardClick,
   onBoardSettingsClick,
   onCloseMobileSidebar,
   onHistoryClick,
   onManageTagsClick,
+  onSignOut,
   onThemePreferenceChange,
   onToggleSidebar,
   resolvedTheme,
@@ -103,18 +109,34 @@ const AppSidebar = ({
       expandLabel="Expand sidebar"
       expanded={sidebarExpanded}
       footer={
-        <SegmentedControl
-          ariaLabel="Theme preference"
-          className="app-sidebar__theme-control"
-          onValueChange={onThemePreferenceChange}
-          options={THEME_OPTIONS.map((option) => ({
-            ...option,
-            ariaLabel: `Use ${option.label.toLowerCase()} theme`,
-          }))}
-          value={themePreference}
-        />
+        <>
+          {authEmail && (
+            <div className="app-sidebar__account">
+              <p className="app-sidebar__footer-label">Account</p>
+              <p className="app-sidebar__account-email">{authEmail}</p>
+              <Button
+                className="button button--secondary app-sidebar__sign-out"
+                onClick={onSignOut}
+                type="button"
+              >
+                <LogOut size={16} />
+                <span>Sign out</span>
+              </Button>
+            </div>
+          )}
+          <p className="app-sidebar__footer-label">Theme</p>
+          <SegmentedControl
+            ariaLabel="Theme preference"
+            className="app-sidebar__theme-control"
+            onValueChange={onThemePreferenceChange}
+            options={THEME_OPTIONS.map((option) => ({
+              ...option,
+              ariaLabel: `Use ${option.label.toLowerCase()} theme`,
+            }))}
+            value={themePreference}
+          />
+        </>
       }
-      footerLabel="Theme"
       navAriaLabel="Primary navigation"
       navItems={navItems}
       onClose={onCloseMobileSidebar}

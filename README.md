@@ -34,11 +34,28 @@ Install packages:
 npm install
 ```
 
+Copy the example environment file when you want to run the authenticated
+backend path:
+
+```bash
+cp .env.example .env
+```
+
+The app supports two persistence modes:
+
+- Local/static mode uses browser storage and the legacy optional SQLite mirror.
+- Authenticated mode uses Supabase Auth, the Node API, Prisma, and structured
+  database tables.
+
 ### `npm run dev`
 
 Runs the local Node server, the SQLite database, and Vite in development mode. Open the local URL printed in the terminal to view the app.
 
 The complete board state is saved to browser storage first and mirrored to the local SQLite API at `/api/board` when that API is available.
+
+When Supabase browser environment values are configured, the app shows a
+Supabase magic-link sign-in flow and loads authenticated board data from
+`/api/boards/default`. Authenticated saves are sent to `/api/boards/:id`.
 
 ### `npm run dev:static`
 
@@ -64,6 +81,118 @@ Runs the test suite once.
 
 Type-checks the app and local TypeScript server, emits the compiled server to `dist-server`, and builds the production app to `dist`.
 
+## Database and Auth Setup
+
+Flowboard uses Supabase Auth for production identity and Prisma for app-owned
+data. Prisma owns Flowboard tables such as profiles, projects, boards, columns,
+cards, tags, card-tag assignments, active work cycles, and completed work
+history. Prisma does not manage Supabase's internal `auth` schema.
+
+Generate Prisma clients:
+
+```bash
+npm run db:generate
+```
+
+Local SQLite development uses:
+
+```bash
+PRISMA_PROVIDER=sqlite
+DATABASE_URL=file:./data/flowboard.local.db
+```
+
+Run local schema generation and migration commands:
+
+```bash
+npm run db:generate:sqlite
+npm run db:migrate:sqlite
+npm run db:studio:sqlite
+```
+
+Production Supabase Postgres uses:
+
+```bash
+PRISMA_PROVIDER=postgresql
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY=...
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_SUPABASE_GOOGLE_OAUTH_ENABLED=true
+VITE_SUPABASE_APPLE_OAUTH_ENABLED=false
+```
+
+Apply production migrations with:
+
+```bash
+npm run db:deploy:postgres
+```
+
+The browser `VITE_*` Supabase values are public client configuration. Keep
+database URLs, service-role keys, and any privileged Supabase secrets server-side
+only.
+
+### Social OAuth Setup
+
+Flowboard uses one sign-in screen for new and returning users. Email magic links
+remain available as the fallback, and social sign-in starts Supabase OAuth for
+configured providers.
+
+Public provider flags:
+
+```bash
+VITE_SUPABASE_GOOGLE_OAUTH_ENABLED=true
+VITE_SUPABASE_APPLE_OAUTH_ENABLED=false
+```
+
+Google is enabled by default unless `VITE_SUPABASE_GOOGLE_OAUTH_ENABLED=false`.
+Apple stays disabled until `VITE_SUPABASE_APPLE_OAUTH_ENABLED=true` because
+Apple setup usually needs an Apple Developer account, service identifier,
+provider secret, and stable HTTPS redirect URLs.
+
+In Supabase Dashboard, configure Auth URL settings before testing OAuth:
+
+```text
+http://127.0.0.1:5173
+http://localhost:5173
+```
+
+Add future deployed URLs before testing OAuth on Vercel or production:
+
+```text
+https://your-project.vercel.app
+https://your-production-domain.com
+```
+
+Google OAuth setup:
+
+- Create a Google OAuth web client in Google Cloud / Google Auth Platform.
+- Add local and deployed app origins, such as `http://127.0.0.1:5173`.
+- Add the Supabase Auth callback URL as an authorized redirect URI:
+  `https://your-project-ref.supabase.co/auth/v1/callback`.
+- Enable the Google provider in Supabase Auth and enter the Google client ID
+  and client secret.
+
+Apple OAuth setup:
+
+- Configure Sign in with Apple in an Apple Developer account.
+- Create the required service identifier and provider secret for web OAuth.
+- Add the Supabase Auth callback URL:
+  `https://your-project-ref.supabase.co/auth/v1/callback`.
+- Plan to validate Apple with a stable HTTPS app URL. Local development can keep
+  the Apple button disabled until these production-style URLs are ready.
+
+Manual verification checklist:
+
+- Email: request a magic link and confirm the app recognizes the returned
+  Supabase session.
+- Google: click "Continue with Google", complete provider consent, return to
+  Flowboard, and confirm the authenticated board loads.
+- Apple: when enabled, click "Continue with Apple", complete provider consent,
+  return to Flowboard, and confirm the authenticated board loads.
+- Board data: after any successful sign-in method, create or edit a card and
+  confirm authenticated persistence works after refresh.
+
 ## Storage
 
 Flowboard is local-first. Browser storage is the source of truth for interactive editing, so the board remains usable even when the optional API is unavailable.
@@ -76,14 +205,29 @@ To create a backup, stop the server and copy:
 data/flowboard.db
 ```
 
+Authenticated persistence is different: after sign-in, durable board data is
+loaded from the authenticated API and saved through Prisma-backed structured
+tables. Existing browser board data is imported into the first empty
+authenticated board; if the authenticated board already contains data, the app
+does not silently overwrite it.
+
 ## Offline PWA Behavior
 
 The production build includes a web app manifest and service worker. After the app has loaded successfully once, the service worker caches the app shell and bundled assets so Flowboard can reopen offline.
 
 Offline editing continues through browser storage. If `VITE_BOARD_API_URL` points at a local SQLite API and that API is unavailable, Flowboard keeps the local board intact and does not block edits.
 
+For authenticated production use, the PWA promise is app-shell availability.
+Authenticated board edits are only durably saved after the authenticated API
+confirms persistence.
+
 ## Deploying to Vercel
 
 Import the repository in Vercel and deploy it with the included `vercel.json`. Vercel runs `npm run build` and publishes the static `dist` folder.
 
 The hosted portfolio version intentionally uses browser storage only. SQLite depends on a persistent local filesystem, which Vercel Functions do not provide. If shared cross-device storage is needed later, connect an authenticated hosted database API and set `VITE_BOARD_API_URL` at build time.
+
+For the authenticated production backend, deploy a Node API runtime with
+Supabase Auth verification, Prisma, and Supabase Postgres. Set
+`VITE_FLOWBOARD_API_URL` if the browser should call an API origin other than the
+current site origin.

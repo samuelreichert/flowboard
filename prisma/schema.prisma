@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../server/generated/prisma/postgres"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id          String    @id @db.Uuid
+  displayName String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  projects    Project[]
+  boards      Board[]
+
+  @@map("profiles")
+}
+
+model Project {
+  id        String   @id
+  ownerId   String   @db.Uuid
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     Profile  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  boards    Board[]
+
+  @@index([ownerId, sortOrder])
+  @@map("projects")
+}
+
+model Board {
+  id          String               @id
+  ownerId     String               @db.Uuid
+  projectId   String?
+  title       String
+  backgroundType  String           @default("color")
+  backgroundValue String
+  sortOrder   Int                  @default(0)
+  version     Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  owner       Profile              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workCycle   BoardWorkCycle?
+  columns     BoardColumn[]
+  cards       Card[]
+  tags        Tag[]
+  completedWorkCycles CompletedWorkCycle[]
+
+  @@index([ownerId, sortOrder])
+  @@index([projectId, sortOrder])
+  @@map("boards")
+}
+
+model BoardWorkCycle {
+  id                String   @id
+  boardId           String   @unique
+  startDate         DateTime
+  completedColumnId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  board             Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@map("board_work_cycles")
+}
+
+model BoardColumn {
+  id        String   @id
+  boardId   String
+  title     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards     Card[]
+
+  @@index([boardId, sortOrder])
+  @@map("board_columns")
+}
+
+model Card {
+  id             String    @id
+  boardId        String
+  columnId       String
+  title          String
+  content        String
+  priority       String    @default("medium")
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  board          Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  column         BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  tagAssignments CardTag[]
+
+  @@index([boardId, sortOrder])
+  @@index([columnId, sortOrder])
+  @@map("cards")
+}
+
+model Tag {
+  id              String    @id
+  boardId         String
+  name            String
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  board           Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cardAssignments CardTag[]
+
+  @@unique([boardId, name])
+  @@index([boardId, sortOrder])
+  @@map("tags")
+}
+
+model CardTag {
+  cardId    String
+  tagId     String
+  createdAt DateTime @default(now())
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, tagId])
+  @@index([tagId])
+  @@map("card_tags")
+}
+
+model CompletedWorkCycle {
+  id                   String                   @id
+  boardId              String
+  startDate            DateTime
+  endDate              DateTime
+  completedColumnId    String?
+  completedColumnTitle String?
+  createdAt            DateTime                 @default(now())
+  board                Board                    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards                CompletedWorkCycleCard[]
+
+  @@index([boardId, endDate])
+  @@map("completed_work_cycles")
+}
+
+model CompletedWorkCycleCard {
+  id               String                      @id
+  cycleId          String
+  originalCardId   String?
+  title            String
+  content          String
+  priority         String                      @default("medium")
+  createdAt        DateTime
+  archivedAt       DateTime
+  sortOrder        Int                         @default(0)
+  cycle            CompletedWorkCycle          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  tagSnapshots     CompletedWorkCycleCardTag[]
+
+  @@index([cycleId, sortOrder])
+  @@map("completed_work_cycle_cards")
+}
+
+model CompletedWorkCycleCardTag {
+  id             String                 @id
+  archivedCardId String
+  originalTagId  String?
+  name           String
+  sortOrder      Int                    @default(0)
+  archivedCard   CompletedWorkCycleCard @relation(fields: [archivedCardId], references: [id], onDelete: Cascade)
+
+  @@index([archivedCardId, sortOrder])
+  @@map("completed_work_cycle_card_tags")
+}

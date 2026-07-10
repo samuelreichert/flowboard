@@ -1,5 +1,12 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
+import {
+  isSupabaseConfigured,
+  signInWithSocialProvider,
+  supabase,
+  type SocialAuthProvider,
+  type SupabaseSession,
+} from '../auth/supabase';
 import { completeWorkCycle } from '../board/completedWork';
 import {
   fetchBoardState,
@@ -10,14 +17,48 @@ import {
   updateTagStorage,
   updateStorage,
 } from '../storage';
+import {
+  fetchAuthenticatedDefaultBoard,
+  saveAuthenticatedBoard,
+} from '../storage/authenticatedApi';
 import { getSystemTheme, updateThemePreference } from '../theme';
 import type { ThemePreference } from '../theme';
-import type { BoardTag } from '../types';
+import type { BoardState, BoardTag } from '../types';
 import { appReducer, initAppState } from './appReducer';
 import { getThemeIconSrc } from './appTheme';
 
+type AuthState =
+  | {
+      message: string | null;
+      session: null;
+      status: 'loading' | 'signedOut' | 'static';
+    }
+  | {
+      message: string | null;
+      session: SupabaseSession;
+      status: 'signedIn';
+    };
+
+const hasBoardData = (state: BoardState) =>
+  state.columns.length > 0 ||
+  state.tags.length > 0 ||
+  state.completedWorkCycles.length > 0;
+
 const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
+  const [authState, setAuthState] = useState<AuthState>(() =>
+    isSupabaseConfigured
+      ? { message: null, session: null, status: 'loading' }
+      : { message: null, session: null, status: 'static' }
+  );
+  const [authenticatedBoard, setAuthenticatedBoard] = useState<{
+    id: string;
+    title: string;
+    updatedAt: string;
+  } | null>(null);
+  const [persistenceMessage, setPersistenceMessage] = useState<string | null>(
+    null
+  );
   const completionPulseTimeoutRef = useRef<number | null>(null);
   const {
     activeWorkCycle,
@@ -39,6 +80,10 @@ const useAppController = () => {
   } = state;
 
   useEffect(() => {
+    if (supabase) {
+      return;
+    }
+
     let active = true;
 
     void hydrateStorageFromDatabase().then((state) => {
@@ -57,6 +102,89 @@ const useAppController = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    let active = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) {
+        return;
+      }
+
+      setAuthState(
+        data.session
+          ? { message: null, session: data.session, status: 'signedIn' }
+          : { message: null, session: null, status: 'signedOut' }
+      );
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthState(
+        session
+          ? { message: null, session, status: 'signedIn' }
+          : { message: null, session: null, status: 'signedOut' }
+      );
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authState.status !== 'signedIn') {
+      setAuthenticatedBoard(null);
+      return;
+    }
+
+    let active = true;
+    const localStateBeforeLoad = fetchBoardState();
+
+    setPersistenceMessage('Loading your board...');
+    void fetchAuthenticatedDefaultBoard(authState.session.access_token)
+      .then(async (payload) => {
+        if (!active) {
+          return;
+        }
+
+        if (
+          hasBoardData(localStateBeforeLoad) &&
+          !hasBoardData(payload.state)
+        ) {
+          setPersistenceMessage('Importing your local board...');
+          payload = await saveAuthenticatedBoard(
+            payload.board.id,
+            localStateBeforeLoad,
+            authState.session.access_token
+          );
+        }
+
+        updateBoardStateStorage(payload.state);
+        setAuthenticatedBoard(payload.board);
+        setPersistenceMessage(null);
+        dispatch({ state: payload.state, type: 'boardStateSynced' });
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setPersistenceMessage(
+          'Your cloud board is unavailable. Check your connection and try again.'
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authState]);
 
   useEffect(() => {
     if (
@@ -102,13 +230,40 @@ const useAppController = () => {
     []
   );
 
+  const persistAuthenticatedBoard = (nextState: BoardState) => {
+    if (authState.status !== 'signedIn' || !authenticatedBoard) {
+      return;
+    }
+
+    setPersistenceMessage('Saving...');
+    void saveAuthenticatedBoard(
+      authenticatedBoard.id,
+      nextState,
+      authState.session.access_token
+    )
+      .then((payload) => {
+        setAuthenticatedBoard(payload.board);
+        setPersistenceMessage(null);
+      })
+      .catch(() =>
+        setPersistenceMessage(
+          'Changes are not durably saved yet. Check your connection and try again.'
+        )
+      );
+  };
+
   const updateTags = (newTags: BoardTag[]) => {
     dispatch({ tags: newTags, type: 'tagsChanged' });
     updateTagStorage(newTags);
+    persistAuthenticatedBoard(fetchBoardState());
   };
 
-  const syncBoardState = () =>
-    dispatch({ state: fetchBoardState(), type: 'boardStateSynced' });
+  const syncBoardState = () => {
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateSynced' });
+    persistAuthenticatedBoard(nextState);
+  };
 
   const deleteTag = (tagId: string) => {
     updateTags(tags.filter((tag) => tag.id !== tagId));
@@ -121,12 +276,18 @@ const useAppController = () => {
         })),
       }))
     );
-    dispatch({ state: fetchBoardState(), type: 'boardStateChanged' });
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
   };
 
   const clearBoard = () => {
     updateStorage([]);
-    dispatch({ state: fetchBoardState(), type: 'boardStateChanged' });
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
   };
 
   const chooseThemePreference = (preference: ThemePreference) => {
@@ -165,6 +326,7 @@ const useAppController = () => {
       type: 'activeWorkCycleChanged',
     });
     updateActiveWorkCycleStorage(nextActiveWorkCycle);
+    persistAuthenticatedBoard(fetchBoardState());
   };
 
   const openClearBoardConfirmation = () => {
@@ -218,6 +380,7 @@ const useAppController = () => {
 
     updateBoardStateStorage(nextState);
     dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
     dispatch({ active: true, type: 'completionPulseChanged' });
     if (completionPulseTimeoutRef.current !== null) {
       window.clearTimeout(completionPulseTimeoutRef.current);
@@ -258,6 +421,42 @@ const useAppController = () => {
   const setTagManagerOpen = (open: boolean) =>
     dispatch({ open, type: 'tagManagerOpenChanged' });
 
+  const requestMagicLink = async (email: string) => {
+    if (!supabase) {
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({ email });
+
+    setAuthState({
+      message: error
+        ? 'Unable to send a sign-in link right now.'
+        : 'Check your email for a sign-in link.',
+      session: null,
+      status: 'signedOut',
+    });
+  };
+
+  const requestSocialAuth = async (provider: SocialAuthProvider) => {
+    const { error } = await signInWithSocialProvider(provider);
+
+    setAuthState({
+      message: error
+        ? `Unable to start ${provider.label} sign-in right now.`
+        : `Opening ${provider.label} sign-in...`,
+      session: null,
+      status: 'signedOut',
+    });
+  };
+
+  const signOut = () => {
+    if (!supabase) {
+      return;
+    }
+
+    void supabase.auth.signOut();
+  };
+
   const completedColumn = columns.find(
     (column) => column.id === activeWorkCycle.completedColumnId
   );
@@ -269,6 +468,7 @@ const useAppController = () => {
 
   return {
     activeWorkCycle,
+    authState,
     boardSettingsOpen,
     canCompleteWork,
     completeWorkDisabledReason,
@@ -295,12 +495,16 @@ const useAppController = () => {
     openHistory,
     openMobileSidebar,
     openTagManager,
+    persistenceMessage,
+    requestMagicLink,
+    requestSocialAuth,
     resolvedTheme,
     setBoardSettingsOpen,
     setClearBoardOpen,
     setCompleteWorkOpen,
     setTagManagerOpen,
     sidebarExpanded,
+    signOut,
     storageVersion,
     syncBoardState,
     tagManagerOpen,
