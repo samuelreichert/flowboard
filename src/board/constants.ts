@@ -1,5 +1,5 @@
-import { DEFAULT_CARD_PRIORITY } from './cardPriority';
-import type { BoardBackground } from './types.js';
+import { DEFAULT_CARD_PRIORITY } from './cardPriority.ts';
+import type { BoardBackground } from './types.ts';
 
 export const CARD_CONTENT_LIMIT = 100_000;
 

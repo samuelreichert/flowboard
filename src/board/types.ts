@@ -1,4 +1,6 @@
-import type { CardPriority } from './cardPriority';
+import type { CardPriority } from './cardPriority.ts';
+
+export type { CardPriority } from './cardPriority.ts';
 
 export type BoardTag = {
   id: string;

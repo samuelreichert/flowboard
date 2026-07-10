@@ -3,9 +3,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   isBoardState,
   normalizeBoardState,
-} from '../../src/board/validation.js';
-import type { BoardRepository } from '../db/boardRepository.js';
-import { readRequestBody, sendJson } from '../http/json.js';
+} from '../../src/board/validation.ts';
+import type { BoardRepository } from '../db/boardRepository.ts';
+import { readRequestBody, sendJson } from '../http/json.ts';
 
 export const handleBoardApiRequest = async (
   request: IncomingMessage,
