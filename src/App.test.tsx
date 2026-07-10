@@ -65,6 +65,9 @@ test('renders unified auth entry with social options and email fallback', () => 
     screen.getByText(/if you are new, flowboard will create one for you/i)
   ).toBeInTheDocument();
   expect(
+    document.querySelector<HTMLImageElement>('.auth-panel__brand-icon')?.src
+  ).toMatch(/\/icon-light\.svg$/);
+  expect(
     screen.getByRole('button', { name: /continue with google/i })
   ).toBeInTheDocument();
   expect(

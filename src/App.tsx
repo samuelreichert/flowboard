@@ -4,6 +4,7 @@ import { type FormEvent, useState } from 'react';
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
+import { getThemeIconSrc } from './app/appTheme';
 import useAppController from './app/useAppController';
 import {
   isSupabaseConfigured,
@@ -14,6 +15,7 @@ import {
 import './App.css';
 
 type AuthGateProps = {
+  iconSrc?: string;
   message: string | null;
   onMagicLinkRequest: (email: string) => Promise<void>;
   onSocialAuthRequest: (provider: SocialAuthProvider) => Promise<void>;
@@ -21,6 +23,7 @@ type AuthGateProps = {
 };
 
 export const AuthGate = ({
+  iconSrc = '/icon-light.svg',
   message,
   onMagicLinkRequest,
   onSocialAuthRequest,
@@ -57,9 +60,12 @@ export const AuthGate = ({
     <main className="app app--auth">
       <section className="auth-panel" aria-label="Sign in to Flowboard">
         <div className="auth-panel__brand">
-          <span aria-hidden="true" className="app-sidebar__mark">
-            F
-          </span>
+          <img
+            alt=""
+            aria-hidden="true"
+            className="auth-panel__brand-icon"
+            src={iconSrc}
+          />
           <div>
             <p className="app__eyebrow">Flowboard</p>
             <h1 className="app__title">Sign in</h1>
@@ -136,6 +142,7 @@ const App = () => {
     return (
       <AuthGate
         message={controller.authState.message}
+        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
         onMagicLinkRequest={controller.requestMagicLink}
         onSocialAuthRequest={controller.requestSocialAuth}
         status={controller.authState.status}
