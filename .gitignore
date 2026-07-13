@@ -12,6 +12,7 @@
 /build
 /dist
 /dist-server
+/dev-dist
 /data/*.db
 /data/*.db-shm
 /data/*.db-wal
