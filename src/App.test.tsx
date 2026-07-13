@@ -689,7 +689,9 @@ test('creates and toggles task lists as Markdown checkboxes', async () => {
   const checkbox = await screen.findByRole('checkbox', {
     name: /incomplete task: ship editor/i,
   });
+  expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'false');
   await user.click(checkbox);
+  expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'true');
   await user.click(screen.getByRole('button', { name: /copy markdown/i }));
 
   expect(writeText).toHaveBeenLastCalledWith('- [x] Ship editor');
