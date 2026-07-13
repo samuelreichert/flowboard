@@ -119,38 +119,8 @@ const renderImageHtml = (alt: string, src: string, title = '') => {
   return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}"${titleAttribute}>`;
 };
 
-const taskListMarkerLinePattern = /^(\s*[-+*]\s+\[[ xX]\])\s*$/;
-const markdownBlockStartPattern =
-  /^\s*(?:[-+*]\s+(?:\[[ xX]\]\s*)?|\d+\.\s+|#{1,6}\s+|>|```|~~~|<|!\[|\|)/;
-
-export const normalizeTaskListMarkerLines = (markdown: string) => {
-  const lines = markdown.split('\n');
-  const normalizedLines: string[] = [];
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const taskListMarkerMatch = line.match(taskListMarkerLinePattern);
-    const nextLine = lines[index + 1];
-
-    if (
-      taskListMarkerMatch &&
-      nextLine &&
-      nextLine.trim() &&
-      !markdownBlockStartPattern.test(nextLine)
-    ) {
-      normalizedLines.push(`${taskListMarkerMatch[1]} ${nextLine.trim()}`);
-      index += 1;
-      continue;
-    }
-
-    normalizedLines.push(line);
-  }
-
-  return normalizedLines.join('\n');
-};
-
 const normalizeMarkdownForEditor = (markdown: string) =>
-  normalizeTaskListMarkerLines(markdown)
+  markdown
     .replace(
       /^!\[([^\]\n]*)\]\(\[([^\]\n]*)\]\((\S+?)(?:\s+["']([^"'\n]*)["'])?\)\)$/gm,
       (_match, alt: string, _linkText: string, src: string, title = '') =>
