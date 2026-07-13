@@ -11,16 +11,19 @@ import { AlignLeft } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
+import { useNavigate } from 'react-router';
 
 import CardMetadata from '../CardMetadata';
 import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
+import { createActiveCardPath } from '../../app/routes';
 import type { BoardCard, BoardColumn, BoardTag } from '../../types';
 
 import './Card.css';
 
 type CardProps = {
+  activeCardId: string | null;
   card: BoardCard;
   columnId: string;
   columns: BoardColumn[];
@@ -31,6 +34,7 @@ type CardProps = {
     values: CardDialogValues
   ) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
+  onActiveCardClose: () => void;
   tags: BoardTag[];
 };
 
@@ -74,14 +78,17 @@ const cardReducer = (state: CardState, action: CardAction): CardState => {
 };
 
 const Card = ({
+  activeCardId,
   card,
   columnId,
   columns,
   deleteCard,
   editCard,
   onTagsChange,
+  onActiveCardClose,
   tags,
 }: CardProps) => {
+  const navigate = useNavigate();
   const cardRef = useRef<HTMLElement | null>(null);
   const titleRef = useRef<HTMLSpanElement | null>(null);
   const ignoreNextClickRef = useRef(false);
@@ -92,8 +99,10 @@ const Card = ({
     isDragging: false,
   });
   const { closestEdge, detailsOpen, isDragging } = state;
+  const routeDetailsOpen = activeCardId === card.id;
+  const dialogOpen = detailsOpen || routeDetailsOpen;
 
-  const openCard = () => dispatch({ open: true, type: 'detailsOpenChanged' });
+  const openCard = () => navigate(createActiveCardPath(card.id));
 
   const setCardDraggingEnabled = (enabled: boolean) => {
     const cardElement = cardRef.current;
@@ -254,9 +263,16 @@ const Card = ({
         columns={columns}
         onDelete={() => deleteCard(columnId, card.id)}
         onTagsChange={onTagsChange}
-        onOpenChange={(open) => dispatch({ open, type: 'detailsOpenChanged' })}
+        onOpenChange={(open) => {
+          if (!open && routeDetailsOpen) {
+            onActiveCardClose();
+            return;
+          }
+
+          dispatch({ open, type: 'detailsOpenChanged' });
+        }}
         onSave={(values) => editCard(columnId, card.id, values)}
-        open={detailsOpen}
+        open={dialogOpen}
         tags={tags}
       />
     </>

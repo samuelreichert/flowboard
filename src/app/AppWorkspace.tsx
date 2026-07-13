@@ -9,11 +9,16 @@ import type { AppView } from './appTypes';
 const HistoryView = lazy(() => import('../components/HistoryView'));
 
 type AppWorkspaceProps = {
+  activeCardId: string | null;
+  archivedCardRoute: { cardId: string; cycleId: string } | null;
+  boardLoading: boolean;
   canCompleteWork: boolean;
   completeWorkDisabledReason: string;
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
+  onActiveCardClose: () => void;
+  onArchivedCardClose: () => void;
   onBoardStateChange: () => void;
   onColumnCountChange: (columnCount: number) => void;
   onCompleteWorkClick: () => void;
@@ -24,11 +29,16 @@ type AppWorkspaceProps = {
 };
 
 const AppWorkspace = ({
+  activeCardId,
+  archivedCardRoute,
+  boardLoading,
   canCompleteWork,
   completeWorkDisabledReason,
   completedWorkCycles,
   completionPulse,
   currentView,
+  onActiveCardClose,
+  onArchivedCardClose,
   onBoardStateChange,
   onColumnCountChange,
   onCompleteWorkClick,
@@ -66,9 +76,7 @@ const AppWorkspace = ({
               disabled={!canCompleteWork}
               onClick={onCompleteWorkClick}
               title={
-                canCompleteWork
-                  ? 'Complete work'
-                  : completeWorkDisabledReason
+                canCompleteWork ? 'Complete work' : completeWorkDisabledReason
               }
               type="button"
             >
@@ -87,7 +95,10 @@ const AppWorkspace = ({
             </div>
           )}
           <Columns
+            activeCardId={activeCardId}
+            boardLoading={boardLoading}
             key={storageVersion}
+            onActiveCardClose={onActiveCardClose}
             onBoardStateChange={onBoardStateChange}
             onColumnCountChange={onColumnCountChange}
             onTagsChange={onTagsChange}
@@ -103,7 +114,13 @@ const AppWorkspace = ({
             />
           }
         >
-          <HistoryView completedWorkCycles={completedWorkCycles} tags={tags} />
+          <HistoryView
+            boardLoading={boardLoading}
+            completedWorkCycles={completedWorkCycles}
+            onArchivedCardClose={onArchivedCardClose}
+            routeCard={archivedCardRoute}
+            tags={tags}
+          />
         </Suspense>
       )}
     </section>

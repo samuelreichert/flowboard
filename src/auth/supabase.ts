@@ -4,6 +4,8 @@ import {
   type Session,
 } from '@supabase/supabase-js';
 
+import { createAuthCallbackPath, getInternalDestination } from '../app/routes';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -44,16 +46,19 @@ export const socialAuthProviders: SocialAuthProvider[] = [
   },
 ];
 
-export const getOAuthRedirectTo = () => {
+export const getOAuthRedirectTo = (nextDestination = '/') => {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  return window.location.origin;
+  return `${window.location.origin}${createAuthCallbackPath(
+    getInternalDestination(nextDestination)
+  )}`;
 };
 
 export const signInWithSocialProvider = async (
-  provider: SocialAuthProvider
+  provider: SocialAuthProvider,
+  nextDestination?: string
 ) => {
   if (!supabase || !provider.enabled) {
     return {
@@ -63,7 +68,7 @@ export const signInWithSocialProvider = async (
 
   return supabase.auth.signInWithOAuth({
     options: {
-      redirectTo: getOAuthRedirectTo(),
+      redirectTo: getOAuthRedirectTo(nextDestination),
     },
     provider: provider.id,
   });

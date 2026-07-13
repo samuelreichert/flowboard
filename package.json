@@ -25,7 +25,8 @@
     "lucide-react": "^1.17.0",
     "pg": "^8.22.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-router": "^8.2.0"
   },
   "scripts": {
     "dev": "npm run build:server && node --env-file=.env dist-server/server/index.js --dev",

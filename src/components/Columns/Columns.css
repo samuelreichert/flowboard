@@ -28,6 +28,11 @@
   display: none;
 }
 
+.columns-board__route-missing {
+  justify-self: start;
+  margin: 0 22px;
+}
+
 .card-composer-dock {
   box-sizing: border-box;
   padding: 0 22px 18px;
@@ -96,6 +101,10 @@
     gap: 12px;
     padding: 2px 12px 18px;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .columns-board__route-missing {
+    margin: 0 12px;
   }
 
   .card-composer-dock {

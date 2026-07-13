@@ -30,6 +30,7 @@ type AppDialogsProps = {
   onDeleteTag: (tagId: string) => void;
   onTagManagerOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
+  routeManagementOpen: boolean;
   tagManagerOpen: boolean;
   tags: BoardTag[];
 };
@@ -53,6 +54,7 @@ const AppDialogs = ({
   onDeleteTag,
   onTagManagerOpenChange,
   onTagsChange,
+  routeManagementOpen,
   tagManagerOpen,
   tags,
 }: AppDialogsProps) => (
@@ -65,6 +67,7 @@ const AppDialogs = ({
       onCompletedColumnChange={onCompletedColumnChange}
       onOpenChange={onBoardSettingsOpenChange}
       open={boardSettingsOpen}
+      routeOwned={routeManagementOpen}
     />
     <TagManagerDialog
       getTagUsageCount={getTagUsageCount}
@@ -72,6 +75,7 @@ const AppDialogs = ({
       onOpenChange={onTagManagerOpenChange}
       onTagsChange={onTagsChange}
       open={tagManagerOpen}
+      routeOwned={routeManagementOpen}
       tags={tags}
     />
     <ConfirmDialog
