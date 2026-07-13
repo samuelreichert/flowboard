@@ -1,4 +1,5 @@
 import { Button } from '@base-ui/react/button';
+import { History, Home } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import {
   BrowserRouter,
@@ -26,7 +27,6 @@ import {
   socialAuthProviders,
   type SocialAuthProvider,
 } from './auth/supabase';
-import { EmptyState } from './components/EmptyState';
 
 import './App.css';
 
@@ -181,17 +181,43 @@ const AuthRedirect = ({ destination }: AuthRedirectProps) => {
 
 type NotFoundViewProps = {
   onBoardClick: () => void;
+  onHistoryClick: () => void;
+  requestedPath: string;
+  iconSrc?: string;
 };
 
-const NotFoundView = ({ onBoardClick }: NotFoundViewProps) => (
-  <main className="app app--auth">
-    <section className="auth-panel" aria-label="Route not found">
-      <EmptyState title="Page not found">
-        This Flowboard link does not match a known destination.
-      </EmptyState>
-      <Button className="button button--primary" onClick={onBoardClick}>
-        Open board
-      </Button>
+const NotFoundView = ({
+  iconSrc = '/icon-light.svg',
+  onBoardClick,
+  onHistoryClick,
+  requestedPath,
+}: NotFoundViewProps) => (
+  <main className="app app--not-found">
+    <section className="not-found-panel" aria-label="Route not found">
+      <div className="not-found-panel__mark" aria-hidden="true">
+        <img
+          alt=""
+          className="not-found-panel__brand-icon"
+          src={iconSrc}
+        />
+        <span>404</span>
+      </div>
+      <p className="app__eyebrow">Page not found</p>
+      <h1 className="not-found-panel__title">That page is off the board</h1>
+      <p className="not-found-panel__body">
+        The link points to a Flowboard route that does not exist anymore.
+      </p>
+      <code className="not-found-panel__path">{requestedPath}</code>
+      <div className="not-found-panel__actions">
+        <Button className="button button--primary" onClick={onBoardClick}>
+          <Home aria-hidden="true" size={15} />
+          Open board
+        </Button>
+        <Button className="button button--subtle" onClick={onHistoryClick}>
+          <History aria-hidden="true" size={15} />
+          View history
+        </Button>
+      </div>
     </section>
   </main>
 );
@@ -264,7 +290,10 @@ const RoutedApp = () => {
   if (route.type === 'not-found') {
     return (
       <NotFoundView
+        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
         onBoardClick={() => navigate(APP_ROUTES.board, { replace: true })}
+        onHistoryClick={() => navigate(APP_ROUTES.history, { replace: true })}
+        requestedPath={getLocationDestination(location)}
       />
     );
   }

@@ -362,6 +362,13 @@ test('directly loads tags, settings, history, and unknown routes', async () => {
   window.history.replaceState(null, '', '/nope');
   render(<App />);
   expect(screen.getByText(/page not found/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: /that page is off the board/i })
+  ).toBeInTheDocument();
+  expect(screen.getByText('/nope')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /view history/i })
+  ).toBeInTheDocument();
 });
 
 test('directly opens and closes an active card route', async () => {
