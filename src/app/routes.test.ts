@@ -8,6 +8,7 @@ import {
   createSignInPath,
   getInternalDestination,
   getNextSearchDestination,
+  isProtectedAppRoute,
   parseAppRoute,
 } from './routes';
 
@@ -51,5 +52,11 @@ describe('app routes', () => {
     expect(getNextSearchDestination('?next=https%3A%2F%2Fevil.example')).toBe(
       '/board'
     );
+  });
+
+  test('treats unknown app paths as protected until the user is signed in', () => {
+    expect(isProtectedAppRoute({ type: 'not-found' })).toBe(true);
+    expect(isProtectedAppRoute({ type: 'sign-in' })).toBe(false);
+    expect(isProtectedAppRoute({ type: 'auth-callback' })).toBe(false);
   });
 });

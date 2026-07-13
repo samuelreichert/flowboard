@@ -18,6 +18,7 @@ import {
   getViewForRoute,
   isProtectedAppRoute,
   parseAppRoute,
+  type ParsedAppRoute,
 } from './app/routes';
 import useAppController from './app/useAppController';
 import {
@@ -204,6 +205,21 @@ const getLocationDestination = (location: {
     `${location.pathname}${location.search}${location.hash}`
   );
 
+export const shouldRenderAuthGate = ({
+  authConfigured,
+  route,
+  status,
+}: {
+  authConfigured: boolean;
+  route: ParsedAppRoute;
+  status: AuthGateProps['status'];
+}) =>
+  authConfigured &&
+  status !== 'signedIn' &&
+  (isProtectedAppRoute(route) ||
+    route.type === 'auth-callback' ||
+    route.type === 'sign-in');
+
 const RoutedApp = () => {
   const controller = useAppController();
   const location = useLocation();
@@ -220,11 +236,11 @@ const RoutedApp = () => {
   }
 
   if (
-    isSupabaseConfigured &&
-    controller.authState.status !== 'signedIn' &&
-    (isProtectedAppRoute(route) ||
-      route.type === 'auth-callback' ||
-      route.type === 'sign-in')
+    shouldRenderAuthGate({
+      authConfigured: isSupabaseConfigured,
+      route,
+      status: controller.authState.status,
+    })
   ) {
     return (
       <AuthGate

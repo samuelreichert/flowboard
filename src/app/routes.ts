@@ -96,7 +96,7 @@ export const getViewForRoute = (route: ParsedAppRoute) =>
     : 'board';
 
 export const isProtectedAppRoute = (route: ParsedAppRoute) =>
-  !['auth-callback', 'not-found', 'root', 'sign-in'].includes(route.type);
+  !['auth-callback', 'root', 'sign-in'].includes(route.type);
 
 export const isInternalDestination = (value: string) =>
   value.startsWith('/') && !value.startsWith('//') && !value.includes('\\');

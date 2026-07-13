@@ -8,7 +8,8 @@ import {
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import App, { AuthGate } from './App';
+import App, { AuthGate, shouldRenderAuthGate } from './App';
+import { parseAppRoute } from './app/routes';
 import { reorderCard } from './dnd';
 import {
   fetchBoardState,
@@ -175,6 +176,43 @@ test('shows non-sensitive social auth failure messaging', () => {
   expect(
     screen.queryByText(/token|secret|client_secret/i)
   ).not.toBeInTheDocument();
+});
+
+test('requires the auth gate for every inside-app route when signed out', () => {
+  const signedOutRoutes = [
+    '/board',
+    '/history',
+    '/settings',
+    '/tags',
+    '/board/cards/card-1',
+    '/history/cycles/cycle-1/cards/card-1',
+    '/unknown-route',
+  ];
+
+  for (const path of signedOutRoutes) {
+    expect(
+      shouldRenderAuthGate({
+        authConfigured: true,
+        route: parseAppRoute(path),
+        status: 'signedOut',
+      })
+    ).toBe(true);
+  }
+
+  expect(
+    shouldRenderAuthGate({
+      authConfigured: true,
+      route: parseAppRoute('/board'),
+      status: 'signedIn',
+    })
+  ).toBe(false);
+  expect(
+    shouldRenderAuthGate({
+      authConfigured: false,
+      route: parseAppRoute('/board'),
+      status: 'static',
+    })
+  ).toBe(false);
 });
 
 test('collapses and expands the desktop sidebar', async () => {
