@@ -53,6 +53,10 @@
   max-width: min(520px, calc(100vw - 48px));
 }
 
+.dialog-popup--route-management {
+  max-width: min(540px, calc(100vw - 48px));
+}
+
 .dialog-header {
   align-items: flex-start;
   display: flex;
@@ -417,6 +421,24 @@
   line-height: 1.4;
   padding: 9px 10px;
   width: 100%;
+}
+
+@media (max-width: 640px) {
+  .dialog-viewport:has(.dialog-popup--route-management) {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .dialog-popup--route-management {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    max-height: none;
+    max-width: none;
+    min-height: 100dvh;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px
+      calc(18px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .tag-select__create input:focus {

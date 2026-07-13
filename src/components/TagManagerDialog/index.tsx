@@ -16,6 +16,7 @@ type TagManagerDialogProps = {
   onOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   open: boolean;
+  routeOwned?: boolean;
   tags: BoardTag[];
 };
 
@@ -108,6 +109,7 @@ const TagManagerDialog = ({
   onOpenChange,
   onTagsChange,
   open,
+  routeOwned = false,
   tags,
 }: TagManagerDialogProps) => {
   const [state, dispatch] = useReducer(
@@ -210,6 +212,9 @@ const TagManagerDialog = ({
         description="Create reusable tags for cards on this board."
         onOpenChange={onOpenChange}
         open={open}
+        popupClassName={
+          routeOwned ? 'dialog-popup--route-management' : undefined
+        }
         title="Manage tags"
       >
         <div className="tag-manager__create">

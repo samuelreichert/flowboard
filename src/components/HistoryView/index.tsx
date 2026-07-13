@@ -8,8 +8,11 @@ import {
   List,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { resolveArchivedTagName } from '../../board/completedWork';
+import { findArchivedCardRouteTarget } from '../../board/routeLookup';
+import { createArchivedCardPath } from '../../app/routes';
 import type {
   ArchivedBoardCard,
   BoardTag,
@@ -24,7 +27,10 @@ import SegmentedControl from '../SegmentedControl';
 import type { SegmentedControlOption } from '../SegmentedControl';
 
 type HistoryViewProps = {
+  boardLoading: boolean;
   completedWorkCycles: CompletedWorkCycle[];
+  onArchivedCardClose: () => void;
+  routeCard: { cardId: string; cycleId: string } | null;
   tags: BoardTag[];
 };
 
@@ -72,7 +78,14 @@ const getVisibleTagNames = (card: ArchivedBoardCard, tags: BoardTag[]) =>
     .map((tagId) => resolveArchivedTagName(tagId, card, tags))
     .filter((tagName): tagName is string => Boolean(tagName));
 
-const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
+const HistoryView = ({
+  boardLoading,
+  completedWorkCycles,
+  onArchivedCardClose,
+  routeCard,
+  tags,
+}: HistoryViewProps) => {
+  const navigate = useNavigate();
   const [detailState, setDetailState] = useState<HistoryDetailState>({
     copyStatus: '',
     selectedCardId: null,
@@ -88,13 +101,24 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
       ),
     [completedWorkCycles]
   );
-  const selectedCard = useMemo(
+  const routeTarget = useMemo(
     () =>
-      sortedCycles
-        .find((cycle) => cycle.id === selectedCycleId)
-        ?.cards.find((card) => card.id === selectedCardId) ?? null,
-    [selectedCardId, selectedCycleId, sortedCycles]
+      routeCard
+        ? findArchivedCardRouteTarget(
+            sortedCycles,
+            routeCard.cycleId,
+            routeCard.cardId
+          )
+        : null,
+    [routeCard, sortedCycles]
   );
+  const selectedCard =
+    routeTarget?.card ??
+    sortedCycles
+      .find((cycle) => cycle.id === selectedCycleId)
+      ?.cards.find((card) => card.id === selectedCardId) ??
+    null;
+  const routeCardMissing = Boolean(routeCard && !routeTarget && !boardLoading);
   const selectedTagNames = selectedCard
     ? getVisibleTagNames(selectedCard, tags)
     : [];
@@ -122,12 +146,18 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
   if (sortedCycles.length === 0) {
     return (
       <section className="history-view" aria-label="Completed work history">
-        <EmptyState
-          icon={<CheckCircle2 size={22} />}
-          title="No completed work yet"
-        >
-          Complete work from the board to start building your history.
-        </EmptyState>
+        {routeCardMissing ? (
+          <EmptyState title="Archived card not found">
+            This history link does not match a completed work card.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            icon={<CheckCircle2 size={22} />}
+            title="No completed work yet"
+          >
+            Complete work from the board to start building your history.
+          </EmptyState>
+        )}
       </section>
     );
   }
@@ -143,6 +173,11 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
           value={historyLayout}
         />
       </div>
+      {routeCardMissing && (
+        <InlineEmptyState variant="surface">
+          Archived card not found.
+        </InlineEmptyState>
+      )}
       <div className="history-list">
         {sortedCycles.map((cycle) => (
           <section className="history-cycle" key={cycle.id}>
@@ -172,11 +207,7 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
                       <Button
                         className="history-card__button"
                         onClick={() =>
-                          setDetailState({
-                            copyStatus: '',
-                            selectedCardId: card.id,
-                            selectedCycleId: cycle.id,
-                          })
+                          navigate(createArchivedCardPath(cycle.id, card.id))
                         }
                         type="button"
                       >
@@ -224,6 +255,11 @@ const HistoryView = ({ completedWorkCycles, tags }: HistoryViewProps) => {
         open={Boolean(selectedCard)}
         onOpenChange={(open) => {
           if (!open) {
+            if (routeCard) {
+              onArchivedCardClose();
+              return;
+            }
+
             setDetailState({
               copyStatus: '',
               selectedCardId: null,

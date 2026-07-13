@@ -14,6 +14,7 @@ type BoardSettingsDialogProps = {
   onCompletedColumnChange: (columnId: string | null) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  routeOwned?: boolean;
 };
 
 const UNSET_COMPLETED_COLUMN = '__unset__';
@@ -26,6 +27,7 @@ const BoardSettingsDialog = ({
   onCompletedColumnChange,
   onOpenChange,
   open,
+  routeOwned = false,
 }: BoardSettingsDialogProps) => {
   const hasColumns = columns.length > 0;
   const selectedValue = completedColumnId ?? UNSET_COMPLETED_COLUMN;
@@ -45,6 +47,7 @@ const BoardSettingsDialog = ({
       description="Choose which column Flowboard should archive when you complete work."
       onOpenChange={onOpenChange}
       open={open}
+      popupClassName={routeOwned ? 'dialog-popup--route-management' : undefined}
       title="Board settings"
     >
       <div className="board-settings__content">

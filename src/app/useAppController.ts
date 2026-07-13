@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import {
   isSupabaseConfigured,
+  getOAuthRedirectTo,
   signInWithSocialProvider,
   supabase,
   type SocialAuthProvider,
@@ -56,6 +57,8 @@ const useAppController = () => {
     title: string;
     updatedAt: string;
   } | null>(null);
+  const [authenticatedBoardLoading, setAuthenticatedBoardLoading] =
+    useState(false);
   const [persistenceMessage, setPersistenceMessage] = useState<string | null>(
     null
   );
@@ -141,12 +144,14 @@ const useAppController = () => {
   useEffect(() => {
     if (authState.status !== 'signedIn') {
       setAuthenticatedBoard(null);
+      setAuthenticatedBoardLoading(false);
       return;
     }
 
     let active = true;
     const localStateBeforeLoad = fetchBoardState();
 
+    setAuthenticatedBoardLoading(true);
     setPersistenceMessage('Loading your board...');
     void fetchAuthenticatedDefaultBoard(authState.session.access_token)
       .then(async (payload) => {
@@ -168,6 +173,7 @@ const useAppController = () => {
 
         updateBoardStateStorage(payload.state);
         setAuthenticatedBoard(payload.board);
+        setAuthenticatedBoardLoading(false);
         setPersistenceMessage(null);
         dispatch({ state: payload.state, type: 'boardStateSynced' });
       })
@@ -179,6 +185,7 @@ const useAppController = () => {
         setPersistenceMessage(
           'Your cloud board is unavailable. Check your connection and try again.'
         );
+        setAuthenticatedBoardLoading(false);
       });
 
     return () => {
@@ -421,12 +428,17 @@ const useAppController = () => {
   const setTagManagerOpen = (open: boolean) =>
     dispatch({ open, type: 'tagManagerOpenChanged' });
 
-  const requestMagicLink = async (email: string) => {
+  const requestMagicLink = async (email: string, nextDestination?: string) => {
     if (!supabase) {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: getOAuthRedirectTo(nextDestination),
+      },
+    });
 
     setAuthState({
       message: error
@@ -437,8 +449,11 @@ const useAppController = () => {
     });
   };
 
-  const requestSocialAuth = async (provider: SocialAuthProvider) => {
-    const { error } = await signInWithSocialProvider(provider);
+  const requestSocialAuth = async (
+    provider: SocialAuthProvider,
+    nextDestination?: string
+  ) => {
+    const { error } = await signInWithSocialProvider(provider, nextDestination);
 
     setAuthState({
       message: error
@@ -469,6 +484,7 @@ const useAppController = () => {
   return {
     activeWorkCycle,
     authState,
+    authenticatedBoardLoading,
     boardSettingsOpen,
     canCompleteWork,
     completeWorkDisabledReason,

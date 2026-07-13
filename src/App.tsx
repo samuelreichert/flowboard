@@ -1,10 +1,26 @@
 import { Button } from '@base-ui/react/button';
-import { type FormEvent, useState } from 'react';
+import { History, Home } from 'lucide-react';
+import { type FormEvent, useEffect, useState } from 'react';
+import {
+  BrowserRouter,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router';
 
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
 import { getThemeIconSrc } from './app/appTheme';
+import {
+  APP_ROUTES,
+  getInternalDestination,
+  getNextSearchDestination,
+  getViewForRoute,
+  isProtectedAppRoute,
+  parseAppRoute,
+  type ParsedAppRoute,
+} from './app/routes';
 import useAppController from './app/useAppController';
 import {
   isSupabaseConfigured,
@@ -17,14 +33,22 @@ import './App.css';
 type AuthGateProps = {
   iconSrc?: string;
   message: string | null;
-  onMagicLinkRequest: (email: string) => Promise<void>;
-  onSocialAuthRequest: (provider: SocialAuthProvider) => Promise<void>;
+  nextDestination?: string;
+  onMagicLinkRequest: (
+    email: string,
+    nextDestination?: string
+  ) => Promise<void>;
+  onSocialAuthRequest: (
+    provider: SocialAuthProvider,
+    nextDestination?: string
+  ) => Promise<void>;
   status: 'loading' | 'signedOut' | 'static' | 'signedIn';
 };
 
 export const AuthGate = ({
   iconSrc = '/icon-light.svg',
   message,
+  nextDestination,
   onMagicLinkRequest,
   onSocialAuthRequest,
   status,
@@ -40,7 +64,7 @@ export const AuthGate = ({
     setSubmitting(true);
 
     try {
-      await onMagicLinkRequest(email);
+      await onMagicLinkRequest(email, nextDestination);
     } finally {
       setSubmitting(false);
     }
@@ -50,7 +74,7 @@ export const AuthGate = ({
     setSubmittingProvider(provider.id);
 
     try {
-      await onSocialAuthRequest(provider);
+      await onSocialAuthRequest(provider, nextDestination);
     } finally {
       setSubmittingProvider(null);
     }
@@ -135,20 +159,157 @@ export const AuthGate = ({
   );
 };
 
-const App = () => {
-  const controller = useAppController();
+type AuthRedirectProps = {
+  destination: string;
+};
 
-  if (isSupabaseConfigured && controller.authState.status !== 'signedIn') {
+const AuthRedirect = ({ destination }: AuthRedirectProps) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate(destination, { replace: true });
+  }, [destination, navigate]);
+
+  return (
+    <main className="app app--auth">
+      <section className="auth-panel" aria-label="Opening Flowboard">
+        <p className="auth-panel__message">Opening your board...</p>
+      </section>
+    </main>
+  );
+};
+
+type NotFoundViewProps = {
+  onBoardClick: () => void;
+  onHistoryClick: () => void;
+  requestedPath: string;
+  iconSrc?: string;
+};
+
+const NotFoundView = ({
+  iconSrc = '/icon-light.svg',
+  onBoardClick,
+  onHistoryClick,
+  requestedPath,
+}: NotFoundViewProps) => (
+  <main className="app app--not-found">
+    <section className="not-found-panel" aria-label="Route not found">
+      <div className="not-found-panel__mark" aria-hidden="true">
+        <img
+          alt=""
+          className="not-found-panel__brand-icon"
+          src={iconSrc}
+        />
+        <span>404</span>
+      </div>
+      <p className="app__eyebrow">Page not found</p>
+      <h1 className="not-found-panel__title">That page is off the board</h1>
+      <p className="not-found-panel__body">
+        The link points to a Flowboard route that does not exist anymore.
+      </p>
+      <code className="not-found-panel__path">{requestedPath}</code>
+      <div className="not-found-panel__actions">
+        <Button className="button button--primary" onClick={onBoardClick}>
+          <Home aria-hidden="true" size={15} />
+          Open board
+        </Button>
+        <Button className="button button--subtle" onClick={onHistoryClick}>
+          <History aria-hidden="true" size={15} />
+          View history
+        </Button>
+      </div>
+    </section>
+  </main>
+);
+
+const getLocationDestination = (location: {
+  hash: string;
+  pathname: string;
+  search: string;
+}) =>
+  getInternalDestination(
+    `${location.pathname}${location.search}${location.hash}`
+  );
+
+export const shouldRenderAuthGate = ({
+  authConfigured,
+  route,
+  status,
+}: {
+  authConfigured: boolean;
+  route: ParsedAppRoute;
+  status: AuthGateProps['status'];
+}) =>
+  authConfigured &&
+  status !== 'signedIn' &&
+  (isProtectedAppRoute(route) ||
+    route.type === 'auth-callback' ||
+    route.type === 'sign-in');
+
+const RoutedApp = () => {
+  const controller = useAppController();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const route = parseAppRoute(location.pathname);
+  const currentView = getViewForRoute(route);
+  const nextDestination =
+    route.type === 'auth-callback' || route.type === 'sign-in'
+      ? getNextSearchDestination(location.search)
+      : getLocationDestination(location);
+
+  if (route.type === 'root') {
+    return <Navigate replace to={APP_ROUTES.board} />;
+  }
+
+  if (
+    shouldRenderAuthGate({
+      authConfigured: isSupabaseConfigured,
+      route,
+      status: controller.authState.status,
+    })
+  ) {
     return (
       <AuthGate
         message={controller.authState.message}
         iconSrc={getThemeIconSrc(controller.resolvedTheme)}
+        nextDestination={nextDestination}
         onMagicLinkRequest={controller.requestMagicLink}
         onSocialAuthRequest={controller.requestSocialAuth}
         status={controller.authState.status}
       />
     );
   }
+
+  if (
+    controller.authState.status === 'signedIn' &&
+    (route.type === 'auth-callback' || route.type === 'sign-in')
+  ) {
+    return <AuthRedirect destination={nextDestination} />;
+  }
+
+  if (route.type === 'not-found') {
+    return (
+      <NotFoundView
+        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
+        onBoardClick={() => navigate(APP_ROUTES.board, { replace: true })}
+        onHistoryClick={() => navigate(APP_ROUTES.history, { replace: true })}
+        requestedPath={getLocationDestination(location)}
+      />
+    );
+  }
+
+  const closeMobileSidebar = () => controller.closeMobileSidebar();
+  const navigateTo = (path: string) => {
+    navigate(path);
+    closeMobileSidebar();
+  };
+  const routeBoardSettingsOpen = route.type === 'settings';
+  const routeTagManagerOpen = route.type === 'tags';
+  const activeCardId = route.type === 'active-card' ? route.cardId : null;
+  const archivedCardRoute =
+    route.type === 'archived-card'
+      ? { cardId: route.cardId, cycleId: route.cycleId }
+      : null;
 
   return (
     <main
@@ -159,7 +320,7 @@ const App = () => {
       <button
         aria-label="Close navigation"
         className="app__mobile-backdrop"
-        onClick={controller.closeMobileSidebar}
+        onClick={closeMobileSidebar}
         type="button"
       />
       <AppSidebar
@@ -168,12 +329,12 @@ const App = () => {
             ? (controller.authState.session.user.email ?? 'Signed in')
             : null
         }
-        currentView={controller.currentView}
-        onBoardClick={controller.openBoard}
-        onBoardSettingsClick={controller.openBoardSettings}
-        onCloseMobileSidebar={controller.closeMobileSidebar}
-        onHistoryClick={controller.openHistory}
-        onManageTagsClick={controller.openTagManager}
+        currentView={currentView}
+        onBoardClick={() => navigateTo(APP_ROUTES.board)}
+        onBoardSettingsClick={() => navigateTo(APP_ROUTES.settings)}
+        onCloseMobileSidebar={closeMobileSidebar}
+        onHistoryClick={() => navigateTo(APP_ROUTES.history)}
+        onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
         onSignOut={controller.signOut}
         onThemePreferenceChange={controller.chooseThemePreference}
         onToggleSidebar={controller.toggleSidebar}
@@ -187,11 +348,16 @@ const App = () => {
         </div>
       )}
       <AppWorkspace
+        activeCardId={activeCardId}
+        archivedCardRoute={archivedCardRoute}
+        boardLoading={controller.authenticatedBoardLoading}
         canCompleteWork={controller.canCompleteWork}
         completeWorkDisabledReason={controller.completeWorkDisabledReason}
         completedWorkCycles={controller.completedWorkCycles}
         completionPulse={controller.completionPulse}
-        currentView={controller.currentView}
+        currentView={currentView}
+        onActiveCardClose={() => navigate(APP_ROUTES.board)}
+        onArchivedCardClose={() => navigate(APP_ROUTES.history)}
         onBoardStateChange={controller.syncBoardState}
         onColumnCountChange={controller.updateColumnCount}
         onCompleteWorkClick={controller.openCompleteWorkConfirmation}
@@ -202,28 +368,57 @@ const App = () => {
       />
       <AppDialogs
         activeWorkCycle={controller.activeWorkCycle}
-        boardSettingsOpen={controller.boardSettingsOpen}
+        boardSettingsOpen={
+          routeBoardSettingsOpen || controller.boardSettingsOpen
+        }
         clearBoardOpen={controller.clearBoardOpen}
         columnCount={controller.columnCount}
         columns={controller.columns}
         completeWorkOpen={controller.completeWorkOpen}
         completedCardCount={controller.completedCardCount}
         completedColumn={controller.completedColumn}
-        onBoardSettingsOpenChange={controller.setBoardSettingsOpen}
+        onBoardSettingsOpenChange={(open) => {
+          if (routeBoardSettingsOpen && !open) {
+            navigate(APP_ROUTES.board);
+            return;
+          }
+
+          controller.setBoardSettingsOpen(open);
+        }}
         onClearBoard={controller.clearBoard}
         onClearBoardOpenChange={controller.setClearBoardOpen}
-        onClearBoardRequest={controller.openClearBoardConfirmation}
+        onClearBoardRequest={() => {
+          if (routeBoardSettingsOpen) {
+            navigate(APP_ROUTES.board);
+          }
+
+          controller.openClearBoardConfirmation();
+        }}
         onCompleteWork={controller.confirmCompleteWork}
         onCompleteWorkOpenChange={controller.setCompleteWorkOpen}
         onCompletedColumnChange={controller.chooseCompletedColumn}
         onDeleteTag={controller.deleteTag}
-        onTagManagerOpenChange={controller.setTagManagerOpen}
+        onTagManagerOpenChange={(open) => {
+          if (routeTagManagerOpen && !open) {
+            navigate(APP_ROUTES.board);
+            return;
+          }
+
+          controller.setTagManagerOpen(open);
+        }}
         onTagsChange={controller.updateTags}
-        tagManagerOpen={controller.tagManagerOpen}
+        routeManagementOpen={routeBoardSettingsOpen || routeTagManagerOpen}
+        tagManagerOpen={routeTagManagerOpen || controller.tagManagerOpen}
         tags={controller.tags}
       />
     </main>
   );
 };
+
+const App = () => (
+  <BrowserRouter>
+    <RoutedApp />
+  </BrowserRouter>
+);
 
 export default App;

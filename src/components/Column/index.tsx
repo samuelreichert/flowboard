@@ -15,6 +15,7 @@ import './Column.css';
 import '../IconButton/IconButton.css';
 
 type ColumnProps = {
+  activeCardId: string | null;
   column: BoardColumn;
   columns: BoardColumn[];
   deleteCard: (columnId: string, cardId: string) => void;
@@ -25,6 +26,7 @@ type ColumnProps = {
     values: CardDialogValues
   ) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
+  onActiveCardClose: () => void;
   renameColumn: (columnId: string, title: string) => string | void;
   tags: BoardTag[];
 };
@@ -55,12 +57,14 @@ const columnReducer = (
 };
 
 const Column = ({
+  activeCardId,
   column,
   columns,
   deleteCard,
   deleteColumn,
   editCard,
   onTagsChange,
+  onActiveCardClose,
   renameColumn,
   tags,
 }: ColumnProps) => {
@@ -140,12 +144,14 @@ const Column = ({
         <div className="cards">
           {column.cards.map((card) => (
             <Card
+              activeCardId={activeCardId}
               card={card}
               columnId={column.id}
               columns={columns}
               deleteCard={deleteCard}
               editCard={editCard}
               key={card.id}
+              onActiveCardClose={onActiveCardClose}
               onTagsChange={onTagsChange}
               tags={tags}
             />

@@ -7,12 +7,14 @@ import { useCallback, useEffect, useState } from 'react';
 import CardComposer from '../CardComposer';
 import Column from '../Column';
 import ContentDialog from '../ContentDialog';
+import { InlineEmptyState } from '../EmptyState';
 import {
   isCardDragData,
   isCardDropTargetData,
   isColumnDropTargetData,
   reorderCard,
 } from '../../dnd';
+import { findActiveCardRouteTarget } from '../../board/routeLookup';
 import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
 import type { BoardColumn, BoardTag } from '../../types';
@@ -22,6 +24,9 @@ import './Columns.css';
 const createId = () => crypto.randomUUID();
 
 type ColumnsProps = {
+  activeCardId: string | null;
+  boardLoading: boolean;
+  onActiveCardClose: () => void;
   onBoardStateChange: () => void;
   onColumnCountChange: (count: number) => void;
   onTagsChange: (tags: BoardTag[]) => void;
@@ -29,6 +34,9 @@ type ColumnsProps = {
 };
 
 const Columns = ({
+  activeCardId,
+  boardLoading,
+  onActiveCardClose,
   onBoardStateChange,
   onColumnCountChange,
   onTagsChange,
@@ -234,19 +242,32 @@ const Columns = ({
   const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
   );
+  const activeCardTarget = activeCardId
+    ? findActiveCardRouteTarget(sortedColumns, activeCardId)
+    : null;
 
   return (
     <>
       <div className="columns-board">
+        {activeCardId && !activeCardTarget && !boardLoading && (
+          <InlineEmptyState
+            className="columns-board__route-missing"
+            variant="surface"
+          >
+            Card not found.
+          </InlineEmptyState>
+        )}
         <div className="columns-list">
           {sortedColumns.map((column) => (
             <Column
+              activeCardId={activeCardId}
               column={column}
               columns={sortedColumns}
               deleteCard={onDeleteCard}
               deleteColumn={onDeleteColumn}
               editCard={onEditCard}
               key={column.id}
+              onActiveCardClose={onActiveCardClose}
               onTagsChange={onTagsChange}
               renameColumn={onRenameColumn}
               tags={tags}
