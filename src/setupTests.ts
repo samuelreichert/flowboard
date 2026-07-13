@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 
+Object.assign(import.meta.env, {
+  VITE_SUPABASE_APPLE_OAUTH_ENABLED: 'false',
+  VITE_SUPABASE_GOOGLE_OAUTH_ENABLED: 'true',
+  VITE_SUPABASE_PUBLISHABLE_KEY: '',
+  VITE_SUPABASE_URL: '',
+});
+
 document.elementFromPoint ??= () => document.body;
 
 const createClientRects = (rect: DOMRect) =>

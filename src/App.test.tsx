@@ -8,7 +8,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import App from './App';
+import App, { AuthGate } from './App';
 import { reorderCard } from './dnd';
 import { fetchBoardState, fetchStorage, fetchTagStorage } from './storage';
 import type { BoardColumn } from './types';
@@ -49,6 +49,101 @@ test('renders the Flowboard app shell and quiet board heading', () => {
     )
   ).toBeInTheDocument();
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
+});
+
+test('renders unified auth entry with social options and email fallback', () => {
+  render(
+    <AuthGate
+      message={null}
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={vi.fn()}
+      status="signedOut"
+    />
+  );
+
+  expect(
+    screen.getByText(/if you are new, flowboard will create one for you/i)
+  ).toBeInTheDocument();
+  expect(
+    document.querySelector<HTMLImageElement>('.auth-panel__brand-icon')?.src
+  ).toMatch(/\/icon-light\.svg$/);
+  expect(
+    screen.getByRole('button', { name: /continue with google/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /continue with apple/i })
+  ).toBeDisabled();
+  expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /send magic link/i })
+  ).toBeInTheDocument();
+});
+
+test('starts Google social auth from the unified auth entry', async () => {
+  const user = userEvent.setup();
+  const onSocialAuthRequest = vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <AuthGate
+      message={null}
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={onSocialAuthRequest}
+      status="signedOut"
+    />
+  );
+
+  await user.click(
+    screen.getByRole('button', { name: /continue with google/i })
+  );
+
+  expect(onSocialAuthRequest).toHaveBeenCalledWith(
+    expect.objectContaining({
+      enabled: true,
+      id: 'google',
+      label: 'Google',
+    })
+  );
+});
+
+test('keeps Apple social auth gated until configured', async () => {
+  const user = userEvent.setup();
+  const onSocialAuthRequest = vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <AuthGate
+      message={null}
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={onSocialAuthRequest}
+      status="signedOut"
+    />
+  );
+
+  await user.click(
+    screen.getByRole('button', { name: /continue with apple/i })
+  );
+
+  expect(onSocialAuthRequest).not.toHaveBeenCalled();
+  expect(
+    screen.getByText(/apple sign-in needs apple developer/i)
+  ).toBeInTheDocument();
+});
+
+test('shows non-sensitive social auth failure messaging', () => {
+  render(
+    <AuthGate
+      message="Unable to start Google sign-in right now."
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={vi.fn()}
+      status="signedOut"
+    />
+  );
+
+  expect(
+    screen.getByText('Unable to start Google sign-in right now.')
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/token|secret|client_secret/i)
+  ).not.toBeInTheDocument();
 });
 
 test('collapses and expands the desktop sidebar', async () => {
@@ -757,7 +852,10 @@ test('creates, opens, edits, and removes links from editor surfaces', async () =
 
   await user.click(screen.getByRole('button', { name: /edit link/i }));
   await user.clear(screen.getByLabelText('Link URL'));
-  await user.type(screen.getByLabelText('Link URL'), 'https://example.com/docs');
+  await user.type(
+    screen.getByLabelText('Link URL'),
+    'https://example.com/docs'
+  );
   await user.click(screen.getByRole('button', { name: /apply link edit/i }));
   await user.click(screen.getByRole('button', { name: /copy markdown/i }));
   expect(writeText).toHaveBeenLastCalledWith(
@@ -791,7 +889,9 @@ test('inserts image URLs from a Flowboard popover', async () => {
   );
 
   await user.click(screen.getByRole('button', { name: /close card/i }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  );
   await user.click(screen.getByText('Remote image'));
   expect(screen.getByLabelText('Content').querySelector('img')).toHaveAttribute(
     'src',
@@ -839,17 +939,23 @@ test('updates toolbar active states as editor selection changes', async () => {
   const link = screen.getByRole('button', { name: 'Link' });
 
   selectEditorNode(content, 'p');
-  await waitFor(() => expect(textStyle).toHaveAttribute('aria-pressed', 'false'));
+  await waitFor(() =>
+    expect(textStyle).toHaveAttribute('aria-pressed', 'false')
+  );
   expect(listStyle).toHaveAttribute('aria-pressed', 'false');
   expect(bold).toHaveAttribute('aria-pressed', 'false');
   expect(link).toHaveAttribute('aria-pressed', 'false');
 
   selectEditorNode(content, 'h1');
-  await waitFor(() => expect(textStyle).toHaveAttribute('aria-pressed', 'true'));
+  await waitFor(() =>
+    expect(textStyle).toHaveAttribute('aria-pressed', 'true')
+  );
   expect(textStyle).toHaveAttribute('aria-label', 'Text style: Heading 1');
 
   selectEditorNode(content, 'li');
-  await waitFor(() => expect(listStyle).toHaveAttribute('aria-pressed', 'true'));
+  await waitFor(() =>
+    expect(listStyle).toHaveAttribute('aria-pressed', 'true')
+  );
   expect(listStyle).toHaveAttribute('aria-label', 'List style: Bullet list');
 
   selectEditorNode(content, 'a');
@@ -859,7 +965,9 @@ test('updates toolbar active states as editor selection changes', async () => {
   await waitFor(() => expect(bold).toHaveAttribute('aria-pressed', 'true'));
 
   selectEditorNode(content, 'p');
-  await waitFor(() => expect(textStyle).toHaveAttribute('aria-pressed', 'false'));
+  await waitFor(() =>
+    expect(textStyle).toHaveAttribute('aria-pressed', 'false')
+  );
   expect(listStyle).toHaveAttribute('aria-pressed', 'false');
   expect(bold).toHaveAttribute('aria-pressed', 'false');
   expect(link).toHaveAttribute('aria-pressed', 'false');
@@ -906,9 +1014,15 @@ test('shows contextual image actions for selected images', async () => {
   });
   await user.click(image);
 
-  expect(await screen.findByRole('button', { name: /edit image/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /open image/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /remove image/i })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: /edit image/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /open image/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /remove image/i })
+  ).toBeInTheDocument();
 });
 
 test('reorders cards upward and downward in the same column', () => {
@@ -1122,14 +1236,16 @@ test('completes work after confirmation and moves done cards to history', async 
     screen.getByText(/archive 1 card from Done and start a new work cycle/i)
   ).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /cancel/i }));
-  expect(readColumns().find((column) => column.title === 'Done')?.cards).toHaveLength(1);
+  expect(
+    readColumns().find((column) => column.title === 'Done')?.cards
+  ).toHaveLength(1);
 
   await user.click(screen.getByRole('button', { name: /complete work/i }));
   await user.click(screen.getByRole('button', { name: /^complete work$/i }));
 
-  expect(readColumns().find((column) => column.title === 'Done')?.cards).toEqual(
-    []
-  );
+  expect(
+    readColumns().find((column) => column.title === 'Done')?.cards
+  ).toEqual([]);
   expect(fetchBoardState().completedWorkCycles[0].cards[0].title).toBe(
     'Ship it'
   );
@@ -1185,7 +1301,10 @@ test('history follows tag renames and falls back to archived tag snapshots after
       },
     ])
   );
-  localStorage.setItem('boardTags', JSON.stringify([{ id: 'tag-1', name: 'Launch' }]));
+  localStorage.setItem(
+    'boardTags',
+    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
+  );
   localStorage.setItem(
     'activeWorkCycle',
     JSON.stringify({ completedColumnId: 'done', startDate: CREATED_AT })
@@ -1209,7 +1328,9 @@ test('history follows tag renames and falls back to archived tag snapshots after
   expect(screen.getByText('Customer')).toBeInTheDocument();
 
   await openTagManager(user);
-  await user.click(screen.getByRole('button', { name: /remove customer tag/i }));
+  await user.click(
+    screen.getByRole('button', { name: /remove customer tag/i })
+  );
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
 
   expect(screen.getByText('Launch')).toBeInTheDocument();
@@ -1270,7 +1391,9 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
   ).toBeInTheDocument();
   expect(within(dialog).getByText('Ship')).toBeInTheDocument();
 
-  await user.click(within(dialog).getByRole('button', { name: /copy markdown/i }));
+  await user.click(
+    within(dialog).getByRole('button', { name: /copy markdown/i })
+  );
 
   expect(writeText).toHaveBeenCalledWith(markdown);
   expect(within(dialog).getByText('Copied')).toBeInTheDocument();
@@ -1387,8 +1510,7 @@ const pasteText = (element: HTMLElement, text: string) => {
 };
 
 const selectEditorContents = (element: HTMLElement) => {
-  const target =
-    element.querySelector('a, p, h1, h2, h3, h4, li') ?? element;
+  const target = element.querySelector('a, p, h1, h2, h3, h4, li') ?? element;
   selectEditorNodeContents(element, target);
 };
 

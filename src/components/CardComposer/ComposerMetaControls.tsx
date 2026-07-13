@@ -123,7 +123,11 @@ type ColumnSelectProps = {
 const ColumnSelect = ({ columns, onValueChange, value }: ColumnSelectProps) => (
   <Select.Root
     name="composer-column"
-    onValueChange={onValueChange}
+    onValueChange={(nextValue) => {
+      if (nextValue) {
+        onValueChange(nextValue);
+      }
+    }}
     value={value}
   >
     <Select.Trigger
