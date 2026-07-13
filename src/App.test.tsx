@@ -10,12 +10,18 @@ import { vi } from 'vitest';
 
 import App, { AuthGate } from './App';
 import { reorderCard } from './dnd';
-import { fetchBoardState, fetchStorage, fetchTagStorage } from './storage';
-import type { BoardColumn } from './types';
+import {
+  fetchBoardState,
+  fetchStorage,
+  fetchTagStorage,
+  updateBoardStateStorage,
+} from './storage';
+import type { BoardColumn, BoardState } from './types';
 
 const CREATED_AT = '2026-06-03T12:34:56.000Z';
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/');
   localStorage.clear();
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -86,6 +92,7 @@ test('starts Google social auth from the unified auth entry', async () => {
   render(
     <AuthGate
       message={null}
+      nextDestination="/history"
       onMagicLinkRequest={vi.fn()}
       onSocialAuthRequest={onSocialAuthRequest}
       status="signedOut"
@@ -101,7 +108,31 @@ test('starts Google social auth from the unified auth entry', async () => {
       enabled: true,
       id: 'google',
       label: 'Google',
-    })
+    }),
+    '/history'
+  );
+});
+
+test('requests magic link with the preserved auth destination', async () => {
+  const user = userEvent.setup();
+  const onMagicLinkRequest = vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <AuthGate
+      message={null}
+      nextDestination="/board/cards/card-1"
+      onMagicLinkRequest={onMagicLinkRequest}
+      onSocialAuthRequest={vi.fn()}
+      status="signedOut"
+    />
+  );
+
+  await user.type(screen.getByLabelText(/^email$/i), 'user@example.com');
+  await user.click(screen.getByRole('button', { name: /send magic link/i }));
+
+  expect(onMagicLinkRequest).toHaveBeenCalledWith(
+    'user@example.com',
+    '/board/cards/card-1'
   );
 });
 
@@ -184,10 +215,9 @@ test('changes and persists the app theme preference from the sidebar footer', as
     'data-theme-preference',
     'dark'
   );
-  expect(screen.getByRole('group', { name: /theme preference/i })).toHaveAttribute(
-    'data-selected-value',
-    'dark'
-  );
+  expect(
+    screen.getByRole('group', { name: /theme preference/i })
+  ).toHaveAttribute('data-selected-value', 'dark');
   expect(
     document.querySelector<HTMLImageElement>('.app-sidebar__brand-icon')?.src
   ).toMatch(/\/icon-dark\.svg$/);
@@ -227,6 +257,134 @@ test('board actions live in the sidebar and the top-right menu is removed', () =
   expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: /background settings/i })
+  ).not.toBeInTheDocument();
+});
+
+test('resolves root and sidebar navigation through canonical routes', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await waitFor(() => expect(window.location.pathname).toBe('/board'));
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(window.location.pathname).toBe('/history');
+  expect(screen.getByRole('heading', { name: /history/i })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /^board$/i }));
+  expect(window.location.pathname).toBe('/board');
+  expect(screen.getByRole('heading', { name: /board/i })).toBeInTheDocument();
+});
+
+test('opens route-owned management surfaces and closes them to board', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /manage tags/i }));
+  expect(window.location.pathname).toBe('/tags');
+  expect(screen.getByRole('dialog', { name: /manage tags/i })).toHaveClass(
+    'dialog-popup--route-management'
+  );
+
+  await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+  expect(window.location.pathname).toBe('/board');
+
+  await user.click(screen.getByRole('button', { name: /board settings/i }));
+  expect(window.location.pathname).toBe('/settings');
+  expect(screen.getByRole('dialog', { name: /board settings/i })).toHaveClass(
+    'dialog-popup--route-management'
+  );
+
+  await user.click(
+    screen.getByRole('button', { name: /close board settings/i })
+  );
+  expect(window.location.pathname).toBe('/board');
+});
+
+test('directly loads tags, settings, history, and unknown routes', async () => {
+  window.history.replaceState(null, '', '/tags');
+  const { unmount } = render(<App />);
+
+  expect(
+    screen.getByRole('dialog', { name: /manage tags/i })
+  ).toBeInTheDocument();
+  unmount();
+
+  window.history.replaceState(null, '', '/settings');
+  const settingsRender = render(<App />);
+  expect(
+    screen.getByRole('dialog', { name: /board settings/i })
+  ).toBeInTheDocument();
+  settingsRender.unmount();
+
+  window.history.replaceState(null, '', '/history');
+  const historyRender = render(<App />);
+  expect(screen.getByRole('heading', { name: /history/i })).toBeInTheDocument();
+  historyRender.unmount();
+
+  window.history.replaceState(null, '', '/nope');
+  render(<App />);
+  expect(screen.getByText(/page not found/i)).toBeInTheDocument();
+});
+
+test('directly opens and closes an active card route', async () => {
+  const user = userEvent.setup();
+  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+  window.history.replaceState(null, '', '/board/cards/first');
+
+  render(<App />);
+
+  expectCardDialogTitle('First');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  expect(window.location.pathname).toBe('/board');
+});
+
+test('shows missing state for an unresolved active card route', () => {
+  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+  window.history.replaceState(null, '', '/board/cards/missing-card');
+
+  render(<App />);
+
+  expect(screen.getByText('Card not found.')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('dialog', { name: /card/i })
+  ).not.toBeInTheDocument();
+});
+
+test('directly opens and closes an archived card route', async () => {
+  const user = userEvent.setup();
+  updateBoardStateStorage(createBoardStateWithHistory());
+  window.history.replaceState(
+    null,
+    '',
+    '/history/cycles/cycle-1/cards/archived-card'
+  );
+
+  render(<App />);
+
+  expect(
+    await screen.findByRole('dialog', { name: /archived card/i })
+  ).toBeInTheDocument();
+  await user.click(
+    screen.getByRole('button', { name: /close archived card/i })
+  );
+  expect(window.location.pathname).toBe('/history');
+});
+
+test('shows missing state for an unresolved archived card route', async () => {
+  updateBoardStateStorage(createBoardStateWithHistory());
+  window.history.replaceState(
+    null,
+    '',
+    '/history/cycles/cycle-1/cards/missing-card'
+  );
+
+  render(<App />);
+
+  expect(
+    await screen.findByText('Archived card not found.')
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('dialog', { name: /archived card/i })
   ).not.toBeInTheDocument();
 });
 
@@ -349,7 +507,9 @@ test('composer validates empty drafts and preserves unsent text during board int
 
   await user.type(screen.getByLabelText('New card'), 'Draft card');
   await user.click(screen.getByRole('button', { name: /manage tags/i }));
-  expect(screen.getByRole('dialog', { name: /manage tags/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('dialog', { name: /manage tags/i })
+  ).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
 
   expect(screen.getByLabelText('New card')).toHaveValue('Draft card');
@@ -1326,6 +1486,7 @@ test('history follows tag renames and falls back to archived tag snapshots after
   await user.type(screen.getByLabelText('Edit Launch tag'), 'Customer');
   await user.click(screen.getByLabelText('New tag'));
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
 
   expect(screen.getByText('Customer')).toBeInTheDocument();
 
@@ -1334,6 +1495,7 @@ test('history follows tag renames and falls back to archived tag snapshots after
     screen.getByRole('button', { name: /remove customer tag/i })
   );
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
 
   expect(screen.getByText('Launch')).toBeInTheDocument();
 });
@@ -1645,3 +1807,37 @@ const createBoardColumns = (): BoardColumn[] => [
     title: 'Complete',
   },
 ];
+
+const createBoardStateWithHistory = (): BoardState => ({
+  activeWorkCycle: {
+    completedColumnId: 'complete',
+    startDate: CREATED_AT,
+  },
+  background: {
+    type: 'color',
+    value: '#ffffff',
+  },
+  columns: createBoardColumns(),
+  completedWorkCycles: [
+    {
+      cards: [
+        {
+          archivedAt: CREATED_AT,
+          content: 'Archived notes',
+          createdAt: CREATED_AT,
+          id: 'archived-card',
+          priority: 'medium',
+          tagIds: [],
+          tagSnapshots: [],
+          title: 'Archived card',
+        },
+      ],
+      completedColumnId: 'complete',
+      completedColumnTitle: 'Complete',
+      endDate: CREATED_AT,
+      id: 'cycle-1',
+      startDate: CREATED_AT,
+    },
+  ],
+  tags: [],
+});

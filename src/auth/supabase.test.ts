@@ -56,7 +56,7 @@ test('defines Google and Apple social auth providers with configuration status',
   ]);
 });
 
-test('starts Google OAuth through Supabase with the current app origin', async () => {
+test('starts Google OAuth through Supabase with an auth callback destination', async () => {
   const { signInWithSocialProvider, socialAuthProviders } =
     await loadSupabaseAuth();
   const googleProvider = socialAuthProviders.find(
@@ -64,11 +64,29 @@ test('starts Google OAuth through Supabase with the current app origin', async (
   );
 
   expect(googleProvider).toBeDefined();
-  await signInWithSocialProvider(googleProvider!);
+  await signInWithSocialProvider(googleProvider!, '/board/cards/card-1');
 
   expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
     options: {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Fboard%2Fcards%2Fcard-1`,
+    },
+    provider: 'google',
+  });
+});
+
+test('falls OAuth redirect destinations back to the board', async () => {
+  const { signInWithSocialProvider, socialAuthProviders } =
+    await loadSupabaseAuth();
+  const googleProvider = socialAuthProviders.find(
+    (provider) => provider.id === 'google'
+  );
+
+  expect(googleProvider).toBeDefined();
+  await signInWithSocialProvider(googleProvider!, 'https://evil.example');
+
+  expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Fboard`,
     },
     provider: 'google',
   });
@@ -98,11 +116,11 @@ test('starts Apple OAuth when Apple is configured', async () => {
   );
 
   expect(appleProvider).toBeDefined();
-  await signInWithSocialProvider(appleProvider!);
+  await signInWithSocialProvider(appleProvider!, '/history');
 
   expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
     options: {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Fhistory`,
     },
     provider: 'apple',
   });
