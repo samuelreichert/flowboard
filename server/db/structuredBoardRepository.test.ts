@@ -19,6 +19,10 @@ const migrationSql = readFileSync(
   'prisma/migrations/sqlite/20260706231500_initial_structured_board_model/migration.sql',
   'utf8'
 );
+const profileAvatarMigrationSql = readFileSync(
+  'prisma/migrations/sqlite/20260713120000_add_profile_avatar_fields/migration.sql',
+  'utf8'
+);
 
 const cleanupCallbacks: Array<() => Promise<void>> = [];
 
@@ -28,6 +32,7 @@ const createTestPrisma = () => {
   const database = new Database(databasePath);
 
   database.exec(migrationSql);
+  database.exec(profileAvatarMigrationSql);
   database.close();
 
   const prisma = new PrismaClient({
@@ -110,7 +115,12 @@ describe('structured board repository', () => {
   test('round-trips current board features through structured tables', async () => {
     const prisma = createTestPrisma();
 
-    await ensureProfile(prisma, { email: 'user@example.com', id: 'user-1' });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
     const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
     const loaded = await loadBoard(prisma, 'user-1', board.id);
 
@@ -120,8 +130,18 @@ describe('structured board repository', () => {
   test('blocks cross-user board reads and writes', async () => {
     const prisma = createTestPrisma();
 
-    await ensureProfile(prisma, { email: 'one@example.com', id: 'user-1' });
-    await ensureProfile(prisma, { email: 'two@example.com', id: 'user-2' });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'one@example.com',
+      id: 'user-1',
+    });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'two@example.com',
+      id: 'user-2',
+    });
     const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
 
     await expect(loadBoard(prisma, 'user-2', board.id)).resolves.toBeNull();

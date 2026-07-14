@@ -120,6 +120,7 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=...
 VITE_SUPABASE_GOOGLE_OAUTH_ENABLED=true
 VITE_SUPABASE_APPLE_OAUTH_ENABLED=false
+VITE_SUPABASE_AVATAR_BUCKET=flowboard-profile-avatars
 ```
 
 Apply production migrations with:
@@ -131,6 +132,33 @@ npm run db:deploy:postgres
 The browser `VITE_*` Supabase values are public client configuration. Keep
 database URLs, service-role keys, and any privileged Supabase secrets server-side
 only.
+
+### Profile Avatar Storage
+
+Flowboard stores profile avatar files in Supabase Storage and saves the public
+URL plus object path on the app-owned profile record. The default bucket is:
+
+```text
+flowboard-profile-avatars
+```
+
+You can override it for a deployment with:
+
+```text
+VITE_SUPABASE_AVATAR_BUCKET=your-avatar-bucket
+```
+
+Create the bucket as a public Supabase Storage bucket so uploaded avatars can be
+displayed through the public URL returned by the Supabase client. Avatar object
+paths use this convention:
+
+```text
+<supabase-user-id>/avatar-<unique-id>.<extension>
+```
+
+Client-side validation accepts PNG, JPG, WebP, and GIF images up to 5 MB. When a
+user replaces or removes an uploaded avatar, Flowboard clears the saved profile
+reference and attempts to remove the previous object from the configured bucket.
 
 ### Social OAuth Setup
 

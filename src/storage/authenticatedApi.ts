@@ -11,6 +11,24 @@ type AuthenticatedBoardResponse = {
   state: BoardState;
 };
 
+export type AuthenticatedProfile = {
+  avatarStoragePath: string | null;
+  avatarUrl: string | null;
+  displayName: string | null;
+  email: string | null;
+  id: string;
+};
+
+type AuthenticatedProfileResponse = {
+  profile: AuthenticatedProfile;
+};
+
+export type AuthenticatedProfileUpdate = {
+  avatarStoragePath?: string | null;
+  avatarUrl?: string | null;
+  displayName?: string | null;
+};
+
 const createHeaders = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
   'Content-Type': 'application/json',
@@ -22,6 +40,35 @@ const parseBoardResponse = async (response: Response) => {
   }
 
   return (await response.json()) as AuthenticatedBoardResponse;
+};
+
+const parseProfileResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to load authenticated profile data.');
+  }
+
+  return (await response.json()) as AuthenticatedProfileResponse;
+};
+
+export const fetchAuthenticatedProfile = async (accessToken: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/profile`, {
+    headers: createHeaders(accessToken),
+  });
+
+  return parseProfileResponse(response);
+};
+
+export const saveAuthenticatedProfile = async (
+  profile: AuthenticatedProfileUpdate,
+  accessToken: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/profile`, {
+    body: JSON.stringify(profile),
+    headers: createHeaders(accessToken),
+    method: 'PUT',
+  });
+
+  return parseProfileResponse(response);
 };
 
 export const fetchAuthenticatedDefaultBoard = async (accessToken: string) => {
