@@ -1028,10 +1028,11 @@
 }
 
 .history-view {
+  box-sizing: border-box;
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  padding-right: 4px;
+  padding: 0 22px 18px;
 }
 
 .history-view__toolbar {
@@ -1407,6 +1408,10 @@
 
   .history-view__toolbar {
     justify-content: stretch;
+  }
+
+  .history-view {
+    padding: 0 12px 18px;
   }
 
   .history-view__layout-toggle {
