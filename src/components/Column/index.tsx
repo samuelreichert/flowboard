@@ -1,7 +1,15 @@
 import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
-import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Ellipsis,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
 
 import Card from '../Card';
@@ -9,6 +17,7 @@ import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { isCardDragData } from '../../dnd';
+import type { ColumnMoveDirection } from '../../board/columns';
 import type { BoardColumn, BoardTag } from '../../types';
 
 import './Column.css';
@@ -25,6 +34,7 @@ type ColumnProps = {
     cardId: string,
     values: CardDialogValues
   ) => string | void;
+  moveColumn: (columnId: string, direction: ColumnMoveDirection) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   onActiveCardClose: () => void;
   renameColumn: (columnId: string, title: string) => string | void;
@@ -63,6 +73,7 @@ const Column = ({
   deleteCard,
   deleteColumn,
   editCard,
+  moveColumn,
   onTagsChange,
   onActiveCardClose,
   renameColumn,
@@ -75,6 +86,9 @@ const Column = ({
     renameOpen: false,
   });
   const { deleteOpen, isDragOver, renameOpen } = state;
+  const columnIndex = columns.findIndex((item) => item.id === column.id);
+  const isFirstColumn = columnIndex <= 0;
+  const isLastColumn = columnIndex === columns.length - 1;
 
   useEffect(() => {
     const columnElement = columnRef.current;
@@ -118,6 +132,38 @@ const Column = ({
             <Menu.Portal>
               <Menu.Positioner sideOffset={4}>
                 <Menu.Popup className="menu-popup">
+                  <Menu.Item
+                    className="menu-item"
+                    disabled={isFirstColumn}
+                    onClick={() => moveColumn(column.id, 'first')}
+                  >
+                    <ChevronsLeft size={15} />
+                    Move to first
+                  </Menu.Item>
+                  <Menu.Item
+                    className="menu-item"
+                    disabled={isFirstColumn}
+                    onClick={() => moveColumn(column.id, 'previous')}
+                  >
+                    <ChevronLeft size={15} />
+                    Move left
+                  </Menu.Item>
+                  <Menu.Item
+                    className="menu-item"
+                    disabled={isLastColumn}
+                    onClick={() => moveColumn(column.id, 'next')}
+                  >
+                    <ChevronRight size={15} />
+                    Move right
+                  </Menu.Item>
+                  <Menu.Item
+                    className="menu-item"
+                    disabled={isLastColumn}
+                    onClick={() => moveColumn(column.id, 'last')}
+                  >
+                    <ChevronsRight size={15} />
+                    Move to last
+                  </Menu.Item>
                   <Menu.Item
                     className="menu-item"
                     onClick={() =>

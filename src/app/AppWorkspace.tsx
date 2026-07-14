@@ -17,11 +17,13 @@ type AppWorkspaceProps = {
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
+  manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
   onArchivedCardClose: () => void;
   onBoardStateChange: () => void;
   onColumnCountChange: (columnCount: number) => void;
   onCompleteWorkClick: () => void;
+  onManageColumnsOpenChange: (open: boolean) => void;
   onOpenMobileSidebar: () => void;
   onTagsChange: (tags: BoardTag[]) => void;
   storageVersion: number;
@@ -37,11 +39,13 @@ const AppWorkspace = ({
   completedWorkCycles,
   completionPulse,
   currentView,
+  manageColumnsOpen,
   onActiveCardClose,
   onArchivedCardClose,
   onBoardStateChange,
   onColumnCountChange,
   onCompleteWorkClick,
+  onManageColumnsOpenChange,
   onOpenMobileSidebar,
   onTagsChange,
   storageVersion,
@@ -98,9 +102,11 @@ const AppWorkspace = ({
             activeCardId={activeCardId}
             boardLoading={boardLoading}
             key={storageVersion}
+            manageColumnsOpen={manageColumnsOpen}
             onActiveCardClose={onActiveCardClose}
             onBoardStateChange={onBoardStateChange}
             onColumnCountChange={onColumnCountChange}
+            onManageColumnsOpenChange={onManageColumnsOpenChange}
             onTagsChange={onTagsChange}
             tags={tags}
           />

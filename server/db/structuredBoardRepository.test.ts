@@ -127,6 +127,35 @@ describe('structured board repository', () => {
     expect(loaded?.state).toEqual(sampleState);
   });
 
+  test('round-trips saved column order through structured tables', async () => {
+    const prisma = createTestPrisma();
+    const reorderedState: BoardState = {
+      ...sampleState,
+      columns: [
+        {
+          cards: [],
+          id: 'done',
+          position: 0,
+          title: 'Done',
+        },
+        {
+          ...sampleState.columns[0],
+          position: 10,
+        },
+      ],
+    };
+
+    await ensureProfile(prisma, { email: 'user@example.com', id: 'user-1' });
+    const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
+    await writeBoardState(prisma, 'user-1', board.id, reorderedState);
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(loaded?.state.columns.map((column) => column.id)).toEqual([
+      'done',
+      'todo',
+    ]);
+  });
+
   test('blocks cross-user board reads and writes', async () => {
     const prisma = createTestPrisma();
 

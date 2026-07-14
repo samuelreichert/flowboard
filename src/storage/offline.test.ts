@@ -110,6 +110,38 @@ test('failed API writes preserve local board changes', async () => {
   expect(fetchStorage()).toEqual(columns);
 });
 
+test('local column storage normalizes reordered board order', async () => {
+  const { fetchStorage, updateStorage } = await import('./index');
+
+  updateStorage([
+    {
+      cards: [],
+      id: 'done',
+      position: 20,
+      title: 'Done',
+    },
+    {
+      cards: [],
+      id: 'todo',
+      position: 0,
+      title: 'Todo',
+    },
+    {
+      cards: [],
+      id: 'progress',
+      position: 10,
+      title: 'In Progress',
+    },
+  ]);
+
+  expect(fetchStorage().map((column) => column.id)).toEqual([
+    'todo',
+    'progress',
+    'done',
+  ]);
+  expect(fetchStorage().map((column) => column.position)).toEqual([0, 10, 20]);
+});
+
 test('full board state storage preserves work-cycle metadata and history', async () => {
   const state = createBoardState();
   const { fetchBoardState, updateBoardStateStorage } = await import('./index');
@@ -132,9 +164,8 @@ test('database hydration preserves work-cycle metadata and history', async () =>
     )
   );
 
-  const { fetchBoardState, hydrateStorageFromDatabase } = await import(
-    './index'
-  );
+  const { fetchBoardState, hydrateStorageFromDatabase } =
+    await import('./index');
 
   await expect(hydrateStorageFromDatabase()).resolves.toEqual(state);
   expect(fetchBoardState()).toEqual(state);

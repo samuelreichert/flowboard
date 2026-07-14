@@ -18,6 +18,7 @@ export type AppState = {
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
+  manageColumnsOpen: boolean;
   mobileSidebarOpen: boolean;
   profileDialogOpen: boolean;
   resolvedTheme: ResolvedTheme;
@@ -38,6 +39,7 @@ export type AppAction =
   | { type: 'completeWorkOpenChanged'; open: boolean }
   | { type: 'completionPulseChanged'; active: boolean }
   | { type: 'currentViewChanged'; view: AppView }
+  | { type: 'manageColumnsOpenChanged'; open: boolean }
   | { type: 'mobileSidebarOpenChanged'; open: boolean }
   | { type: 'profileDialogOpenChanged'; open: boolean }
   | { type: 'settingsOpenChanged'; open: boolean }

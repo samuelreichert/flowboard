@@ -195,11 +195,7 @@ const NotFoundView = ({
   <main className="app app--not-found">
     <section className="not-found-panel" aria-label="Route not found">
       <div className="not-found-panel__mark" aria-hidden="true">
-        <img
-          alt=""
-          className="not-found-panel__brand-icon"
-          src={iconSrc}
-        />
+        <img alt="" className="not-found-panel__brand-icon" src={iconSrc} />
         <span>404</span>
       </div>
       <p className="app__eyebrow">Page not found</p>
@@ -328,6 +324,10 @@ const RoutedApp = () => {
         onBoardClick={() => navigateTo(APP_ROUTES.board)}
         onCloseMobileSidebar={closeMobileSidebar}
         onHistoryClick={() => navigateTo(APP_ROUTES.history)}
+        onManageColumnsClick={() => {
+          navigate(APP_ROUTES.board);
+          controller.openManageColumns();
+        }}
         onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
         onProfileClick={controller.openProfileDialog}
         onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
@@ -353,11 +353,13 @@ const RoutedApp = () => {
         completedWorkCycles={controller.completedWorkCycles}
         completionPulse={controller.completionPulse}
         currentView={currentView}
+        manageColumnsOpen={controller.manageColumnsOpen}
         onActiveCardClose={() => navigate(APP_ROUTES.board)}
         onArchivedCardClose={() => navigate(APP_ROUTES.history)}
         onBoardStateChange={controller.syncBoardState}
         onColumnCountChange={controller.updateColumnCount}
         onCompleteWorkClick={controller.openCompleteWorkConfirmation}
+        onManageColumnsOpenChange={controller.setManageColumnsOpen}
         onOpenMobileSidebar={controller.openMobileSidebar}
         onTagsChange={controller.updateTags}
         storageVersion={controller.storageVersion}
