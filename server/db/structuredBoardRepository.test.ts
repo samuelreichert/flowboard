@@ -145,7 +145,12 @@ describe('structured board repository', () => {
       ],
     };
 
-    await ensureProfile(prisma, { email: 'user@example.com', id: 'user-1' });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
     const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
     await writeBoardState(prisma, 'user-1', board.id, reorderedState);
     const loaded = await loadBoard(prisma, 'user-1', board.id);
