@@ -211,12 +211,19 @@ export const writeBoardState = async (
   );
   const cardTagRows = state.columns.flatMap((column) =>
     column.cards.flatMap((card) =>
-      card.tagIds
-        .filter((id) => validTagIds.has(id))
-        .map((tagId) => ({
-          cardId: card.id,
-          tagId,
-        }))
+      card.tagIds.reduce<Array<{ cardId: string; tagId: string }>>(
+        (rows, tagId) => {
+          if (validTagIds.has(tagId)) {
+            rows.push({
+              cardId: card.id,
+              tagId,
+            });
+          }
+
+          return rows;
+        },
+        []
+      )
     )
   );
   const completedWorkCycleRows = state.completedWorkCycles.map((cycle) => ({
