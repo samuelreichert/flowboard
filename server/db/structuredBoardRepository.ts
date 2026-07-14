@@ -13,6 +13,7 @@ import type { FlowboardPrismaClient } from './prismaClient.js';
 
 const DEFAULT_PROJECT_NAME = 'Personal';
 const DEFAULT_BOARD_TITLE = 'Flowboard';
+const BOARD_WRITE_TRANSACTION_TIMEOUT_MS = 15_000;
 
 type BoardRecord = Awaited<
   ReturnType<FlowboardPrismaClient['board']['findFirst']>
@@ -180,152 +181,162 @@ export const writeBoardState = async (
     return null;
   }
 
-  const savedBoard = await prisma.$transaction(async (transaction) => {
-    await transaction.completedWorkCycleCardTag.deleteMany({
-      where: {
-        archivedCard: {
+  const columnRows = state.columns.map((column, sortOrder) => ({
+    boardId,
+    createdAt: toDate(
+      column.cards[0]?.createdAt ?? board.createdAt.toISOString()
+    ),
+    id: column.id,
+    sortOrder,
+    title: column.title,
+  }));
+  const tagRows = state.tags.map((tag, sortOrder) => ({
+    boardId,
+    id: tag.id,
+    name: tag.name,
+    sortOrder,
+  }));
+  const validTagIds = new Set(state.tags.map((tag) => tag.id));
+  const cardRows = state.columns.flatMap((column) =>
+    column.cards.map((card, sortOrder) => ({
+      boardId,
+      columnId: column.id,
+      content: card.content,
+      createdAt: toDate(card.createdAt),
+      id: card.id,
+      priority: card.priority,
+      sortOrder,
+      title: card.title,
+    }))
+  );
+  const cardTagRows = state.columns.flatMap((column) =>
+    column.cards.flatMap((card) =>
+      card.tagIds
+        .filter((id) => validTagIds.has(id))
+        .map((tagId) => ({
+          cardId: card.id,
+          tagId,
+        }))
+    )
+  );
+  const completedWorkCycleRows = state.completedWorkCycles.map((cycle) => ({
+    boardId,
+    completedColumnId: cycle.completedColumnId,
+    completedColumnTitle: cycle.completedColumnTitle,
+    endDate: toDate(cycle.endDate),
+    id: cycle.id,
+    startDate: toDate(cycle.startDate),
+  }));
+  const completedWorkCycleCardRows = state.completedWorkCycles.flatMap(
+    (cycle) =>
+      cycle.cards.map((card, sortOrder) => ({
+        archivedAt: toDate(card.archivedAt),
+        content: card.content,
+        createdAt: toDate(card.createdAt),
+        cycleId: cycle.id,
+        id: card.id,
+        originalCardId: card.id,
+        priority: card.priority,
+        sortOrder,
+        title: card.title,
+      }))
+  );
+  const completedWorkCycleCardTagRows = state.completedWorkCycles.flatMap(
+    (cycle) =>
+      cycle.cards.flatMap((card) =>
+        card.tagSnapshots.map((tag, sortOrder) => ({
+          archivedCardId: card.id,
+          id: createId(),
+          name: tag.name,
+          originalTagId: tag.id,
+          sortOrder,
+        }))
+      )
+  );
+  const savedBoard = await prisma.$transaction(
+    async (transaction) => {
+      await transaction.completedWorkCycleCardTag.deleteMany({
+        where: {
+          archivedCard: {
+            cycle: {
+              boardId,
+            },
+          },
+        },
+      });
+      await transaction.completedWorkCycleCard.deleteMany({
+        where: {
           cycle: {
             boardId,
           },
         },
-      },
-    });
-    await transaction.completedWorkCycleCard.deleteMany({
-      where: {
-        cycle: {
-          boardId,
-        },
-      },
-    });
-    await transaction.completedWorkCycle.deleteMany({ where: { boardId } });
-    await transaction.cardTag.deleteMany({
-      where: {
-        card: {
-          boardId,
-        },
-      },
-    });
-    await transaction.card.deleteMany({ where: { boardId } });
-    await transaction.tag.deleteMany({ where: { boardId } });
-    await transaction.boardWorkCycle.deleteMany({ where: { boardId } });
-    await transaction.boardColumn.deleteMany({ where: { boardId } });
-
-    const updatedBoard = await transaction.board.update({
-      data: {
-        backgroundType: state.background.type,
-        backgroundValue: state.background.value,
-        version: {
-          increment: 1,
-        },
-      },
-      where: { id: boardId },
-    });
-
-    for (const [sortOrder, column] of state.columns.entries()) {
-      await transaction.boardColumn.create({
-        data: {
-          boardId,
-          createdAt: toDate(
-            column.cards[0]?.createdAt ?? updatedBoard.createdAt.toISOString()
-          ),
-          id: column.id,
-          sortOrder,
-          title: column.title,
-        },
       });
-    }
-
-    for (const [sortOrder, tag] of state.tags.entries()) {
-      await transaction.tag.create({
-        data: {
-          boardId,
-          id: tag.id,
-          name: tag.name,
-          sortOrder,
-        },
-      });
-    }
-
-    const validTagIds = new Set(state.tags.map((tag) => tag.id));
-
-    for (const column of state.columns) {
-      for (const [sortOrder, card] of column.cards.entries()) {
-        await transaction.card.create({
-          data: {
+      await transaction.completedWorkCycle.deleteMany({ where: { boardId } });
+      await transaction.cardTag.deleteMany({
+        where: {
+          card: {
             boardId,
-            columnId: column.id,
-            content: card.content,
-            createdAt: toDate(card.createdAt),
-            id: card.id,
-            priority: card.priority,
-            sortOrder,
-            title: card.title,
           },
-        });
+        },
+      });
+      await transaction.card.deleteMany({ where: { boardId } });
+      await transaction.tag.deleteMany({ where: { boardId } });
+      await transaction.boardWorkCycle.deleteMany({ where: { boardId } });
+      await transaction.boardColumn.deleteMany({ where: { boardId } });
 
-        for (const tagId of card.tagIds.filter((id) => validTagIds.has(id))) {
-          await transaction.cardTag.create({
-            data: {
-              cardId: card.id,
-              tagId,
-            },
-          });
-        }
+      const updatedBoard = await transaction.board.update({
+        data: {
+          backgroundType: state.background.type,
+          backgroundValue: state.background.value,
+          version: {
+            increment: 1,
+          },
+        },
+        where: { id: boardId },
+      });
+
+      if (columnRows.length > 0) {
+        await transaction.boardColumn.createMany({ data: columnRows });
       }
-    }
+      if (tagRows.length > 0) {
+        await transaction.tag.createMany({ data: tagRows });
+      }
+      if (cardRows.length > 0) {
+        await transaction.card.createMany({ data: cardRows });
+      }
+      if (cardTagRows.length > 0) {
+        await transaction.cardTag.createMany({ data: cardTagRows });
+      }
 
-    await transaction.boardWorkCycle.create({
-      data: {
-        boardId,
-        completedColumnId: state.activeWorkCycle.completedColumnId,
-        id: createId(),
-        startDate: toDate(state.activeWorkCycle.startDate),
-      },
-    });
-
-    for (const cycle of state.completedWorkCycles) {
-      await transaction.completedWorkCycle.create({
+      await transaction.boardWorkCycle.create({
         data: {
           boardId,
-          completedColumnId: cycle.completedColumnId,
-          completedColumnTitle: cycle.completedColumnTitle,
-          endDate: toDate(cycle.endDate),
-          id: cycle.id,
-          startDate: toDate(cycle.startDate),
+          completedColumnId: state.activeWorkCycle.completedColumnId,
+          id: createId(),
+          startDate: toDate(state.activeWorkCycle.startDate),
         },
       });
 
-      for (const [sortOrder, card] of cycle.cards.entries()) {
-        await transaction.completedWorkCycleCard.create({
-          data: {
-            archivedAt: toDate(card.archivedAt),
-            content: card.content,
-            createdAt: toDate(card.createdAt),
-            cycleId: cycle.id,
-            id: card.id,
-            originalCardId: card.id,
-            priority: card.priority,
-            sortOrder,
-            title: card.title,
-          },
+      if (completedWorkCycleRows.length > 0) {
+        await transaction.completedWorkCycle.createMany({
+          data: completedWorkCycleRows,
         });
-
-        for (const [tagOrder, tag] of card.tagSnapshots.entries()) {
-          await transaction.completedWorkCycleCardTag.create({
-            data: {
-              archivedCardId: card.id,
-              id: createId(),
-              name: tag.name,
-              originalTagId: tag.id,
-              sortOrder: tagOrder,
-            },
-          });
-        }
       }
-    }
+      if (completedWorkCycleCardRows.length > 0) {
+        await transaction.completedWorkCycleCard.createMany({
+          data: completedWorkCycleCardRows,
+        });
+      }
+      if (completedWorkCycleCardTagRows.length > 0) {
+        await transaction.completedWorkCycleCardTag.createMany({
+          data: completedWorkCycleCardTagRows,
+        });
+      }
 
-    return updatedBoard;
-  });
+      return updatedBoard;
+    },
+    { timeout: BOARD_WRITE_TRANSACTION_TIMEOUT_MS }
+  );
 
   return {
     board: toBoardSummary(savedBoard),
