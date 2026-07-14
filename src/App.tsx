@@ -324,23 +324,20 @@ const RoutedApp = () => {
         type="button"
       />
       <AppSidebar
-        authEmail={
-          controller.authState.status === 'signedIn'
-            ? (controller.authState.session.user.email ?? 'Signed in')
-            : null
-        }
         currentView={currentView}
         onBoardClick={() => navigateTo(APP_ROUTES.board)}
-        onBoardSettingsClick={() => navigateTo(APP_ROUTES.settings)}
         onCloseMobileSidebar={closeMobileSidebar}
         onHistoryClick={() => navigateTo(APP_ROUTES.history)}
         onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
+        onProfileClick={controller.openProfileDialog}
+        onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
         onSignOut={controller.signOut}
-        onThemePreferenceChange={controller.chooseThemePreference}
         onToggleSidebar={controller.toggleSidebar}
+        profile={controller.profileIdentity}
         resolvedTheme={controller.resolvedTheme}
         sidebarExpanded={controller.sidebarExpanded}
-        themePreference={controller.themePreference}
+        showProfile={controller.authState.status === 'signedIn'}
+        showSignOut={controller.authState.status === 'signedIn'}
       />
       {controller.persistenceMessage && (
         <div className="app__persistence-status" role="status">
@@ -368,22 +365,20 @@ const RoutedApp = () => {
       />
       <AppDialogs
         activeWorkCycle={controller.activeWorkCycle}
-        boardSettingsOpen={
-          routeBoardSettingsOpen || controller.boardSettingsOpen
-        }
+        authenticatedProfile={controller.authenticatedProfile}
         clearBoardOpen={controller.clearBoardOpen}
         columnCount={controller.columnCount}
         columns={controller.columns}
         completeWorkOpen={controller.completeWorkOpen}
         completedCardCount={controller.completedCardCount}
         completedColumn={controller.completedColumn}
-        onBoardSettingsOpenChange={(open) => {
+        onSettingsOpenChange={(open) => {
           if (routeBoardSettingsOpen && !open) {
             navigate(APP_ROUTES.board);
             return;
           }
 
-          controller.setBoardSettingsOpen(open);
+          controller.setSettingsOpen(open);
         }}
         onClearBoard={controller.clearBoard}
         onClearBoardOpenChange={controller.setClearBoardOpen}
@@ -398,6 +393,9 @@ const RoutedApp = () => {
         onCompleteWorkOpenChange={controller.setCompleteWorkOpen}
         onCompletedColumnChange={controller.chooseCompletedColumn}
         onDeleteTag={controller.deleteTag}
+        onProfileOpenChange={controller.setProfileDialogOpen}
+        onProfileSave={controller.saveProfile}
+        onThemePreferenceChange={controller.chooseThemePreference}
         onTagManagerOpenChange={(open) => {
           if (routeTagManagerOpen && !open) {
             navigate(APP_ROUTES.board);
@@ -407,9 +405,14 @@ const RoutedApp = () => {
           controller.setTagManagerOpen(open);
         }}
         onTagsChange={controller.updateTags}
+        profileError={controller.profileError}
+        profileOpen={controller.profileDialogOpen}
+        profileSaving={controller.profileSaving}
         routeManagementOpen={routeBoardSettingsOpen || routeTagManagerOpen}
+        settingsOpen={routeBoardSettingsOpen || controller.settingsOpen}
         tagManagerOpen={routeTagManagerOpen || controller.tagManagerOpen}
         tags={controller.tags}
+        themePreference={controller.themePreference}
       />
     </main>
   );

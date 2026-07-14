@@ -8,7 +8,6 @@ export const initAppState = (): AppState => {
 
   return {
     activeWorkCycle: boardState.activeWorkCycle,
-    boardSettingsOpen: false,
     clearBoardOpen: false,
     columns: boardState.columns,
     columnCount: boardState.columns.length,
@@ -17,7 +16,9 @@ export const initAppState = (): AppState => {
     completionPulse: false,
     currentView: 'board',
     mobileSidebarOpen: false,
+    profileDialogOpen: false,
     resolvedTheme: resolveThemePreference(themePreference),
+    settingsOpen: false,
     sidebarExpanded: true,
     storageVersion: 0,
     tagManagerOpen: false,
@@ -33,8 +34,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         activeWorkCycle: action.activeWorkCycle,
       };
-    case 'boardSettingsOpenChanged':
-      return { ...state, boardSettingsOpen: action.open };
     case 'boardStateChanged':
       return {
         ...state,
@@ -66,6 +65,10 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, currentView: action.view };
     case 'mobileSidebarOpenChanged':
       return { ...state, mobileSidebarOpen: action.open };
+    case 'profileDialogOpenChanged':
+      return { ...state, profileDialogOpen: action.open };
+    case 'settingsOpenChanged':
+      return { ...state, settingsOpen: action.open };
     case 'sidebarExpandedChanged':
       return { ...state, sidebarExpanded: action.expanded };
     case 'storageHydrated':

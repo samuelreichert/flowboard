@@ -1,62 +1,63 @@
 import { Button } from '@base-ui/react/button';
+import { Menu } from '@base-ui/react/menu';
 import {
+  ChevronRight,
   History,
   KanbanSquare,
   LogOut,
-  Monitor,
-  Moon,
   PanelLeftClose,
   Settings,
-  Sun,
   Tags,
   X,
 } from 'lucide-react';
+import { useState } from 'react';
 
-import SegmentedControl from '../components/SegmentedControl';
-import type { SegmentedControlOption } from '../components/SegmentedControl';
+import {
+  getProfileDisplayName,
+  getProfileSubtitle,
+  type ProfileIdentity,
+} from '../auth/profileDisplay';
+import ProfileAvatar from '../components/ProfileAvatar';
 import Sidebar from '../components/Sidebar';
 import type { SidebarNavItem } from '../components/Sidebar';
-import type { ResolvedTheme, ThemePreference } from '../theme';
+import type { ResolvedTheme } from '../theme';
 import { getThemeIconSrc } from './appTheme';
 import type { AppView } from './appTypes';
 
-const THEME_OPTIONS: SegmentedControlOption<ThemePreference>[] = [
-  { icon: <Monitor size={16} />, label: 'System', value: 'system' },
-  { icon: <Sun size={16} />, label: 'Light', value: 'light' },
-  { icon: <Moon size={16} />, label: 'Dark', value: 'dark' },
-];
-
 type AppSidebarProps = {
-  authEmail: string | null;
   currentView: AppView;
   onBoardClick: () => void;
-  onBoardSettingsClick: () => void;
   onCloseMobileSidebar: () => void;
   onHistoryClick: () => void;
   onManageTagsClick: () => void;
+  onProfileClick: () => void;
+  onSettingsClick: () => void;
   onSignOut: () => void;
-  onThemePreferenceChange: (preference: ThemePreference) => void;
   onToggleSidebar: () => void;
+  profile: ProfileIdentity | null;
   resolvedTheme: ResolvedTheme;
   sidebarExpanded: boolean;
-  themePreference: ThemePreference;
+  showProfile: boolean;
+  showSignOut: boolean;
 };
 
 const AppSidebar = ({
-  authEmail,
   currentView,
   onBoardClick,
-  onBoardSettingsClick,
   onCloseMobileSidebar,
   onHistoryClick,
   onManageTagsClick,
+  onProfileClick,
+  onSettingsClick,
   onSignOut,
-  onThemePreferenceChange,
   onToggleSidebar,
+  profile,
   resolvedTheme,
   sidebarExpanded,
-  themePreference,
+  showProfile,
+  showSignOut,
 }: AppSidebarProps) => {
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const navItems: SidebarNavItem[] = [
     {
       active: currentView === 'board',
@@ -79,13 +80,13 @@ const AppSidebar = ({
       label: 'Tags',
       onClick: onManageTagsClick,
     },
-    {
-      icon: <Settings size={18} />,
-      id: 'settings',
-      label: 'Board settings',
-      onClick: onBoardSettingsClick,
-    },
   ];
+  const displayName = getProfileDisplayName(profile);
+  const subtitle = getProfileSubtitle(profile);
+  const runAccountMenuAction = (action: () => void) => {
+    setAccountMenuOpen(false);
+    action();
+  };
 
   return (
     <Sidebar
@@ -109,33 +110,73 @@ const AppSidebar = ({
       expandLabel="Expand sidebar"
       expanded={sidebarExpanded}
       footer={
-        <>
-          {authEmail && (
-            <div className="app-sidebar__account">
-              <p className="app-sidebar__footer-label">Account</p>
-              <p className="app-sidebar__account-email">{authEmail}</p>
-              <Button
-                className="button button--secondary app-sidebar__sign-out"
-                onClick={onSignOut}
-                type="button"
-              >
-                <LogOut size={16} />
-                <span>Sign out</span>
-              </Button>
-            </div>
-          )}
-          <p className="app-sidebar__footer-label">Theme</p>
-          <SegmentedControl
-            ariaLabel="Theme preference"
-            className="app-sidebar__theme-control"
-            onValueChange={onThemePreferenceChange}
-            options={THEME_OPTIONS.map((option) => ({
-              ...option,
-              ariaLabel: `Use ${option.label.toLowerCase()} theme`,
-            }))}
-            value={themePreference}
-          />
-        </>
+        <Menu.Root open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
+          <Menu.Trigger
+            aria-label="Open account menu"
+            className="app-sidebar__account-trigger"
+            render={<Button />}
+            title={displayName}
+          >
+            <ProfileAvatar profile={profile} size="sm" />
+            <span className="app-sidebar__account-text">
+              <span className="app-sidebar__account-name">{displayName}</span>
+              <span className="app-sidebar__account-email">{subtitle}</span>
+            </span>
+          </Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner
+              align="start"
+              className="app-sidebar__account-menu-positioner"
+              side="top"
+              sideOffset={8}
+            >
+              <Menu.Popup className="menu-popup app-sidebar__account-menu">
+                {showProfile && (
+                  <>
+                    <button
+                      className="menu-item app-sidebar__account-menu-profile"
+                      onClick={() => runAccountMenuAction(onProfileClick)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ProfileAvatar profile={profile} size="sm" />
+                      <span className="app-sidebar__account-text">
+                        <span className="app-sidebar__account-name">
+                          {displayName}
+                        </span>
+                        <span className="app-sidebar__account-email">
+                          {subtitle}
+                        </span>
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+                    <div className="menu-separator" role="separator" />
+                  </>
+                )}
+                <button
+                  className="menu-item"
+                  onClick={() => runAccountMenuAction(onSettingsClick)}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Settings size={15} />
+                  Settings
+                </button>
+                {showSignOut && (
+                  <button
+                    className="menu-item menu-item--danger"
+                    onClick={() => runAccountMenuAction(onSignOut)}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <LogOut size={15} />
+                    Log out
+                  </button>
+                )}
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
       }
       navAriaLabel="Primary navigation"
       navItems={navItems}

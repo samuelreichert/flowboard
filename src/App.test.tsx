@@ -242,17 +242,16 @@ test('opens and closes the mobile navigation drawer', async () => {
   expect(screen.getByRole('main')).not.toHaveClass('app--mobile-sidebar-open');
 });
 
-test('changes and persists the app theme preference from the sidebar footer', async () => {
+test('changes and persists the app theme preference from settings', async () => {
   const user = userEvent.setup();
   render(<App />);
 
+  await openBoardSettings(user);
   await user.click(screen.getByRole('button', { name: /use dark theme/i }));
+  const appShell = document.querySelector('main');
 
-  expect(screen.getByRole('main')).toHaveAttribute('data-theme', 'dark');
-  expect(screen.getByRole('main')).toHaveAttribute(
-    'data-theme-preference',
-    'dark'
-  );
+  expect(appShell).toHaveAttribute('data-theme', 'dark');
+  expect(appShell).toHaveAttribute('data-theme-preference', 'dark');
   expect(
     screen.getByRole('group', { name: /theme preference/i })
   ).toHaveAttribute('data-selected-value', 'dark');
@@ -326,14 +325,15 @@ test('opens route-owned management surfaces and closes them to board', async () 
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
   expect(window.location.pathname).toBe('/board');
 
-  await user.click(screen.getByRole('button', { name: /board settings/i }));
+  await user.click(screen.getByRole('button', { name: /open account menu/i }));
+  await user.click(await screen.findByRole('menuitem', { name: /^settings$/i }));
   expect(window.location.pathname).toBe('/settings');
-  expect(screen.getByRole('dialog', { name: /board settings/i })).toHaveClass(
+  expect(screen.getByRole('dialog', { name: /^settings$/i })).toHaveClass(
     'dialog-popup--route-management'
   );
 
   await user.click(
-    screen.getByRole('button', { name: /close board settings/i })
+    screen.getByRole('button', { name: /close settings/i })
   );
   expect(window.location.pathname).toBe('/board');
 });
@@ -350,7 +350,7 @@ test('directly loads tags, settings, history, and unknown routes', async () => {
   window.history.replaceState(null, '', '/settings');
   const settingsRender = render(<App />);
   expect(
-    screen.getByRole('dialog', { name: /board settings/i })
+    screen.getByRole('dialog', { name: /^settings$/i })
   ).toBeInTheDocument();
   settingsRender.unmount();
 
@@ -1345,7 +1345,7 @@ test('clears the board only after confirmation', async () => {
   expect(readColumns()).toEqual([]);
 });
 
-test('clear board lives in board settings only when the board can be cleared', async () => {
+test('clear board lives in settings only when the board can be cleared', async () => {
   const user = userEvent.setup();
   render(<App />);
   const sidebar = screen.getByRole('complementary', {
@@ -1419,11 +1419,11 @@ test('disables completing work when no completed column exists', async () => {
   expect(completeWork).toBeDisabled();
   expect(completeWork).toHaveAttribute(
     'title',
-    'Choose a completed column in board settings before completing work'
+    'Choose a completed column in settings before completing work'
   );
   await user.click(completeWork);
   expect(
-    screen.queryByRole('dialog', { name: /board settings/i })
+    screen.queryByRole('dialog', { name: /^settings$/i })
   ).not.toBeInTheDocument();
 });
 
@@ -1797,8 +1797,9 @@ const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 const openBoardSettings = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByRole('button', { name: /board settings/i }));
-  await screen.findByRole('dialog', { name: /board settings/i });
+  await user.click(screen.getByRole('button', { name: /open account menu/i }));
+  await user.click(await screen.findByRole('menuitem', { name: /^settings$/i }));
+  await screen.findByRole('dialog', { name: /^settings$/i });
 };
 
 const readColumns = () =>

@@ -8,6 +8,14 @@ import {
   type SocialAuthProvider,
   type SupabaseSession,
 } from '../auth/supabase';
+import {
+  getProfileFromSession,
+  LOCAL_PROFILE_IDENTITY,
+} from '../auth/profileDisplay';
+import {
+  removeProfileAvatar,
+  uploadProfileAvatar,
+} from '../auth/profileAvatar';
 import { completeWorkCycle } from '../board/completedWork';
 import {
   fetchBoardState,
@@ -19,8 +27,11 @@ import {
   updateStorage,
 } from '../storage';
 import {
+  fetchAuthenticatedProfile,
   fetchAuthenticatedDefaultBoard,
+  saveAuthenticatedProfile,
   saveAuthenticatedBoard,
+  type AuthenticatedProfile,
 } from '../storage/authenticatedApi';
 import { getSystemTheme, updateThemePreference } from '../theme';
 import type { ThemePreference } from '../theme';
@@ -59,13 +70,16 @@ const useAppController = () => {
   } | null>(null);
   const [authenticatedBoardLoading, setAuthenticatedBoardLoading] =
     useState(false);
+  const [authenticatedProfile, setAuthenticatedProfile] =
+    useState<AuthenticatedProfile | null>(null);
   const [persistenceMessage, setPersistenceMessage] = useState<string | null>(
     null
   );
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
   const completionPulseTimeoutRef = useRef<number | null>(null);
   const {
     activeWorkCycle,
-    boardSettingsOpen,
     clearBoardOpen,
     columns,
     columnCount,
@@ -74,7 +88,9 @@ const useAppController = () => {
     completionPulse,
     currentView,
     mobileSidebarOpen,
+    profileDialogOpen,
     resolvedTheme,
+    settingsOpen,
     sidebarExpanded,
     storageVersion,
     tagManagerOpen,
@@ -145,6 +161,7 @@ const useAppController = () => {
     if (authState.status !== 'signedIn') {
       setAuthenticatedBoard(null);
       setAuthenticatedBoardLoading(false);
+      setAuthenticatedProfile(null);
       return;
     }
 
@@ -186,6 +203,34 @@ const useAppController = () => {
           'Your cloud board is unavailable. Check your connection and try again.'
         );
         setAuthenticatedBoardLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authState]);
+
+  useEffect(() => {
+    if (authState.status !== 'signedIn') {
+      return;
+    }
+
+    let active = true;
+
+    void fetchAuthenticatedProfile(authState.session.access_token)
+      .then((payload) => {
+        if (!active) {
+          return;
+        }
+
+        setAuthenticatedProfile(payload.profile);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setProfileError('Your profile is unavailable. Try again in a moment.');
       });
 
     return () => {
@@ -317,8 +362,18 @@ const useAppController = () => {
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
-  const openBoardSettings = () => {
-    dispatch({ open: true, type: 'boardSettingsOpenChanged' });
+  const openSettings = () => {
+    dispatch({ open: true, type: 'settingsOpenChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const openProfileDialog = () => {
+    if (!activeAuthenticatedProfile) {
+      return;
+    }
+
+    setProfileError(null);
+    dispatch({ open: true, type: 'profileDialogOpenChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
@@ -338,7 +393,7 @@ const useAppController = () => {
 
   const openClearBoardConfirmation = () => {
     dispatch({ open: true, type: 'clearBoardOpenChanged' });
-    dispatch({ open: false, type: 'boardSettingsOpenChanged' });
+    dispatch({ open: false, type: 'settingsOpenChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
@@ -349,7 +404,7 @@ const useAppController = () => {
     );
 
     if (!completedColumn) {
-      openBoardSettings();
+      openSettings();
       return;
     }
 
@@ -372,7 +427,7 @@ const useAppController = () => {
 
     if (!completedColumn || completedColumn.cards.length === 0) {
       if (!completedColumn) {
-        openBoardSettings();
+        openSettings();
       }
 
       return;
@@ -381,7 +436,7 @@ const useAppController = () => {
     const nextState = completeWorkCycle(latestState, completedAt);
 
     if (!nextState) {
-      openBoardSettings();
+      openSettings();
       return;
     }
 
@@ -416,8 +471,16 @@ const useAppController = () => {
       type: 'columnCountChanged',
     });
 
-  const setBoardSettingsOpen = (open: boolean) =>
-    dispatch({ open, type: 'boardSettingsOpenChanged' });
+  const setProfileDialogOpen = (open: boolean) => {
+    if (!open) {
+      setProfileError(null);
+    }
+
+    dispatch({ open, type: 'profileDialogOpenChanged' });
+  };
+
+  const setSettingsOpen = (open: boolean) =>
+    dispatch({ open, type: 'settingsOpenChanged' });
 
   const setClearBoardOpen = (open: boolean) =>
     dispatch({ open, type: 'clearBoardOpenChanged' });
@@ -472,6 +535,62 @@ const useAppController = () => {
     void supabase.auth.signOut();
   };
 
+  const saveProfile = async ({
+    avatarFile,
+    displayName,
+    removeAvatar,
+  }: {
+    avatarFile: File | null;
+    displayName: string;
+    removeAvatar: boolean;
+  }) => {
+    if (authState.status !== 'signedIn' || !activeAuthenticatedProfile) {
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError(null);
+
+    try {
+      const profileUpdate: {
+        avatarStoragePath?: string | null;
+        avatarUrl?: string | null;
+        displayName: string;
+      } = {
+        displayName,
+      };
+
+      if (avatarFile) {
+        const uploadedAvatar = await uploadProfileAvatar(
+          avatarFile,
+          activeAuthenticatedProfile.id,
+          activeAuthenticatedProfile.avatarStoragePath
+        );
+
+        profileUpdate.avatarStoragePath = uploadedAvatar.avatarStoragePath;
+        profileUpdate.avatarUrl = uploadedAvatar.avatarUrl;
+      } else if (removeAvatar) {
+        await removeProfileAvatar(activeAuthenticatedProfile.avatarStoragePath);
+        profileUpdate.avatarStoragePath = null;
+        profileUpdate.avatarUrl = null;
+      }
+
+      const payload = await saveAuthenticatedProfile(
+        profileUpdate,
+        authState.session.access_token
+      );
+
+      setAuthenticatedProfile(payload.profile);
+      dispatch({ open: false, type: 'profileDialogOpenChanged' });
+    } catch (error) {
+      setProfileError(
+        error instanceof Error ? error.message : 'Unable to save profile.'
+      );
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const completedColumn = columns.find(
     (column) => column.id === activeWorkCycle.completedColumnId
   );
@@ -479,13 +598,24 @@ const useAppController = () => {
   const canCompleteWork = Boolean(completedColumn && completedCardCount > 0);
   const completeWorkDisabledReason = activeWorkCycle.completedColumnId
     ? 'Add cards to the completed column before completing work'
-    : 'Choose a completed column in board settings before completing work';
+    : 'Choose a completed column in settings before completing work';
+  const sessionProfile =
+    authState.status === 'signedIn'
+      ? getProfileFromSession(authState.session)
+      : null;
+  const activeAuthenticatedProfile = authenticatedProfile ?? sessionProfile;
+  const profileIdentity =
+    authState.status === 'signedIn'
+      ? activeAuthenticatedProfile
+      : isSupabaseConfigured
+        ? null
+        : LOCAL_PROFILE_IDENTITY;
 
   return {
     activeWorkCycle,
     authState,
     authenticatedBoardLoading,
-    boardSettingsOpen,
+    authenticatedProfile: activeAuthenticatedProfile,
     canCompleteWork,
     completeWorkDisabledReason,
     chooseCompletedColumn,
@@ -505,20 +635,28 @@ const useAppController = () => {
     deleteTag,
     mobileSidebarOpen,
     openBoard,
-    openBoardSettings,
     openClearBoardConfirmation,
     openCompleteWorkConfirmation,
     openHistory,
     openMobileSidebar,
+    openProfileDialog,
+    openSettings,
     openTagManager,
     persistenceMessage,
+    profileDialogOpen,
+    profileError,
+    profileIdentity,
+    profileSaving,
     requestMagicLink,
     requestSocialAuth,
     resolvedTheme,
-    setBoardSettingsOpen,
     setClearBoardOpen,
     setCompleteWorkOpen,
+    setProfileDialogOpen,
+    setSettingsOpen,
     setTagManagerOpen,
+    saveProfile,
+    settingsOpen,
     sidebarExpanded,
     signOut,
     storageVersion,
