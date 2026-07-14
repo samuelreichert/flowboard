@@ -63,11 +63,29 @@ The system SHALL present Flowboard branding as app chrome rather than as the dom
 - **WHEN** the board workspace is displayed
 - **THEN** the Flowboard name appears in a quiet sidebar or header treatment while the board content remains the primary focus
 
+### Requirement: Settings dialog consolidates app and board settings
+The system SHALL expose Settings from the sidebar account menu and group app appearance controls with board-specific controls in a single Settings dialog.
+
+#### Scenario: User opens Settings from account menu
+- **WHEN** the user activates Settings in the account menu
+- **THEN** the system opens a Settings dialog
+- **AND** the dialog includes an Appearance section for theme preference
+- **AND** the dialog includes a Board section for completed-column selection and clear-board access
+
+#### Scenario: Board settings nav item is removed
+- **WHEN** the sidebar navigation is displayed
+- **THEN** the system presents workspace navigation without a Board settings nav item
+- **AND** board settings remain reachable from the Settings dialog
+
+#### Scenario: Completed work needs board configuration
+- **WHEN** the user tries to complete work without a completed column configured
+- **THEN** the system directs the user to Settings where the Board section provides completed-column selection
+
 ### Requirement: Theme preference supports system, light, and dark
-The system SHALL allow the user to choose `system`, `light`, or `dark` as an app-level theme preference from the sidebar footer.
+The system SHALL allow the user to choose `system`, `light`, or `dark` as an app-level theme preference from the Settings dialog.
 
 #### Scenario: Theme options are grouped horizontally
-- **WHEN** the expanded desktop sidebar or mobile drawer displays theme options
+- **WHEN** the Settings dialog displays Appearance controls
 - **THEN** the system presents `system`, `light`, and `dark` as a horizontal segmented control
 
 #### Scenario: User chooses explicit light theme
