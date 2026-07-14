@@ -1,7 +1,11 @@
-import BoardSettingsDialog from '../components/BoardSettingsDialog';
+import AppSettingsDialog from '../components/AppSettingsDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ProfileDialog from '../components/ProfileDialog';
+import type { ProfileDialogValues } from '../components/ProfileDialog';
 import TagManagerDialog from '../components/TagManagerDialog';
 import { fetchStorage } from '../storage';
+import type { AuthenticatedProfile } from '../storage/authenticatedApi';
+import type { ThemePreference } from '../theme';
 import type { BoardActiveWorkCycle, BoardColumn, BoardTag } from '../types';
 
 const getTagUsageCount = (tagId: string) =>
@@ -13,14 +17,13 @@ const getTagUsageCount = (tagId: string) =>
 
 type AppDialogsProps = {
   activeWorkCycle: BoardActiveWorkCycle;
-  boardSettingsOpen: boolean;
+  authenticatedProfile: AuthenticatedProfile | null;
   clearBoardOpen: boolean;
   columnCount: number;
   columns: BoardColumn[];
   completeWorkOpen: boolean;
   completedCardCount: number;
   completedColumn: BoardColumn | undefined;
-  onBoardSettingsOpenChange: (open: boolean) => void;
   onClearBoard: () => void;
   onClearBoardOpenChange: (open: boolean) => void;
   onClearBoardRequest: () => void;
@@ -28,23 +31,31 @@ type AppDialogsProps = {
   onCompleteWorkOpenChange: (open: boolean) => void;
   onCompletedColumnChange: (completedColumnId: string | null) => void;
   onDeleteTag: (tagId: string) => void;
+  onProfileOpenChange: (open: boolean) => void;
+  onProfileSave: (values: ProfileDialogValues) => Promise<void>;
+  onSettingsOpenChange: (open: boolean) => void;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
   onTagManagerOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   routeManagementOpen: boolean;
+  profileError: string | null;
+  profileOpen: boolean;
+  profileSaving: boolean;
+  settingsOpen: boolean;
   tagManagerOpen: boolean;
   tags: BoardTag[];
+  themePreference: ThemePreference;
 };
 
 const AppDialogs = ({
   activeWorkCycle,
-  boardSettingsOpen,
+  authenticatedProfile,
   clearBoardOpen,
   columnCount,
   columns,
   completeWorkOpen,
   completedCardCount,
   completedColumn,
-  onBoardSettingsOpenChange,
   onClearBoard,
   onClearBoardOpenChange,
   onClearBoardRequest,
@@ -52,22 +63,41 @@ const AppDialogs = ({
   onCompleteWorkOpenChange,
   onCompletedColumnChange,
   onDeleteTag,
+  onProfileOpenChange,
+  onProfileSave,
+  onSettingsOpenChange,
+  onThemePreferenceChange,
   onTagManagerOpenChange,
   onTagsChange,
   routeManagementOpen,
+  profileError,
+  profileOpen,
+  profileSaving,
+  settingsOpen,
   tagManagerOpen,
   tags,
+  themePreference,
 }: AppDialogsProps) => (
   <>
-    <BoardSettingsDialog
+    <AppSettingsDialog
       canClearBoard={columnCount > 0}
       columns={columns}
       completedColumnId={activeWorkCycle.completedColumnId}
       onClearBoard={onClearBoardRequest}
       onCompletedColumnChange={onCompletedColumnChange}
-      onOpenChange={onBoardSettingsOpenChange}
-      open={boardSettingsOpen}
+      onOpenChange={onSettingsOpenChange}
+      onThemePreferenceChange={onThemePreferenceChange}
+      open={settingsOpen}
       routeOwned={routeManagementOpen}
+      themePreference={themePreference}
+    />
+    <ProfileDialog
+      error={profileError}
+      onOpenChange={onProfileOpenChange}
+      onSave={onProfileSave}
+      open={profileOpen}
+      profile={authenticatedProfile}
+      saving={profileSaving}
     />
     <TagManagerDialog
       getTagUsageCount={getTagUsageCount}
@@ -92,7 +122,7 @@ const AppDialogs = ({
       description={
         completedColumn
           ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
-          : 'Choose a completed column in board settings before completing work.'
+          : 'Choose a completed column in settings before completing work.'
       }
       onConfirm={onCompleteWork}
       onOpenChange={onCompleteWorkOpenChange}

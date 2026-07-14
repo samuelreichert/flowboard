@@ -3,6 +3,8 @@ import type { IncomingMessage } from 'node:http';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type AuthenticatedUser = {
+  avatarUrl: string | null;
+  displayName: string | null;
   email: string | null;
   id: string;
 };
@@ -26,6 +28,21 @@ const extractBearerToken = (request: IncomingMessage) => {
   const [scheme, token] = header.split(' ');
 
   return scheme?.toLowerCase() === 'bearer' && token ? token : null;
+};
+
+const readMetadataString = (
+  metadata: Record<string, unknown>,
+  keys: string[]
+) => {
+  for (const key of keys) {
+    const value = metadata[key];
+
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
 };
 
 export const createSupabaseAuthVerifier = (
@@ -58,6 +75,15 @@ export const createSupabaseAuthVerifier = (
       }
 
       return {
+        avatarUrl: readMetadataString(data.user.user_metadata, [
+          'avatar_url',
+          'picture',
+        ]),
+        displayName: readMetadataString(data.user.user_metadata, [
+          'full_name',
+          'name',
+          'display_name',
+        ]),
         email: data.user.email ?? null,
         id: data.user.id,
       };

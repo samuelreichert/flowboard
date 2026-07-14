@@ -8,12 +8,14 @@ datasource db {
 }
 
 model Profile {
-  id          String    @id
-  displayName String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  projects    Project[]
-  boards      Board[]
+  id                String    @id
+  displayName       String?
+  avatarUrl         String?
+  avatarStoragePath String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  projects          Project[]
+  boards            Board[]
 
   @@map("profiles")
 }

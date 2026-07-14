@@ -11,7 +11,6 @@ export type AppView = 'board' | 'history';
 
 export type AppState = {
   activeWorkCycle: BoardActiveWorkCycle;
-  boardSettingsOpen: boolean;
   clearBoardOpen: boolean;
   columns: BoardColumn[];
   columnCount: number;
@@ -20,7 +19,9 @@ export type AppState = {
   completionPulse: boolean;
   currentView: AppView;
   mobileSidebarOpen: boolean;
+  profileDialogOpen: boolean;
   resolvedTheme: ResolvedTheme;
+  settingsOpen: boolean;
   sidebarExpanded: boolean;
   storageVersion: number;
   tagManagerOpen: boolean;
@@ -30,7 +31,6 @@ export type AppState = {
 
 export type AppAction =
   | { type: 'activeWorkCycleChanged'; activeWorkCycle: BoardActiveWorkCycle }
-  | { type: 'boardSettingsOpenChanged'; open: boolean }
   | { type: 'boardStateChanged'; state: BoardState }
   | { type: 'boardStateSynced'; state: BoardState }
   | { type: 'clearBoardOpenChanged'; open: boolean }
@@ -39,6 +39,8 @@ export type AppAction =
   | { type: 'completionPulseChanged'; active: boolean }
   | { type: 'currentViewChanged'; view: AppView }
   | { type: 'mobileSidebarOpenChanged'; open: boolean }
+  | { type: 'profileDialogOpenChanged'; open: boolean }
+  | { type: 'settingsOpenChanged'; open: boolean }
   | { type: 'sidebarExpandedChanged'; expanded: boolean }
   | {
       type: 'storageHydrated';

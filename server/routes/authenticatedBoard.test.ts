@@ -43,7 +43,14 @@ const createRequest = ({
 const createPrisma = () =>
   ({
     profile: {
-      upsert: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue({
+        avatarStoragePath: null,
+        avatarUrl: null,
+        displayName: null,
+        id: 'user-1',
+      }),
+      update: vi.fn(),
     },
   }) as unknown as FlowboardPrismaClient;
 
@@ -81,6 +88,8 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       createPrisma(),
       {
         verifyRequest: vi.fn().mockResolvedValue({
+          avatarUrl: null,
+          displayName: null,
           email: 'user@example.com',
           id: 'user-1',
         }),

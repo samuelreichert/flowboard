@@ -8,6 +8,11 @@
 - Prefer small commits organized by logical chunks, such as dependencies, data model changes, UI behavior, styling, tests, or follow-up fixes.
 - Before committing, review the staged diff and split unrelated changes into separate commits.
 
+## PR Validation
+
+- Before opening a pull request, run React Doctor with `rtk npx react-doctor@latest --verbose --scope changed` and address or explicitly document any actionable findings.
+- Before adding new commits to an already-open pull request, run React Doctor again with `rtk npx react-doctor@latest --verbose --scope changed` and address or explicitly document any actionable findings before pushing.
+
 ## Architecture
 
 - Do not repeat yourself. Shared concepts, values, colors, defaults, labels, formatting, options, validation rules, and UI behavior must have one source of truth.

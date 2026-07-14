@@ -17,6 +17,10 @@ describe('createSupabaseAuthVerifier', () => {
         user: {
           email: 'user@example.com',
           id: 'user-1',
+          user_metadata: {
+            avatar_url: 'https://example.com/avatar.png',
+            full_name: 'Example User',
+          },
         },
       },
       error: null,
@@ -34,6 +38,8 @@ describe('createSupabaseAuthVerifier', () => {
     await expect(
       verifier.verifyRequest(createRequest('Bearer valid-token'))
     ).resolves.toEqual({
+      avatarUrl: 'https://example.com/avatar.png',
+      displayName: 'Example User',
       email: 'user@example.com',
       id: 'user-1',
     });
@@ -89,26 +95,72 @@ describe('createSupabaseAuthVerifier', () => {
 });
 
 describe('ensureProfile', () => {
-  test('provisions a profile keyed by the Supabase user id', async () => {
-    const upsert = vi.fn().mockResolvedValue(undefined);
+  test('provisions a profile keyed by the Supabase user id and seeds metadata', async () => {
+    const create = vi.fn().mockResolvedValue({
+      avatarStoragePath: null,
+      avatarUrl: 'https://example.com/avatar.png',
+      displayName: 'Example User',
+      id: 'user-1',
+    });
+    const findUnique = vi.fn().mockResolvedValue(null);
 
     await ensureProfile(
       {
         profile: {
-          upsert,
+          create,
+          findUnique,
         },
       } as unknown as FlowboardPrismaClient,
       {
+        avatarUrl: 'https://example.com/avatar.png',
+        displayName: 'Example User',
         email: 'user@example.com',
         id: 'user-1',
       }
     );
 
-    expect(upsert).toHaveBeenCalledWith({
-      create: {
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        avatarUrl: 'https://example.com/avatar.png',
+        displayName: 'Example User',
         id: 'user-1',
       },
-      update: {},
+    });
+  });
+
+  test('seeds only missing profile fields without overwriting saved values', async () => {
+    const findUnique = vi.fn().mockResolvedValue({
+      avatarStoragePath: null,
+      avatarUrl: null,
+      displayName: 'Saved Name',
+      id: 'user-1',
+    });
+    const update = vi.fn().mockResolvedValue({
+      avatarStoragePath: null,
+      avatarUrl: 'https://example.com/avatar.png',
+      displayName: 'Saved Name',
+      id: 'user-1',
+    });
+
+    await ensureProfile(
+      {
+        profile: {
+          findUnique,
+          update,
+        },
+      } as unknown as FlowboardPrismaClient,
+      {
+        avatarUrl: 'https://example.com/avatar.png',
+        displayName: 'Provider Name',
+        email: 'user@example.com',
+        id: 'user-1',
+      }
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      data: {
+        avatarUrl: 'https://example.com/avatar.png',
+      },
       where: {
         id: 'user-1',
       },

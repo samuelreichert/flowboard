@@ -6,6 +6,7 @@ import { createBoardRepository } from './db/boardRepository.ts';
 import { sendInternalError } from './http/apiErrors.ts';
 import { serveProductionFile } from './http/static.ts';
 import { handleAuthenticatedBoardApiRequest } from './routes/authenticatedBoard.ts';
+import { handleAuthenticatedProfileApiRequest } from './routes/authenticatedProfile.ts';
 import { handleBoardApiRequest } from './routes/board.ts';
 
 const config = createServerConfig();
@@ -26,6 +27,17 @@ const authVerifier = createSupabaseAuthVerifier(config);
 
 const server = createServer(async (request, response) => {
   try {
+    if (
+      await handleAuthenticatedProfileApiRequest(
+        request,
+        response,
+        prisma,
+        authVerifier
+      )
+    ) {
+      return;
+    }
+
     if (
       await handleAuthenticatedBoardApiRequest(
         request,
