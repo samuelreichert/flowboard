@@ -30,9 +30,9 @@ const ProfileDialog = ({
   saving,
 }: ProfileDialogProps) => {
   const [displayName, setDisplayName] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
+  const avatarFileRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const ProfileDialog = ({
     }
 
     setDisplayName(profile?.displayName ?? '');
-    setAvatarFile(null);
+    avatarFileRef.current = null;
     setAvatarPreviewUrl(null);
     setRemoveAvatar(false);
   }, [open, profile]);
@@ -65,7 +65,7 @@ const ProfileDialog = ({
     event.preventDefault();
 
     await onSave({
-      avatarFile,
+      avatarFile: avatarFileRef.current,
       displayName,
       removeAvatar,
     });
@@ -80,7 +80,7 @@ const ProfileDialog = ({
       URL.revokeObjectURL(avatarPreviewUrl);
     }
 
-    setAvatarFile(file);
+    avatarFileRef.current = file;
     setAvatarPreviewUrl(URL.createObjectURL(file));
     setRemoveAvatar(false);
   };
@@ -90,7 +90,7 @@ const ProfileDialog = ({
       URL.revokeObjectURL(avatarPreviewUrl);
     }
 
-    setAvatarFile(null);
+    avatarFileRef.current = null;
     setAvatarPreviewUrl(null);
     setRemoveAvatar(true);
   };
@@ -120,6 +120,7 @@ const ProfileDialog = ({
           </Button>
           <input
             accept="image/gif,image/jpeg,image/png,image/webp"
+            aria-label="Profile image file"
             className="profile-dialog__file-input"
             onChange={(event) => chooseAvatar(event.target.files?.[0])}
             ref={fileInputRef}

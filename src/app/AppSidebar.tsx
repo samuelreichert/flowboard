@@ -150,7 +150,7 @@ const AppSidebar = ({
                       </span>
                       <ChevronRight size={16} />
                     </button>
-                    <div className="menu-separator" role="separator" />
+                    <hr className="menu-separator" />
                   </>
                 )}
                 <button
