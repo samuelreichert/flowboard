@@ -2,56 +2,61 @@
 
 ## Purpose
 
-Defines the structured relational persistence model for authenticated Flowboard data across SQLite development and Supabase Postgres production.
+Defines the structured relational persistence model for durable Flowboard data
+across SQLite development and Supabase Postgres production.
 
 ## Requirements
 
 ### Requirement: Board data is stored in structured relational records
 
-The system SHALL persist authenticated Flowboard data as structured relational records instead of a single board-state payload.
+The system SHALL persist durable Flowboard board data as structured relational
+records instead of browser localStorage or a single board-state payload.
 
 #### Scenario: User creates a default board
 
-- **WHEN** an authenticated user starts using Flowboard without existing app data
-- **THEN** the system creates structured records for the user's default project, board, columns, cards, tags, and board metadata as needed
+- **WHEN** a resolved principal starts using Flowboard without existing app data
+- **THEN** the system creates structured records for the principal's default project, board, columns, cards, tags, and board metadata as needed
 
 #### Scenario: Board is reloaded
 
-- **WHEN** an authenticated user reloads Flowboard after editing a board
+- **WHEN** a resolved principal reloads Flowboard after editing a board
 - **THEN** the system reconstructs the board from structured persisted records
 
 ### Requirement: Structured persistence preserves current board features
 
-The system SHALL preserve existing board behavior through the structured persistence model.
+The system SHALL preserve existing board behavior through the structured
+Prisma persistence model in both local SQLite development and production
+Supabase Postgres modes.
 
 #### Scenario: Rich board content is saved
 
-- **WHEN** an authenticated user saves columns, cards, rich card content, priorities, tags, background, active work-cycle metadata, or completed work history
-- **THEN** the saved data remains available after reload through authenticated persistence
+- **WHEN** a resolved principal saves columns, cards, rich card content, priorities, tags, background, active work-cycle metadata, or completed work history
+- **THEN** the saved data remains available after reload through Prisma-backed persistence
 
 #### Scenario: Tag context is saved
 
-- **WHEN** an authenticated user assigns multiple tags to a card
+- **WHEN** a resolved principal assigns multiple tags to a card
 - **THEN** the system persists the board-scoped tag definitions and card-tag assignments
 
 #### Scenario: Completed history is saved
 
-- **WHEN** an authenticated user completes work and archives cards into history
+- **WHEN** a resolved principal completes work and archives cards into history
 - **THEN** the system persists completed work-cycle metadata and readonly archived card snapshots
 
 ### Requirement: Persistence records are scoped to an owner
 
-The system SHALL associate every authenticated project, board, column, card, tag, and history record with an owner directly or through an owner-scoped parent.
+The system SHALL associate every durable project, board, column, card, tag, and
+history record with an owner directly or through an owner-scoped parent.
 
 #### Scenario: User-owned board records are queried
 
-- **WHEN** the system loads board records for an authenticated user
-- **THEN** only records owned by that user or reachable through that user's owned parent records are included
+- **WHEN** the system loads board records for a resolved principal
+- **THEN** only records owned by that principal or reachable through that principal's owned parent records are included
 
 #### Scenario: New board records are created
 
-- **WHEN** an authenticated user creates project or board data
-- **THEN** the system stores ownership so later reads and writes can be scoped to that user
+- **WHEN** a resolved principal creates project or board data
+- **THEN** the system stores ownership so later reads and writes can be scoped to that principal
 
 ### Requirement: SQLite local schema mirrors the production app model
 

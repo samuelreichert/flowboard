@@ -14,6 +14,7 @@ The system SHALL cache the production app shell and bundled static assets so Flo
 
 - **WHEN** the user has previously loaded the production app and then loses network access
 - **THEN** the system loads the Flowboard application shell from cache
+- **AND** the system does not imply that board changes can be durably saved without the Prisma API
 
 ### Requirement: Board storage is not browser-offline durable
 
