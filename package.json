@@ -34,7 +34,7 @@
     "start": "npm run build:server && node dist-server/server/index.js",
     "build": "tsc -b && vite build",
     "build:server": "tsc -p tsconfig.server.json",
-    "build:local": "VITE_BOARD_API_URL=/api/board npm run build",
+    "build:local": "npm run build",
     "db:generate": "npm run db:generate:sqlite && npm run db:generate:postgres",
     "db:generate:sqlite": "PRISMA_PROVIDER=sqlite prisma generate",
     "db:generate:postgres": "PRISMA_PROVIDER=postgresql prisma generate",
