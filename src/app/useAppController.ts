@@ -87,6 +87,7 @@ const useAppController = () => {
     completedWorkCycles,
     completionPulse,
     currentView,
+    manageColumnsOpen,
     mobileSidebarOpen,
     profileDialogOpen,
     resolvedTheme,
@@ -352,6 +353,11 @@ const useAppController = () => {
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
+  const openManageColumns = () => {
+    dispatch({ open: true, type: 'manageColumnsOpenChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
   const openBoard = () => {
     dispatch({ view: 'board', type: 'currentViewChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
@@ -487,6 +493,9 @@ const useAppController = () => {
 
   const setCompleteWorkOpen = (open: boolean) =>
     dispatch({ open, type: 'completeWorkOpenChanged' });
+
+  const setManageColumnsOpen = (open: boolean) =>
+    dispatch({ open, type: 'manageColumnsOpenChanged' });
 
   const setTagManagerOpen = (open: boolean) =>
     dispatch({ open, type: 'tagManagerOpenChanged' });
@@ -633,11 +642,13 @@ const useAppController = () => {
     confirmCompleteWork,
     currentView,
     deleteTag,
+    manageColumnsOpen,
     mobileSidebarOpen,
     openBoard,
     openClearBoardConfirmation,
     openCompleteWorkConfirmation,
     openHistory,
+    openManageColumns,
     openMobileSidebar,
     openProfileDialog,
     openSettings,
@@ -652,6 +663,7 @@ const useAppController = () => {
     resolvedTheme,
     setClearBoardOpen,
     setCompleteWorkOpen,
+    setManageColumnsOpen,
     setProfileDialogOpen,
     setSettingsOpen,
     setTagManagerOpen,

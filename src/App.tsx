@@ -11,15 +11,17 @@ import {
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
+import {
+  shouldRenderAuthGate,
+  type AuthGateStatus,
+} from './app/authGate';
 import { getThemeIconSrc } from './app/appTheme';
 import {
   APP_ROUTES,
   getInternalDestination,
   getNextSearchDestination,
   getViewForRoute,
-  isProtectedAppRoute,
   parseAppRoute,
-  type ParsedAppRoute,
 } from './app/routes';
 import useAppController from './app/useAppController';
 import {
@@ -42,7 +44,7 @@ type AuthGateProps = {
     provider: SocialAuthProvider,
     nextDestination?: string
   ) => Promise<void>;
-  status: 'loading' | 'signedOut' | 'static' | 'signedIn';
+  status: AuthGateStatus;
 };
 
 export const AuthGate = ({
@@ -195,11 +197,7 @@ const NotFoundView = ({
   <main className="app app--not-found">
     <section className="not-found-panel" aria-label="Route not found">
       <div className="not-found-panel__mark" aria-hidden="true">
-        <img
-          alt=""
-          className="not-found-panel__brand-icon"
-          src={iconSrc}
-        />
+        <img alt="" className="not-found-panel__brand-icon" src={iconSrc} />
         <span>404</span>
       </div>
       <p className="app__eyebrow">Page not found</p>
@@ -230,21 +228,6 @@ const getLocationDestination = (location: {
   getInternalDestination(
     `${location.pathname}${location.search}${location.hash}`
   );
-
-export const shouldRenderAuthGate = ({
-  authConfigured,
-  route,
-  status,
-}: {
-  authConfigured: boolean;
-  route: ParsedAppRoute;
-  status: AuthGateProps['status'];
-}) =>
-  authConfigured &&
-  status !== 'signedIn' &&
-  (isProtectedAppRoute(route) ||
-    route.type === 'auth-callback' ||
-    route.type === 'sign-in');
 
 const RoutedApp = () => {
   const controller = useAppController();
@@ -328,6 +311,10 @@ const RoutedApp = () => {
         onBoardClick={() => navigateTo(APP_ROUTES.board)}
         onCloseMobileSidebar={closeMobileSidebar}
         onHistoryClick={() => navigateTo(APP_ROUTES.history)}
+        onManageColumnsClick={() => {
+          navigate(APP_ROUTES.board);
+          controller.openManageColumns();
+        }}
         onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
         onProfileClick={controller.openProfileDialog}
         onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
@@ -353,11 +340,13 @@ const RoutedApp = () => {
         completedWorkCycles={controller.completedWorkCycles}
         completionPulse={controller.completionPulse}
         currentView={currentView}
+        manageColumnsOpen={controller.manageColumnsOpen}
         onActiveCardClose={() => navigate(APP_ROUTES.board)}
         onArchivedCardClose={() => navigate(APP_ROUTES.history)}
         onBoardStateChange={controller.syncBoardState}
         onColumnCountChange={controller.updateColumnCount}
         onCompleteWorkClick={controller.openCompleteWorkConfirmation}
+        onManageColumnsOpenChange={controller.setManageColumnsOpen}
         onOpenMobileSidebar={controller.openMobileSidebar}
         onTagsChange={controller.updateTags}
         storageVersion={controller.storageVersion}

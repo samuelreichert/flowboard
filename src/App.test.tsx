@@ -8,7 +8,8 @@ import {
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import App, { AuthGate, shouldRenderAuthGate } from './App';
+import App, { AuthGate } from './App';
+import { shouldRenderAuthGate } from './app/authGate';
 import { parseAppRoute } from './app/routes';
 import { reorderCard } from './dnd';
 import {
@@ -287,6 +288,9 @@ test('board actions live in the sidebar and the top-right menu is removed', () =
 
   expect(
     screen.getByRole('button', { name: /manage tags/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /manage columns/i })
   ).toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: /open board actions/i })
@@ -1329,6 +1333,121 @@ test('keeps rename column dialog open when the title is blank', async () => {
   expect(readColumns()[0].title).toBe('Todo');
 });
 
+test('manages columns from the sidebar dialog with vertical reorder controls', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'In Progress');
+  await addColumn(user, 'Done');
+  await openManageColumns(user);
+
+  const dialog = screen.getByRole('dialog', { name: /manage columns/i });
+  expect(within(dialog).getByText('Todo')).toBeInTheDocument();
+  expect(within(dialog).getByText('In Progress')).toBeInTheDocument();
+  expect(within(dialog).getByText('Done')).toBeInTheDocument();
+  expect(
+    within(dialog).getByRole('button', { name: /move todo up/i })
+  ).toBeDisabled();
+  expect(
+    within(dialog).getByRole('button', { name: /move done down/i })
+  ).toBeDisabled();
+
+  await user.click(
+    within(dialog).getByRole('button', { name: /move done to top/i })
+  );
+
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'Done',
+    'Todo',
+    'In Progress',
+  ]);
+  expect(readColumns().map((column) => column.position)).toEqual([0, 10, 20]);
+});
+
+test('renames and deletes columns from Manage columns', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Ship it');
+  await openManageColumns(user);
+
+  await user.click(screen.getByRole('button', { name: /rename todo column/i }));
+  await user.clear(screen.getByLabelText('Column title'));
+  await user.type(screen.getByLabelText('Column title'), 'Backlog');
+  await user.click(
+    within(screen.getByRole('dialog', { name: /rename column/i })).getByRole(
+      'button',
+      { name: /close dialog/i }
+    )
+  );
+
+  expect(readColumns()[0].title).toBe('Backlog');
+
+  await user.click(
+    screen.getByRole('button', { name: /delete backlog column/i })
+  );
+  expect(
+    screen.getByText(/permanently delete 1 card in Backlog/i)
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /^delete column$/i }));
+
+  expect(readColumns()).toEqual([]);
+});
+
+test('opens add-column flow from Manage columns while preserving board add', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await openManageColumns(user);
+  expect(
+    screen.getByText(/create a column before arranging/i)
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /^add column$/i }));
+  expect(
+    screen.queryByRole('dialog', { name: /manage columns/i })
+  ).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Column title'), 'Todo');
+  await user.click(screen.getByRole('button', { name: /^add column$/i }));
+
+  expect(readColumns()[0].title).toBe('Todo');
+  expect(
+    screen.getByRole('button', { name: /add another column/i })
+  ).toBeInTheDocument();
+});
+
+test('moves columns from column action menus with horizontal commands', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'In Progress');
+  await addColumn(user, 'Done');
+
+  await openColumnActions(user, 'Todo');
+  expect(
+    await screen.findByRole('menuitem', { name: /move left/i })
+  ).toHaveAttribute('data-disabled');
+  await user.click(screen.getByRole('menuitem', { name: /move right/i }));
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'In Progress',
+    'Todo',
+    'Done',
+  ]);
+
+  await openColumnActions(user, 'Todo');
+  await user.click(
+    await screen.findByRole('menuitem', { name: /move to last/i })
+  );
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'In Progress',
+    'Done',
+    'Todo',
+  ]);
+});
+
 test('clears the board only after confirmation', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -1405,6 +1524,42 @@ test('configures completed column and preserves it through rename and delete', a
   await user.click(screen.getByRole('button', { name: /^delete column$/i }));
 
   expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
+});
+
+test('preserves completed column configuration through reorder', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Done');
+  await addCard(user, 'Done', 'Ship it');
+  await openBoardSettings(user);
+  await chooseSelectOption(user, 'Completed column', 'Done');
+  await user.click(screen.getByRole('button', { name: /^done$/i }));
+
+  const doneColumnId = fetchBoardState().columns.find(
+    (column) => column.title === 'Done'
+  )?.id;
+
+  await openManageColumns(user);
+  await user.click(screen.getByRole('button', { name: /move done to top/i }));
+
+  expect(fetchBoardState().activeWorkCycle.completedColumnId).toBe(
+    doneColumnId
+  );
+
+  await user.click(
+    screen.getByRole('button', { name: /close column manager/i })
+  );
+  await user.click(screen.getByRole('button', { name: /complete work/i }));
+  await user.click(screen.getByRole('button', { name: /^complete work$/i }));
+
+  expect(fetchBoardState().completedWorkCycles[0].completedColumnId).toBe(
+    doneColumnId
+  );
+  expect(fetchBoardState().completedWorkCycles[0].cards[0].title).toBe(
+    'Ship it'
+  );
 });
 
 test('disables completing work when no completed column exists', async () => {
@@ -1794,6 +1949,11 @@ const chooseSelectOption = async (
 const openTagManager = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /manage tags/i }));
   await screen.findByRole('dialog', { name: /manage tags/i });
+};
+
+const openManageColumns = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+  await screen.findByRole('dialog', { name: /manage columns/i });
 };
 
 const openBoardSettings = async (user: ReturnType<typeof userEvent.setup>) => {

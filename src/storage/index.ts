@@ -6,10 +6,8 @@ import type {
   BoardTag,
   CompletedWorkCycle,
 } from '../types';
-import {
-  DEFAULT_BACKGROUND,
-  DEFAULT_CARD_PRIORITY,
-} from '../board/constants';
+import { normalizeColumnOrder } from '../board/columns';
+import { DEFAULT_BACKGROUND, DEFAULT_CARD_PRIORITY } from '../board/constants';
 import {
   isBoardBackground,
   isBoardColumn,
@@ -57,7 +55,7 @@ const writeStorage = (key: string, value: string) => {
 export { DEFAULT_BACKGROUND, DEFAULT_CARD_PRIORITY, isSafeImageUrl };
 
 const updateStorageCache = (data: BoardColumn[]) => {
-  const jsonData = JSON.stringify(data);
+  const jsonData = JSON.stringify(normalizeColumnOrder(data));
   writeStorage(STORAGE_KEY, jsonData);
 };
 
@@ -72,10 +70,7 @@ const updateTagStorageCache = (tags: BoardTag[]) => {
 const updateActiveWorkCycleStorageCache = (
   activeWorkCycle: BoardActiveWorkCycle
 ) => {
-  writeStorage(
-    ACTIVE_WORK_CYCLE_STORAGE_KEY,
-    JSON.stringify(activeWorkCycle)
-  );
+  writeStorage(ACTIVE_WORK_CYCLE_STORAGE_KEY, JSON.stringify(activeWorkCycle));
 };
 
 const updateCompletedWorkCyclesStorageCache = (
@@ -151,18 +146,20 @@ const persistBoardState = (state = fetchBoardCache()) => {
 };
 
 export const updateStorage = (data: BoardColumn[]) => {
-  updateStorageCache(data);
+  const columns = normalizeColumnOrder(data);
+
+  updateStorageCache(columns);
 
   const state = normalizeBoardStateForColumns(
     {
       ...fetchBoardCache(),
       activeWorkCycle: normalizeActiveWorkCycle(
         readActiveWorkCyclePayload(),
-        data,
+        columns,
         new Date().toISOString()
       ),
     },
-    data
+    columns
   );
 
   updateStorageCache(state.columns);
@@ -204,12 +201,19 @@ export const updateCompletedWorkCyclesStorage = (
 };
 
 export const updateBoardStateStorage = (state: BoardState) => {
-  updateStorageCache(state.columns);
+  const columns = normalizeColumnOrder(state.columns);
+  const activeWorkCycle = normalizeActiveWorkCycle(
+    state.activeWorkCycle,
+    columns,
+    new Date().toISOString()
+  );
+
+  updateStorageCache(columns);
   updateBackgroundStorageCache(state.background);
   updateTagStorageCache(state.tags);
-  updateActiveWorkCycleStorageCache(state.activeWorkCycle);
+  updateActiveWorkCycleStorageCache(activeWorkCycle);
   updateCompletedWorkCyclesStorageCache(state.completedWorkCycles);
-  void persistBoardState(state);
+  void persistBoardState({ ...state, activeWorkCycle, columns });
 };
 
 export const hydrateStorageFromDatabase =
@@ -252,7 +256,7 @@ export const hydrateStorageFromDatabase =
       updateTagStorageCache(state.tags);
       updateActiveWorkCycleStorageCache(state.activeWorkCycle);
       updateCompletedWorkCyclesStorageCache(state.completedWorkCycles);
-      return state;
+      return { ...state, columns: normalizeColumnOrder(state.columns) };
     } catch {
       return null;
     }
@@ -326,7 +330,7 @@ export const fetchStorage = (): BoardColumn[] => {
     const migratedCreatedAt = new Date().toISOString();
 
     if (Array.isArray(parsedData) && parsedData.every(isBoardColumn)) {
-      return parsedData;
+      return normalizeColumnOrder(parsedData);
     }
 
     if (

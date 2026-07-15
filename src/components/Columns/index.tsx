@@ -8,12 +8,14 @@ import CardComposer from '../CardComposer';
 import Column from '../Column';
 import ContentDialog from '../ContentDialog';
 import { InlineEmptyState } from '../EmptyState';
+import ManageColumnsDialog from '../ManageColumnsDialog';
 import {
   isCardDragData,
   isCardDropTargetData,
   isColumnDropTargetData,
   reorderCard,
 } from '../../dnd';
+import { moveColumn, normalizeColumnOrder } from '../../board/columns';
 import { findActiveCardRouteTarget } from '../../board/routeLookup';
 import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
@@ -26,9 +28,11 @@ const createId = () => crypto.randomUUID();
 type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
+  manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
   onBoardStateChange: () => void;
   onColumnCountChange: (count: number) => void;
+  onManageColumnsOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   tags: BoardTag[];
 };
@@ -36,20 +40,26 @@ type ColumnsProps = {
 const Columns = ({
   activeCardId,
   boardLoading,
+  manageColumnsOpen,
   onActiveCardClose,
   onBoardStateChange,
   onColumnCountChange,
+  onManageColumnsOpenChange,
   onTagsChange,
   tags,
 }: ColumnsProps) => {
-  const [columns, setColumns] = useState<BoardColumn[]>(fetchStorage);
+  const [columns, setColumns] = useState<BoardColumn[]>(() =>
+    normalizeColumnOrder(fetchStorage())
+  );
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
   const updateColumns = useCallback(
     (newColumns: BoardColumn[]) => {
-      setColumns(newColumns);
-      updateStorage(newColumns);
-      onColumnCountChange(newColumns.length);
+      const normalizedColumns = normalizeColumnOrder(newColumns);
+
+      setColumns(normalizedColumns);
+      updateStorage(normalizedColumns);
+      onColumnCountChange(normalizedColumns.length);
       onBoardStateChange();
     },
     [onBoardStateChange, onColumnCountChange]
@@ -98,6 +108,13 @@ const Columns = ({
 
   const onDeleteColumn = (columnId: string) => {
     updateColumns(columns.filter((column) => column.id !== columnId));
+  };
+
+  const onMoveColumn = (
+    columnId: string,
+    direction: Parameters<typeof moveColumn>[2]
+  ) => {
+    updateColumns(moveColumn(columns, columnId, direction));
   };
 
   const onSaveCard = (values: CardDialogValues) => {
@@ -267,6 +284,7 @@ const Columns = ({
               deleteColumn={onDeleteColumn}
               editCard={onEditCard}
               key={column.id}
+              moveColumn={onMoveColumn}
               onActiveCardClose={onActiveCardClose}
               onTagsChange={onTagsChange}
               renameColumn={onRenameColumn}
@@ -291,6 +309,15 @@ const Columns = ({
           />
         </div>
       </div>
+      <ManageColumnsDialog
+        columns={sortedColumns}
+        deleteColumn={onDeleteColumn}
+        moveColumn={onMoveColumn}
+        onAddColumnClick={() => setAddColumnOpen(true)}
+        onOpenChange={onManageColumnsOpenChange}
+        open={manageColumnsOpen}
+        renameColumn={onRenameColumn}
+      />
       <ContentDialog
         description="Give the next stage of your workflow a clear name."
         hideCancel

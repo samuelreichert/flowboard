@@ -15,6 +15,7 @@ export const initAppState = (): AppState => {
     completedWorkCycles: boardState.completedWorkCycles,
     completionPulse: false,
     currentView: 'board',
+    manageColumnsOpen: false,
     mobileSidebarOpen: false,
     profileDialogOpen: false,
     resolvedTheme: resolveThemePreference(themePreference),
@@ -63,6 +64,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, completionPulse: action.active };
     case 'currentViewChanged':
       return { ...state, currentView: action.view };
+    case 'manageColumnsOpenChanged':
+      return { ...state, manageColumnsOpen: action.open };
     case 'mobileSidebarOpenChanged':
       return { ...state, mobileSidebarOpen: action.open };
     case 'profileDialogOpenChanged':

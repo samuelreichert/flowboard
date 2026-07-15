@@ -2,6 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import {
   ChevronRight,
+  Columns3,
   History,
   KanbanSquare,
   LogOut,
@@ -29,6 +30,7 @@ type AppSidebarProps = {
   onBoardClick: () => void;
   onCloseMobileSidebar: () => void;
   onHistoryClick: () => void;
+  onManageColumnsClick: () => void;
   onManageTagsClick: () => void;
   onProfileClick: () => void;
   onSettingsClick: () => void;
@@ -46,6 +48,7 @@ const AppSidebar = ({
   onBoardClick,
   onCloseMobileSidebar,
   onHistoryClick,
+  onManageColumnsClick,
   onManageTagsClick,
   onProfileClick,
   onSettingsClick,
@@ -72,6 +75,13 @@ const AppSidebar = ({
       id: 'history',
       label: 'History',
       onClick: onHistoryClick,
+    },
+    {
+      ariaLabel: 'Manage columns',
+      icon: <Columns3 size={18} />,
+      id: 'columns',
+      label: 'Columns',
+      onClick: onManageColumnsClick,
     },
     {
       ariaLabel: 'Manage tags',
