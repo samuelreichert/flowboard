@@ -1,6 +1,8 @@
 # Flowboard
 
-Flowboard is a focused local-first workflow board for organizing columns, cards, priorities, tags, rich notes, and theme-aware app workspaces.
+Flowboard is a focused workflow board for organizing columns, cards,
+priorities, tags, rich notes, and completed work history with durable
+Prisma-backed persistence.
 
 ![Flowboard latest app shell with workflow columns, cards, priorities, and theme controls](public/flowboard-screenshot-latest.jpg)
 
@@ -17,9 +19,11 @@ Flowboard is a focused local-first workflow board for organizing columns, cards,
 - Add rich card content with Markdown-friendly formatting, links, task lists, code blocks, lists, blockquotes, alignment, and images.
 - Assign Low, Medium, or High priority to cards.
 - Create reusable board tags and assign them to cards.
+- Track active work cycles and completed work history.
+- Sign in with Supabase Auth for durable user-owned boards.
 - Use a responsive app shell with a collapsible sidebar, board actions, and system/light/dark theme controls.
-- Save boards locally in the browser, with optional local SQLite persistence for development and self-hosted local runs.
-- Load the production app shell offline after the PWA service worker has cached it.
+- Persist board data through structured Prisma tables, using SQLite locally and
+  Supabase Postgres in production.
 
 ## Setup
 
@@ -34,24 +38,29 @@ Install packages:
 npm install
 ```
 
-Copy the example environment file when you want to run the authenticated
-backend path:
+Copy the example environment file for local database and server configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-The app supports two persistence modes:
+Flowboard uses the same Prisma data model in every durable mode:
 
-- Local/static mode uses browser storage and the legacy optional SQLite mirror.
-- Authenticated mode uses Supabase Auth, the Node API, Prisma, and structured
-  database tables.
+- Local development uses the Node API, Prisma, and SQLite.
+- Production uses Supabase Auth, the Node API, Prisma, and Supabase Postgres.
+
+For the full runtime matrix, including which mode to use locally, in
+production, with auth, without auth, with SQLite, and with Postgres, see
+[Flowboard Running Modes](RUNNING_MODES.md).
 
 ### `npm run dev`
 
-Runs the local Node server, the SQLite database, and Vite in development mode. Open the local URL printed in the terminal to view the app.
+Runs the local Node server and Vite in development mode. Open the local URL
+printed in the terminal to view the app.
 
-The complete board state is saved to browser storage first and mirrored to the local SQLite API at `/api/board` when that API is available.
+By default, no-auth local work saves the board through Prisma SQLite at the
+canonical board API, `/api/boards/default`. The server resolves a fixed local
+development principal only for SQLite development runs.
 
 When Supabase browser environment values are configured, the app shows a
 Supabase magic-link sign-in flow and loads authenticated board data from
@@ -59,15 +68,22 @@ Supabase magic-link sign-in flow and loads authenticated board data from
 
 ### `npm run dev:static`
 
-Runs Vite without the local API. This matches the static Vercel deployment: each visitor's board is saved in their browser storage.
+Runs Vite without the local API. Use this only for quick UI rendering checks;
+durable product behavior requires the Prisma API from `npm run dev` or
+`npm start`.
 
 ### `npm start`
 
-Compiles the local TypeScript server, then serves the production build and the SQLite API locally. To create a production app build that connects to that local API, run:
+Compiles the local TypeScript server, then serves the production build and the
+Prisma API locally. To create a production app build for local serving, run:
 
 ```bash
 npm run build:local
 ```
+
+For a no-auth SQLite production-bundle smoke test, set
+`FLOWBOARD_LOCAL_DEV_AUTH=true` on the server. This flag is ignored for Postgres
+runs.
 
 ### `npm run test`
 
@@ -100,6 +116,9 @@ Local SQLite development uses:
 PRISMA_PROVIDER=sqlite
 DATABASE_URL=file:./data/flowboard.local.db
 ```
+
+No-auth local development still uses the same board endpoints as production:
+`/api/projects`, `/api/boards/default`, and `/api/boards/:id`.
 
 Run local schema generation and migration commands:
 
@@ -223,39 +242,40 @@ Manual verification checklist:
 
 ## Storage
 
-Flowboard is local-first. Browser storage is the source of truth for interactive editing, so the board remains usable even when the optional API is unavailable.
+Flowboard stores durable board data in Prisma-backed databases. Local
+development uses SQLite, and production authenticated deployments use Supabase
+Postgres.
 
-When using `npm run dev` or `npm start` with a local API build, the complete board state is also saved locally in `data/flowboard.db`: columns, card order, card content, priorities, and tags. Existing browser storage is migrated automatically when the database is empty.
+When using `npm run dev` or `npm start` with Prisma SQLite, the complete board
+state is saved locally in structured tables in `data/flowboard.local.db`:
+columns, card order, card content, priorities, tags, active work cycle, and
+completed work history.
 
-To create a backup, stop the server and copy:
+To create a local SQLite backup, stop the server and copy:
 
 ```text
-data/flowboard.db
+data/flowboard.local.db
 ```
 
-Authenticated persistence is different: after sign-in, durable board data is
-loaded from the authenticated API and saved through Prisma-backed structured
-tables. Existing browser board data is imported into the first empty
-authenticated board; if the authenticated board already contains data, the app
-does not silently overwrite it.
+Authenticated persistence loads durable board data from the authenticated API
+and saves through Prisma-backed structured tables.
 
-## Offline PWA Behavior
+## PWA Shell
 
-The production build includes a web app manifest and service worker. After the app has loaded successfully once, the service worker caches the app shell and bundled assets so Flowboard can reopen offline.
+The production build includes a web app manifest and service worker. After the
+app has loaded successfully once, the service worker caches the app shell and
+bundled assets so Flowboard can reopen offline.
 
-Offline editing continues through browser storage. If `VITE_BOARD_API_URL` points at a local SQLite API and that API is unavailable, Flowboard keeps the local board intact and does not block edits.
-
-For authenticated production use, the PWA promise is app-shell availability.
-Authenticated board edits are only durably saved after the authenticated API
-confirms persistence.
+The service worker is for app-shell availability. Board data remains a
+database-backed product concern and is saved only after the Prisma API confirms
+persistence.
 
 ## Deploying to Vercel
 
-Import the repository in Vercel and deploy it with the included `vercel.json`. Vercel runs `npm run build` and publishes the static `dist` folder.
+Deploy Flowboard as an app shell plus an authenticated Node API runtime backed
+by Supabase Postgres. The included `vercel.json` builds the browser app with
+`npm run build` and publishes `dist`.
 
-The hosted portfolio version intentionally uses browser storage only. SQLite depends on a persistent local filesystem, which Vercel Functions do not provide. If shared cross-device storage is needed later, connect an authenticated hosted database API and set `VITE_BOARD_API_URL` at build time.
-
-For the authenticated production backend, deploy a Node API runtime with
-Supabase Auth verification, Prisma, and Supabase Postgres. Set
-`VITE_FLOWBOARD_API_URL` if the browser should call an API origin other than the
-current site origin.
+For production persistence, deploy the Node API runtime with Supabase Auth
+verification, Prisma, and Supabase Postgres. Set `VITE_FLOWBOARD_API_URL` when
+the browser should call an API origin other than the current site origin.
