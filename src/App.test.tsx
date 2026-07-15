@@ -8,7 +8,8 @@ import {
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import App, { AuthGate, shouldRenderAuthGate } from './App';
+import App, { AuthGate } from './App';
+import { shouldRenderAuthGate } from './app/authGate';
 import { parseAppRoute } from './app/routes';
 import { reorderCard } from './dnd';
 import {

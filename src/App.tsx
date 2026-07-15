@@ -11,15 +11,17 @@ import {
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
+import {
+  shouldRenderAuthGate,
+  type AuthGateStatus,
+} from './app/authGate';
 import { getThemeIconSrc } from './app/appTheme';
 import {
   APP_ROUTES,
   getInternalDestination,
   getNextSearchDestination,
   getViewForRoute,
-  isProtectedAppRoute,
   parseAppRoute,
-  type ParsedAppRoute,
 } from './app/routes';
 import useAppController from './app/useAppController';
 import {
@@ -42,7 +44,7 @@ type AuthGateProps = {
     provider: SocialAuthProvider,
     nextDestination?: string
   ) => Promise<void>;
-  status: 'loading' | 'signedOut' | 'static' | 'signedIn';
+  status: AuthGateStatus;
 };
 
 export const AuthGate = ({
@@ -226,21 +228,6 @@ const getLocationDestination = (location: {
   getInternalDestination(
     `${location.pathname}${location.search}${location.hash}`
   );
-
-export const shouldRenderAuthGate = ({
-  authConfigured,
-  route,
-  status,
-}: {
-  authConfigured: boolean;
-  route: ParsedAppRoute;
-  status: AuthGateProps['status'];
-}) =>
-  authConfigured &&
-  status !== 'signedIn' &&
-  (isProtectedAppRoute(route) ||
-    route.type === 'auth-callback' ||
-    route.type === 'sign-in');
 
 const RoutedApp = () => {
   const controller = useAppController();
