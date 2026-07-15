@@ -25,6 +25,7 @@ const CREATED_AT = '2026-06-03T12:34:56.000Z';
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   localStorage.clear();
+  seedBoardState();
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {
@@ -330,15 +331,15 @@ test('opens route-owned management surfaces and closes them to board', async () 
   expect(window.location.pathname).toBe('/board');
 
   await user.click(screen.getByRole('button', { name: /open account menu/i }));
-  await user.click(await screen.findByRole('menuitem', { name: /^settings$/i }));
+  await user.click(
+    await screen.findByRole('menuitem', { name: /^settings$/i })
+  );
   expect(window.location.pathname).toBe('/settings');
   expect(screen.getByRole('dialog', { name: /^settings$/i })).toHaveClass(
     'dialog-popup--route-management'
   );
 
-  await user.click(
-    screen.getByRole('button', { name: /close settings/i })
-  );
+  await user.click(screen.getByRole('button', { name: /close settings/i }));
   expect(window.location.pathname).toBe('/board');
 });
 
@@ -377,7 +378,7 @@ test('directly loads tags, settings, history, and unknown routes', async () => {
 
 test('directly opens and closes an active card route', async () => {
   const user = userEvent.setup();
-  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+  seedBoardState({ columns: createBoardColumns() });
   window.history.replaceState(null, '', '/board/cards/first');
 
   render(<App />);
@@ -388,7 +389,7 @@ test('directly opens and closes an active card route', async () => {
 });
 
 test('shows missing state for an unresolved active card route', () => {
-  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+  seedBoardState({ columns: createBoardColumns() });
   window.history.replaceState(null, '', '/board/cards/missing-card');
 
   render(<App />);
@@ -435,79 +436,6 @@ test('shows missing state for an unresolved archived card route', async () => {
   expect(
     screen.queryByRole('dialog', { name: /archived card/i })
   ).not.toBeInTheDocument();
-});
-
-test('migrates legacy localStorage data to stable IDs', () => {
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([{ title: 'Todo', cards: ['Ship it'], position: 0 }])
-  );
-
-  const columns = fetchStorage();
-
-  expect(columns[0]).toMatchObject({ title: 'Todo', position: 0 });
-  expect(columns[0].id).toBeTruthy();
-  expect(columns[0].cards[0]).toMatchObject({ title: 'Ship it' });
-  expect(columns[0].cards[0].content).toBe('');
-  expect(columns[0].cards[0].priority).toBe('medium');
-  expect(columns[0].cards[0].tagIds).toEqual([]);
-  expect(Date.parse(columns[0].cards[0].createdAt)).not.toBeNaN();
-  expect(columns[0].cards[0].id).toBeTruthy();
-  expect(localStorage.getItem('columnsList')).toContain(columns[0].id);
-});
-
-test('migrates stable-ID cards that predate content', () => {
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
-      {
-        id: 'todo',
-        title: 'Todo',
-        cards: [{ id: 'ship-it', title: 'Ship it' }],
-        position: 0,
-      },
-    ])
-  );
-
-  expect(fetchStorage()[0].cards[0]).toEqual({
-    content: '',
-    createdAt: expect.any(String),
-    id: 'ship-it',
-    priority: 'medium',
-    tagIds: [],
-    title: 'Ship it',
-  });
-  expect(Date.parse(fetchStorage()[0].cards[0].createdAt)).not.toBeNaN();
-});
-
-test('migrates card descriptions to content', () => {
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
-      {
-        id: 'todo',
-        title: 'Todo',
-        cards: [
-          {
-            description: 'Legacy notes',
-            id: 'ship-it',
-            title: 'Ship it',
-          },
-        ],
-        position: 0,
-      },
-    ])
-  );
-
-  expect(fetchStorage()[0].cards[0]).toEqual({
-    content: 'Legacy notes',
-    createdAt: expect.any(String),
-    id: 'ship-it',
-    priority: 'medium',
-    tagIds: [],
-    title: 'Ship it',
-  });
-  expect(Date.parse(fetchStorage()[0].cards[0].createdAt)).not.toBeNaN();
 });
 
 test('creates columns and cards from the global composer', async () => {
@@ -923,15 +851,16 @@ test('preserves link, code, and list Markdown through the editor', async () => {
   const writeText = vi
     .spyOn(navigator.clipboard, 'writeText')
     .mockResolvedValue(undefined);
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
+  seedBoardState({
+    columns: [
       {
         cards: [
           {
             content: '[Docs](https://tiptap.dev)\n\n- `code`',
             createdAt: CREATED_AT,
             id: 'prompt',
+            priority: 'medium',
+            tagIds: [],
             title: 'Prompt',
           },
         ],
@@ -939,8 +868,8 @@ test('preserves link, code, and list Markdown through the editor', async () => {
         position: 0,
         title: 'Todo',
       },
-    ])
-  );
+    ],
+  });
   render(<App />);
 
   await user.click(screen.getByText('Prompt'));
@@ -1643,9 +1572,12 @@ test('disables completing work when the completed column is empty', async () => 
 
 test('history follows tag renames and falls back to archived tag snapshots after delete', async () => {
   const user = userEvent.setup();
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
+  seedBoardState({
+    activeWorkCycle: {
+      completedColumnId: 'done',
+      startDate: CREATED_AT,
+    },
+    columns: [
       {
         cards: [
           {
@@ -1661,16 +1593,9 @@ test('history follows tag renames and falls back to archived tag snapshots after
         position: 0,
         title: 'Done',
       },
-    ])
-  );
-  localStorage.setItem(
-    'boardTags',
-    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
-  );
-  localStorage.setItem(
-    'activeWorkCycle',
-    JSON.stringify({ completedColumnId: 'done', startDate: CREATED_AT })
-  );
+    ],
+    tags: [{ id: 'tag-1', name: 'Launch' }],
+  });
 
   render(<App />);
 
@@ -1706,13 +1631,8 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
     .spyOn(navigator.clipboard, 'writeText')
     .mockResolvedValue(undefined);
   const markdown = '# Release Notes\n\n- `Ship` the update';
-  localStorage.setItem(
-    'boardTags',
-    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
-  );
-  localStorage.setItem(
-    'completedWorkCycles',
-    JSON.stringify([
+  seedBoardState({
+    completedWorkCycles: [
       {
         cards: [
           {
@@ -1732,8 +1652,9 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
         id: 'cycle-1',
         startDate: CREATED_AT,
       },
-    ])
-  );
+    ],
+    tags: [{ id: 'tag-1', name: 'Launch' }],
+  });
 
   render(<App />);
 
@@ -1765,9 +1686,8 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
 
 test('switches completed work history between grid and list layouts', async () => {
   const user = userEvent.setup();
-  localStorage.setItem(
-    'completedWorkCycles',
-    JSON.stringify([
+  seedBoardState({
+    completedWorkCycles: [
       {
         cards: [
           {
@@ -1787,8 +1707,8 @@ test('switches completed work history between grid and list layouts', async () =
         id: 'cycle-1',
         startDate: CREATED_AT,
       },
-    ])
-  );
+    ],
+  });
 
   render(<App />);
 
@@ -1958,12 +1878,34 @@ const openManageColumns = async (user: ReturnType<typeof userEvent.setup>) => {
 
 const openBoardSettings = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /open account menu/i }));
-  await user.click(await screen.findByRole('menuitem', { name: /^settings$/i }));
+  await user.click(
+    await screen.findByRole('menuitem', { name: /^settings$/i })
+  );
   await screen.findByRole('dialog', { name: /^settings$/i });
 };
 
-const readColumns = () =>
-  JSON.parse(localStorage.getItem('columnsList') ?? '[]') as BoardColumn[];
+const readColumns = () => fetchStorage();
+
+const createTestBoardState = (
+  overrides: Partial<BoardState> = {}
+): BoardState => ({
+  activeWorkCycle: {
+    completedColumnId: null,
+    startDate: CREATED_AT,
+  },
+  background: {
+    type: 'color',
+    value: '#ffffff',
+  },
+  columns: [],
+  completedWorkCycles: [],
+  tags: [],
+  ...overrides,
+});
+
+const seedBoardState = (overrides: Partial<BoardState> = {}) => {
+  updateBoardStateStorage(createTestBoardState(overrides));
+};
 
 const createBoardColumns = (): BoardColumn[] => [
   {
