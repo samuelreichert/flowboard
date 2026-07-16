@@ -5,7 +5,7 @@ import {
   updateProfile,
   type ProfileUpdateInput,
 } from '../auth/profileService.js';
-import type { AuthVerifier } from '../auth/supabaseAuth.js';
+import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import { sendBadRequest, sendUnauthenticated } from '../http/apiErrors.js';
 import { readRequestBody, sendJson } from '../http/json.js';
@@ -14,7 +14,7 @@ export const handleAuthenticatedProfileApiRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
   prisma: FlowboardPrismaClient,
-  authVerifier: AuthVerifier
+  principalResolver: PrincipalResolver
 ) => {
   const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
 
@@ -22,7 +22,7 @@ export const handleAuthenticatedProfileApiRequest = async (
     return false;
   }
 
-  const user = await authVerifier.verifyRequest(request);
+  const user = await principalResolver.resolveRequest(request);
 
   if (!user) {
     sendUnauthenticated(response);

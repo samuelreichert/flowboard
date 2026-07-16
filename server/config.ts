@@ -4,11 +4,11 @@ import { fileURLToPath } from 'node:url';
 const serverDirectory = dirname(fileURLToPath(import.meta.url));
 
 export type ServerConfig = {
-  databasePath: string;
   databaseProvider: 'postgresql' | 'sqlite';
   databaseUrl: string;
   distDirectory: string;
   isDevelopment: boolean;
+  localDevAuthEnabled: boolean;
   port: number;
   rootDirectory: string;
   supabasePublishableKey: string | null;
@@ -17,9 +17,6 @@ export type ServerConfig = {
 
 export const createServerConfig = (): ServerConfig => {
   const rootDirectory = resolve(serverDirectory, '..', '..');
-  const databasePath = resolve(
-    process.env.FLOWBOARD_DB_PATH ?? join(rootDirectory, 'data', 'flowboard.db')
-  );
   const databaseProvider =
     process.env.PRISMA_PROVIDER === 'postgresql' ? 'postgresql' : 'sqlite';
   const databaseUrl =
@@ -27,19 +24,24 @@ export const createServerConfig = (): ServerConfig => {
     (databaseProvider === 'sqlite'
       ? `file:${resolve(rootDirectory, 'data', 'flowboard.local.db')}`
       : '');
+  const isDevelopment = process.argv.includes('--dev');
+  const localDevAuthEnabled =
+    databaseProvider === 'sqlite' &&
+    (isDevelopment || process.env.FLOWBOARD_LOCAL_DEV_AUTH === 'true');
 
   return {
-    databasePath,
     databaseProvider,
     databaseUrl,
     distDirectory: join(rootDirectory, 'dist'),
-    isDevelopment: process.argv.includes('--dev'),
+    isDevelopment,
+    localDevAuthEnabled,
     port: Number(process.env.PORT ?? 5173),
     rootDirectory,
     supabasePublishableKey:
       process.env.SUPABASE_PUBLISHABLE_KEY ??
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
       null,
-    supabaseUrl: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? null,
+    supabaseUrl:
+      process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? null,
   };
 };

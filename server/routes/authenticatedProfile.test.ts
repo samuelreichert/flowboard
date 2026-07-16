@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthVerifier } from '../auth/supabaseAuth.js';
+import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import { handleAuthenticatedProfileApiRequest } from './authenticatedProfile.js';
 
@@ -48,6 +48,7 @@ const user = {
   displayName: 'Provider Name',
   email: 'user@example.com',
   id: 'user-1',
+  source: 'supabase',
 };
 
 const createPrisma = () =>
@@ -82,8 +83,8 @@ describe('handleAuthenticatedProfileApiRequest', () => {
       response,
       createPrisma(),
       {
-        verifyRequest: vi.fn().mockResolvedValue(null),
-      } satisfies AuthVerifier
+        resolveRequest: vi.fn().mockResolvedValue(null),
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);
@@ -103,8 +104,8 @@ describe('handleAuthenticatedProfileApiRequest', () => {
       response,
       createPrisma(),
       {
-        verifyRequest: vi.fn().mockResolvedValue(user),
-      } satisfies AuthVerifier
+        resolveRequest: vi.fn().mockResolvedValue(user),
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);
@@ -135,8 +136,8 @@ describe('handleAuthenticatedProfileApiRequest', () => {
       response,
       prisma,
       {
-        verifyRequest: vi.fn().mockResolvedValue(user),
-      } satisfies AuthVerifier
+        resolveRequest: vi.fn().mockResolvedValue(user),
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);
@@ -161,8 +162,8 @@ describe('handleAuthenticatedProfileApiRequest', () => {
       response,
       createPrisma(),
       {
-        verifyRequest: vi.fn().mockResolvedValue(user),
-      } satisfies AuthVerifier
+        resolveRequest: vi.fn().mockResolvedValue(user),
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);

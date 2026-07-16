@@ -19,6 +19,7 @@
 - Reuse existing components, constants, helpers, hooks, CSS tokens, and styling patterns before creating new ones. If a reusable primitive is missing, extract one instead of duplicating logic or markup.
 - Do not duplicate enum values, option arrays, color literals, component variants, or near-identical CSS blocks across files. Centralize them behind a clearly named module, token, or component.
 - If duplication seems necessary, document why the local difference is intentional and keep the duplicated surface as small as possible.
+- Before changing auth, database, persistence, deployment, or local running behavior, read `RUNNING_MODES.md` and update it when the mode matrix changes.
 
 ## UI/UX Consistency
 

@@ -1,7 +1,10 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthVerifier } from '../auth/supabaseAuth.js';
+import {
+  LOCAL_DEV_PRINCIPAL,
+  type PrincipalResolver,
+} from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import { handleAuthenticatedBoardApiRequest } from './authenticatedBoard.js';
 
@@ -17,7 +20,10 @@ const createResponse = () => {
     }),
   };
 
-  return response as unknown as ServerResponse & { body: string; statusCode: number };
+  return response as unknown as ServerResponse & {
+    body: string;
+    statusCode: number;
+  };
 };
 
 const createRequest = ({
@@ -62,8 +68,8 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       response,
       createPrisma(),
       {
-        verifyRequest: vi.fn().mockResolvedValue(null),
-      } satisfies AuthVerifier
+        resolveRequest: vi.fn().mockResolvedValue(null),
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);
@@ -87,13 +93,14 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       response,
       createPrisma(),
       {
-        verifyRequest: vi.fn().mockResolvedValue({
+        resolveRequest: vi.fn().mockResolvedValue({
           avatarUrl: null,
           displayName: null,
           email: 'user@example.com',
           id: 'user-1',
+          source: 'supabase',
         }),
-      } satisfies AuthVerifier
+      } satisfies PrincipalResolver
     );
 
     expect(handled).toBe(true);
@@ -104,5 +111,27 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         message: 'Invalid JSON payload.',
       },
     });
+  });
+
+  test('accepts a resolved local development principal before validating board mutations', async () => {
+    const response = createResponse();
+    const handled = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        body: '{not-json',
+        method: 'PUT',
+        url: '/api/boards/board-1',
+      }),
+      response,
+      createPrisma(),
+      {
+        resolveRequest: vi.fn().mockResolvedValue(LOCAL_DEV_PRINCIPAL),
+      } satisfies PrincipalResolver
+    );
+
+    expect(handled).toBe(true);
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body).error.message).toBe(
+      'Invalid JSON payload.'
+    );
   });
 });

@@ -1,16 +1,14 @@
 import { createServer } from 'node:http';
 
+import { createPrincipalResolver } from './auth/principal.ts';
 import { createSupabaseAuthVerifier } from './auth/supabaseAuth.ts';
 import { createServerConfig } from './config.ts';
-import { createBoardRepository } from './db/boardRepository.ts';
 import { sendInternalError } from './http/apiErrors.ts';
 import { serveProductionFile } from './http/static.ts';
 import { handleAuthenticatedBoardApiRequest } from './routes/authenticatedBoard.ts';
 import { handleAuthenticatedProfileApiRequest } from './routes/authenticatedProfile.ts';
-import { handleBoardApiRequest } from './routes/board.ts';
 
 const config = createServerConfig();
-const boardRepository = createBoardRepository(config.databasePath);
 
 const vite = config.isDevelopment
   ? await import('vite').then(({ createServer: createViteServer }) =>
@@ -24,6 +22,7 @@ const vite = config.isDevelopment
 const { createFlowboardPrismaClient } = await import('./db/prismaClient.ts');
 const prisma = createFlowboardPrismaClient(config);
 const authVerifier = createSupabaseAuthVerifier(config);
+const principalResolver = createPrincipalResolver(config, authVerifier);
 
 const server = createServer(async (request, response) => {
   try {
@@ -32,7 +31,7 @@ const server = createServer(async (request, response) => {
         request,
         response,
         prisma,
-        authVerifier
+        principalResolver
       )
     ) {
       return;
@@ -43,13 +42,9 @@ const server = createServer(async (request, response) => {
         request,
         response,
         prisma,
-        authVerifier
+        principalResolver
       )
     ) {
-      return;
-    }
-
-    if (await handleBoardApiRequest(request, response, boardRepository)) {
       return;
     }
 
@@ -67,6 +62,8 @@ const server = createServer(async (request, response) => {
 
 server.listen(config.port, '127.0.0.1', () => {
   console.log(`Flowboard running at http://127.0.0.1:${config.port}`);
-  console.log(`SQLite database: ${config.databasePath}`);
   console.log(`Prisma database: ${config.databaseProvider}`);
+  console.log(
+    `Local development principal: ${config.localDevAuthEnabled ? 'on' : 'off'}`
+  );
 });

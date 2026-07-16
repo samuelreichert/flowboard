@@ -46,8 +46,7 @@ export type AppAction =
   | { type: 'sidebarExpandedChanged'; expanded: boolean }
   | {
       type: 'storageHydrated';
-      columnCount: number;
-      tags: BoardTag[];
+      state: BoardState;
     }
   | { type: 'storageVersionIncremented' }
   | { type: 'systemThemeChanged'; resolvedTheme: ResolvedTheme }

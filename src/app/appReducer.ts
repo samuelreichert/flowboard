@@ -1,4 +1,4 @@
-import { fetchBoardState, fetchStorage } from '../storage';
+import { fetchBoardState } from '../storage';
 import { fetchThemePreference, resolveThemePreference } from '../theme';
 import type { AppAction, AppState } from './appTypes';
 
@@ -77,12 +77,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'storageHydrated':
       return {
         ...state,
-        activeWorkCycle: fetchBoardState().activeWorkCycle,
-        columns: fetchStorage(),
-        columnCount: action.columnCount,
-        completedWorkCycles: fetchBoardState().completedWorkCycles,
+        activeWorkCycle: action.state.activeWorkCycle,
+        columns: action.state.columns,
+        columnCount: action.state.columns.length,
+        completedWorkCycles: action.state.completedWorkCycles,
         storageVersion: state.storageVersion + 1,
-        tags: action.tags,
+        tags: action.state.tags,
       };
     case 'storageVersionIncremented':
       return { ...state, storageVersion: state.storageVersion + 1 };

@@ -29,14 +29,17 @@ export type AuthenticatedProfileUpdate = {
   displayName?: string | null;
 };
 
-const createHeaders = (accessToken: string) => ({
-  Authorization: `Bearer ${accessToken}`,
+const createHeaders = (accessToken?: string) => ({
+  ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
 });
 
-const parseBoardResponse = async (response: Response) => {
+const parseBoardResponse = async (
+  response: Response,
+  message = 'Unable to load board data.'
+) => {
   if (!response.ok) {
-    throw new Error('Unable to load authenticated board data.');
+    throw new Error(message);
   }
 
   return (await response.json()) as AuthenticatedBoardResponse;
@@ -71,18 +74,18 @@ export const saveAuthenticatedProfile = async (
   return parseProfileResponse(response);
 };
 
-export const fetchAuthenticatedDefaultBoard = async (accessToken: string) => {
+export const fetchDefaultBoard = async (accessToken?: string) => {
   const response = await fetch(`${API_BASE_URL}/api/boards/default`, {
     headers: createHeaders(accessToken),
   });
 
-  return parseBoardResponse(response);
+  return parseBoardResponse(response, 'Unable to load board data.');
 };
 
-export const saveAuthenticatedBoard = async (
+export const saveBoard = async (
   boardId: string,
   state: BoardState,
-  accessToken: string
+  accessToken?: string
 ) => {
   const response = await fetch(`${API_BASE_URL}/api/boards/${boardId}`, {
     body: JSON.stringify(state),
@@ -90,5 +93,14 @@ export const saveAuthenticatedBoard = async (
     method: 'PUT',
   });
 
-  return parseBoardResponse(response);
+  return parseBoardResponse(response, 'Unable to save board data.');
 };
+
+export const fetchAuthenticatedDefaultBoard = (accessToken: string) =>
+  fetchDefaultBoard(accessToken);
+
+export const saveAuthenticatedBoard = (
+  boardId: string,
+  state: BoardState,
+  accessToken: string
+) => saveBoard(boardId, state, accessToken);

@@ -1,10 +1,4 @@
-# authenticated-board-api Specification
-
-## Purpose
-
-Defines authenticated Flowboard API behavior for user-owned projects, boards, and durable persistence states.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Authenticated API serves user board data
 
@@ -68,47 +62,7 @@ local development principal mode is not explicitly enabled.
 - **AND** a request to a durable board endpoint has no valid Supabase credentials
 - **THEN** the API rejects the request without falling back to a local owner
 
-### Requirement: API validates board-domain payloads
-
-The system SHALL validate incoming board-domain payloads before persisting changes through Prisma.
-
-#### Scenario: Valid board update is submitted
-
-- **WHEN** an authenticated user submits a valid board-domain update for a resource they own
-- **THEN** the API persists normalized data and returns a success response
-
-#### Scenario: Invalid board update is submitted
-
-- **WHEN** an authenticated user submits invalid board-domain data
-- **THEN** the API rejects the payload without persisting it
-
-### Requirement: API does not trust client-supplied ownership
-
-The system SHALL derive ownership from the verified Supabase user and existing server-side relationships rather than trusting owner identifiers supplied by the client.
-
-#### Scenario: Client submits a different owner id
-
-- **WHEN** an authenticated user submits a payload containing another user's owner id
-- **THEN** the API ignores or rejects that owner id and prevents cross-user data access
-
-#### Scenario: Client creates a new board
-
-- **WHEN** an authenticated user creates a project or board
-- **THEN** the API assigns ownership from the verified Supabase user id
-
-### Requirement: API exposes durable network state to the client
-
-The system SHALL distinguish authenticated persistence failures from successful saves so the client can show accurate loading and error states.
-
-#### Scenario: Network save fails
-
-- **WHEN** an authenticated board mutation cannot be durably saved
-- **THEN** the API or client state reports the failure instead of treating the change as safely persisted
-
-#### Scenario: Authenticated data cannot be loaded
-
-- **WHEN** authenticated board data cannot be loaded because the network or API is unavailable
-- **THEN** the client can present a recoverable unavailable state rather than clearing user data
+## ADDED Requirements
 
 ### Requirement: Durable board endpoints are canonical
 

@@ -51,11 +51,6 @@ type AuthState =
       status: 'signedIn';
     };
 
-const hasBoardData = (state: BoardState) =>
-  state.columns.length > 0 ||
-  state.tags.length > 0 ||
-  state.completedWorkCycles.length > 0;
-
 const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
   const [authState, setAuthState] = useState<AuthState>(() =>
@@ -106,14 +101,25 @@ const useAppController = () => {
 
     let active = true;
 
+    setAuthenticatedBoardLoading(true);
+    setPersistenceMessage('Loading local board...');
     void hydrateStorageFromDatabase().then((state) => {
-      if (!active || !state) {
+      if (!active) {
         return;
       }
 
+      setAuthenticatedBoardLoading(false);
+
+      if (!state) {
+        setPersistenceMessage(
+          'Local database is unavailable. Changes are not durably saved yet.'
+        );
+        return;
+      }
+
+      setPersistenceMessage(null);
       dispatch({
-        columnCount: state.columns.length,
-        tags: state.tags,
+        state,
         type: 'storageHydrated',
       });
     });
@@ -167,26 +173,13 @@ const useAppController = () => {
     }
 
     let active = true;
-    const localStateBeforeLoad = fetchBoardState();
 
     setAuthenticatedBoardLoading(true);
     setPersistenceMessage('Loading your board...');
     void fetchAuthenticatedDefaultBoard(authState.session.access_token)
-      .then(async (payload) => {
+      .then((payload) => {
         if (!active) {
           return;
-        }
-
-        if (
-          hasBoardData(localStateBeforeLoad) &&
-          !hasBoardData(payload.state)
-        ) {
-          setPersistenceMessage('Importing your local board...');
-          payload = await saveAuthenticatedBoard(
-            payload.board.id,
-            localStateBeforeLoad,
-            authState.session.access_token
-          );
         }
 
         updateBoardStateStorage(payload.state);
