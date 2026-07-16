@@ -32,6 +32,10 @@ beforeEach(() => {
       writeText: vi.fn().mockResolvedValue(undefined),
     },
   });
+  Object.defineProperty(navigator, 'languages', {
+    configurable: true,
+    value: ['en-US'],
+  });
 });
 
 test('renders the Flowboard app shell and quiet board heading', () => {
@@ -264,6 +268,50 @@ test('changes and persists the app theme preference from settings', async () => 
     document.querySelector<HTMLLinkElement>('#flowboard-favicon')?.href
   ).toMatch(/\/icon-dark\.svg$/);
   expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
+});
+
+test('uses Brazilian Portuguese automatically from the browser language', async () => {
+  Object.defineProperty(navigator, 'languages', {
+    configurable: true,
+    value: ['pt-BR', 'en-US'],
+  });
+
+  render(<App />);
+
+  expect(
+    screen.getByRole('complementary', { name: /navegação do flowboard/i })
+  ).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /quadro/i })).toBeInTheDocument();
+  expect(document.documentElement).toHaveAttribute('lang', 'pt-BR');
+});
+
+test('changes and persists the local language preference from settings', async () => {
+  Object.defineProperty(navigator, 'languages', {
+    configurable: true,
+    value: ['pt-PT', 'en-US'],
+  });
+
+  const user = userEvent.setup();
+  const { unmount } = render(<App />);
+
+  expect(screen.getByRole('heading', { name: /quadro/i })).toBeInTheDocument();
+
+  await openBoardSettings(user);
+  expect(
+    screen.getByRole('combobox', { name: /preferência de idioma/i })
+  ).toHaveTextContent('Idioma do navegador (Português (Brasil))');
+
+  await chooseSelectOption(user, 'Preferência de idioma', 'English');
+
+  expect(screen.getByRole('heading', { name: /board/i })).toBeInTheDocument();
+  expect(localStorage.getItem('flowboardLanguagePreference')).toBe('en');
+  expect(document.documentElement).toHaveAttribute('lang', 'en');
+
+  unmount();
+  render(<App />);
+
+  expect(screen.getByRole('heading', { name: /board/i })).toBeInTheDocument();
+  expect(document.documentElement).toHaveAttribute('lang', 'en');
 });
 
 test('ignores legacy saved background values for the visible app shell', () => {
@@ -1877,11 +1925,15 @@ const openManageColumns = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 const openBoardSettings = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByRole('button', { name: /open account menu/i }));
   await user.click(
-    await screen.findByRole('menuitem', { name: /^settings$/i })
+    screen.getByRole('button', {
+      name: /open account menu|abrir menu da conta/i,
+    })
   );
-  await screen.findByRole('dialog', { name: /^settings$/i });
+  await user.click(
+    await screen.findByRole('menuitem', { name: /^settings$|^configurações$/i })
+  );
+  await screen.findByRole('dialog', { name: /^settings$|^configurações$/i });
 };
 
 const readColumns = () => fetchStorage();
