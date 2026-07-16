@@ -1,20 +1,6 @@
-import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-import { Button } from '@base-ui/react/button';
-import { Columns3, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
-import CardComposer from '../CardComposer';
-import Column from '../Column';
-import ContentDialog from '../ContentDialog';
-import { InlineEmptyState } from '../EmptyState';
-import ManageColumnsDialog from '../ManageColumnsDialog';
-import {
-  isCardDragData,
-  isCardDropTargetData,
-  isColumnDropTargetData,
-} from '../../dnd';
 import { moveColumn } from '../../board/columns';
 import {
   createCard,
@@ -23,11 +9,16 @@ import {
   deleteColumn,
   editCard,
   renameColumn,
-  reorderCard,
 } from '../../board/commands';
 import { findActiveCardRouteTarget } from '../../board/routeLookup';
 import type { CardDialogValues } from '../CardDialog';
+import CardComposer from '../CardComposer';
+import ManageColumnsDialog from '../ManageColumnsDialog';
 import type { BoardColumn, BoardTag } from '../../types';
+import ActiveCardMissingState from './ActiveCardMissingState';
+import AddColumnDialog from './AddColumnDialog';
+import ColumnList from './ColumnList';
+import { useColumnsDragMonitor } from './useColumnsDragMonitor';
 
 import './Columns.css';
 
@@ -58,6 +49,9 @@ const Columns = ({
 }: ColumnsProps) => {
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
+
+  useColumnsDragMonitor({ columns, onColumnsChange });
+
   const onSaveColumn = (title: string) => {
     if (!title) {
       return messages.board.columnTitleRequired;
@@ -133,48 +127,6 @@ const Columns = ({
     onColumnsChange(deleteCard(columns, columnId, cardId));
   };
 
-  useEffect(
-    () =>
-      monitorForElements({
-        canMonitor: ({ source }) => isCardDragData(source.data),
-        onDrop: ({ location, source }) => {
-          if (!isCardDragData(source.data)) {
-            return;
-          }
-
-          const target = location.current.dropTargets[0];
-
-          if (!target) {
-            return;
-          }
-
-          if (isCardDropTargetData(target.data)) {
-            onColumnsChange(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: extractClosestEdge(target.data),
-                fromColumnId: source.data.columnId,
-                targetCardId: target.data.cardId,
-                toColumnId: target.data.columnId,
-              })
-            );
-          }
-
-          if (isColumnDropTargetData(target.data)) {
-            onColumnsChange(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: null,
-                fromColumnId: source.data.columnId,
-                toColumnId: target.data.columnId,
-              })
-            );
-          }
-        },
-      }),
-    [columns, onColumnsChange]
-  );
-
   const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
   );
@@ -185,39 +137,24 @@ const Columns = ({
   return (
     <>
       <div className="columns-board">
-        {activeCardId && !activeCardTarget && !boardLoading && (
-          <InlineEmptyState
-            className="columns-board__route-missing"
-            variant="surface"
-          >
-            {messages.board.cardNotFound}
-          </InlineEmptyState>
-        )}
-        <div className="columns-list">
-          {sortedColumns.map((column) => (
-            <Column
-              activeCardId={activeCardId}
-              column={column}
-              columns={sortedColumns}
-              deleteCard={onDeleteCard}
-              deleteColumn={onDeleteColumn}
-              editCard={onEditCard}
-              key={column.id}
-              moveColumn={onMoveColumn}
-              onActiveCardClose={onActiveCardClose}
-              onTagsChange={onTagsChange}
-              renameColumn={onRenameColumn}
-              tags={tags}
-            />
-          ))}
-          <Button
-            className="add-column-placeholder"
-            onClick={() => setAddColumnOpen(true)}
-          >
-            <Plus size={16} />
-            {messages.board.addAnotherColumn}
-          </Button>
-        </div>
+        <ActiveCardMissingState
+          activeCardId={activeCardId}
+          boardLoading={boardLoading}
+          hasActiveCardTarget={Boolean(activeCardTarget)}
+        />
+        <ColumnList
+          activeCardId={activeCardId}
+          columns={sortedColumns}
+          deleteCard={onDeleteCard}
+          deleteColumn={onDeleteColumn}
+          editCard={onEditCard}
+          moveColumn={onMoveColumn}
+          onActiveCardClose={onActiveCardClose}
+          onAddColumnClick={() => setAddColumnOpen(true)}
+          onTagsChange={onTagsChange}
+          renameColumn={onRenameColumn}
+          tags={tags}
+        />
         <div className="card-composer-dock">
           <CardComposer
             columns={sortedColumns}
@@ -237,17 +174,10 @@ const Columns = ({
         open={manageColumnsOpen}
         renameColumn={onRenameColumn}
       />
-      <ContentDialog
-        description={messages.board.addColumnDescription}
-        hideCancel
-        label={messages.board.columnTitle}
-        leadingIcon={<Columns3 size={15} />}
+      <AddColumnDialog
         onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
-        placeholder={messages.board.readyForReview}
-        submitLabel={messages.board.addColumn}
-        title={messages.board.addColumn}
       />
     </>
   );
