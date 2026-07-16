@@ -279,3 +279,20 @@ by Supabase Postgres. The included `vercel.json` builds the browser app with
 For production persistence, deploy the Node API runtime with Supabase Auth
 verification, Prisma, and Supabase Postgres. Set `VITE_FLOWBOARD_API_URL` when
 the browser should call an API origin other than the current site origin.
+
+Flowboard includes Vercel Web Analytics and Speed Insights instrumentation.
+Enable both products for the Vercel project before treating analytics as fully
+configured:
+
+```bash
+vercel project web-analytics <project-name>
+vercel project speed-insights <project-name>
+```
+
+You can also enable them from the Vercel dashboard. After the next deployment,
+open a preview and confirm the browser console has no analytics-related Content
+Security Policy violations, the analytics and vitals network requests succeed,
+and Vercel-managed routes such as `/_vercel/insights/*` and
+`/_vercel/speed-insights/*` are not served as the SPA `index.html`. After
+traffic is generated, confirm Web Analytics receives page views and Speed
+Insights receives vitals in Vercel.
