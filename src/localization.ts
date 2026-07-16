@@ -696,14 +696,66 @@ export const messagesByLanguage: Record<ResolvedLanguage, Messages> = {
 export const getMessages = (language: ResolvedLanguage): Messages =>
   messagesByLanguage[language];
 
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const defaultDateOptions = {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+} satisfies Intl.DateTimeFormatOptions;
+const dateTimeOptions = {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+} satisfies Intl.DateTimeFormatOptions;
+const defaultDateFormatters: Record<ResolvedLanguage, Intl.DateTimeFormat> = {
+  en: new Intl.DateTimeFormat('en', defaultDateOptions),
+  'pt-BR': new Intl.DateTimeFormat('pt-BR', defaultDateOptions),
+};
+const dateTimeFormatters: Record<ResolvedLanguage, Intl.DateTimeFormat> = {
+  en: new Intl.DateTimeFormat('en', dateTimeOptions),
+  'pt-BR': new Intl.DateTimeFormat('pt-BR', dateTimeOptions),
+};
+
+const isDefaultDateOptions = (options: Intl.DateTimeFormatOptions) =>
+  options.day === defaultDateOptions.day &&
+  options.month === defaultDateOptions.month &&
+  options.year === defaultDateOptions.year &&
+  !options.dateStyle &&
+  !options.timeStyle;
+
+const isDateTimeOptions = (options: Intl.DateTimeFormatOptions) =>
+  options.dateStyle === dateTimeOptions.dateStyle &&
+  options.timeStyle === dateTimeOptions.timeStyle;
+
+const getDateFormatter = (
+  language: ResolvedLanguage,
+  options: Intl.DateTimeFormatOptions
+) => {
+  const cacheKey = `${language}:${JSON.stringify(options)}`;
+  const cachedFormatter = dateFormatters.get(cacheKey);
+
+  if (cachedFormatter) {
+    return cachedFormatter;
+  }
+
+  const formatter = isDefaultDateOptions(options)
+    ? defaultDateFormatters[language]
+    : isDateTimeOptions(options)
+      ? dateTimeFormatters[language]
+      : null;
+
+  if (!formatter) {
+    return null;
+  }
+
+  dateFormatters.set(cacheKey, formatter);
+
+  return formatter;
+};
+
 export const formatDate = (
   language: ResolvedLanguage,
   value: string,
-  options: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }
+  options: Intl.DateTimeFormatOptions = defaultDateOptions
 ) => {
   const date = new Date(value);
 
@@ -711,5 +763,8 @@ export const formatDate = (
     return value;
   }
 
-  return new Intl.DateTimeFormat(language, options).format(date);
+  return (
+    getDateFormatter(language, options)?.format(date) ??
+    date.toLocaleString(language, options)
+  );
 };
