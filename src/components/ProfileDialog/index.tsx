@@ -55,11 +55,13 @@ const ProfileDialog = ({
     [avatarPreviewUrl]
   );
 
-  const avatarProfile = avatarPreviewUrl
-    ? { ...profile, avatarUrl: avatarPreviewUrl }
-    : removeAvatar
-      ? { ...profile, avatarUrl: null }
-      : profile;
+  const avatarProfile = profile
+    ? avatarPreviewUrl
+      ? { ...profile, avatarUrl: avatarPreviewUrl }
+      : removeAvatar
+        ? { ...profile, avatarUrl: null }
+        : profile
+    : null;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

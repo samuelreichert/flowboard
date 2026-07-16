@@ -45,7 +45,7 @@ describe('profile display helpers', () => {
           full_name: 'Samuel Reichert',
         },
       },
-    } as SupabaseSession);
+    } as unknown as SupabaseSession);
 
     expect(profile).toEqual({
       avatarStoragePath: null,
