@@ -59,10 +59,10 @@
 - [x] 8.1 Move Markdown normalization, HTML escaping/rendering, and alignment/image serialization helpers into an editor Markdown module.
 - [x] 8.2 Move Tiptap extension setup and rich paragraph/heading extensions into an editor extensions module.
 - [x] 8.3 Move URL normalization/validation and editor command helpers for headings, lists, alignment, links, and images into command/helper modules.
-- [ ] 8.4 Move editable Tiptap lifecycle/value synchronization into `useCardContentEditor`.
-- [ ] 8.5 Move copy status, popover state, bubble-menu state, selection refs, file paste/drop, clipboard, and external open behavior into `useCardContentInteractions`.
-- [ ] 8.6 Move readonly rendering into a dedicated `CardContentViewer` module.
-- [ ] 8.7 Split `EditorToolbar` popover form sections or toolbar primitives if the toolbar remains too broad after editor logic moves out.
+- [x] 8.4 Move editable Tiptap lifecycle/value synchronization into `useCardContentEditor`.
+- [x] 8.5 Move copy status, popover state, bubble-menu state, selection refs, file paste/drop, clipboard, and external open behavior into `useCardContentInteractions`.
+- [x] 8.6 Move readonly rendering into a dedicated `CardContentViewer` module.
+- [x] 8.7 Split `EditorToolbar` popover form sections or toolbar primitives if the toolbar remains too broad after editor logic moves out.
 - [x] 8.8 Verify Markdown copy, links, code, lists, task lists, heading/alignment, image file drop/paste, image URL insert/edit/remove, toolbar active states, and hover tooltips.
 
 ## 9. Split History And Completed-Work Presentation
