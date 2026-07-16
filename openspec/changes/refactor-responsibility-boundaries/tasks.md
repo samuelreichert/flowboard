@@ -67,10 +67,10 @@
 
 ## 9. Split History And Completed-Work Presentation
 
-- [ ] 9.1 Extract history sorting, route-target resolution, selected-card derivation, tag-name resolution, and copy-status behavior into helpers or a focused hook.
-- [ ] 9.2 Split history cycle/card list rendering from archived-card detail dialog rendering.
-- [ ] 9.3 Keep completed-work domain behavior in `src/board/completedWork.ts` and use presentation modules only for rendering/detail interactions.
-- [ ] 9.4 Verify empty history, missing archived card routes, grid/list layout switching, archived detail metadata, and Markdown copy.
+- [x] 9.1 Extract history sorting, route-target resolution, selected-card derivation, tag-name resolution, and copy-status behavior into helpers or a focused hook.
+- [x] 9.2 Split history cycle/card list rendering from archived-card detail dialog rendering.
+- [x] 9.3 Keep completed-work domain behavior in `src/board/completedWork.ts` and use presentation modules only for rendering/detail interactions.
+- [x] 9.4 Verify empty history, missing archived card routes, grid/list layout switching, archived detail metadata, and Markdown copy.
 
 ## 10. Split CSS Ownership
 
