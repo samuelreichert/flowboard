@@ -1,23 +1,29 @@
-import type { Editor, JSONContent } from '@tiptap/core';
-import FileHandler from '@tiptap/extension-file-handler';
-import Heading, { type Level } from '@tiptap/extension-heading';
-import Image from '@tiptap/extension-image';
-import { TaskItem, TaskList } from '@tiptap/extension-list';
-import Paragraph from '@tiptap/extension-paragraph';
-import TextAlign from '@tiptap/extension-text-align';
-import { Markdown } from '@tiptap/markdown';
+import type { Editor } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ClipboardEvent, DragEvent } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
-import type { Messages } from '../../localization';
 import { EditorBubbleMenus } from './EditorBubbleMenus';
 import { EditorToolbar } from './EditorToolbar';
-import { readFileAsDataUrl } from './readFileAsDataUrl';
+import {
+  applyAlignChange,
+  applyHeadingChange,
+  applyListChange,
+  getEditorMarkdown,
+  isSupportedImageUrl,
+  isSupportedUrl,
+  normalizeUrl,
+  selectImageElement,
+} from './commands';
+import {
+  getCardContentExtensions,
+  headingLevels,
+  insertImageFiles,
+} from './extensions';
+import { normalizeMarkdownForEditor } from './markdown';
 import type {
   AlignValue,
   EditorToolbarState,
@@ -39,12 +45,7 @@ type CardContentViewerProps = {
   value: string;
 };
 
-const imageMimeTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/webp'];
-const headingLevels: Level[] = [1, 2, 3, 4];
 const alignValues: AlignValue[] = ['left', 'center', 'right', 'justify'];
-const EMPTY_PARAGRAPH_MARKDOWN = '&nbsp;';
-const NBSP_CHAR = '\u00A0';
-
 const defaultToolbarState: EditorToolbarState = {
   alignValue: 'left' as AlignValue,
   canRedo: false,
@@ -84,8 +85,7 @@ const getToolbarState = (currentEditor: Editor): EditorToolbarState => {
       currentEditor.isActive({ textAlign: alignment })
     ) ?? 'left';
   const linkHref = currentEditor.getAttributes('link').href as
-    | string
-    | undefined;
+    string | undefined;
   const selectedNode =
     currentEditor.state.selection instanceof NodeSelection
       ? currentEditor.state.selection.node
@@ -114,401 +114,6 @@ const getToolbarState = (currentEditor: Editor): EditorToolbarState => {
     listValue,
   };
 };
-
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-const escapeAttribute = (value: unknown) => escapeHtml(String(value ?? ''));
-
-const renderImageHtml = (alt: string, src: string, title = '') => {
-  const titleAttribute = title ? ` title="${escapeAttribute(title)}"` : '';
-
-  return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}"${titleAttribute}>`;
-};
-
-const normalizeMarkdownForEditor = (markdown: string) =>
-  markdown
-    .replace(
-      /^!\[([^\]\n]*)\]\(\[([^\]\n]*)\]\((\S+?)(?:\s+["']([^"'\n]*)["'])?\)\)$/gm,
-      (_match, alt: string, _linkText: string, src: string, title = '') =>
-        renderImageHtml(alt, src, title)
-    )
-    .replace(
-      /^!\[([^\]\n]*)\]\((\S+?)(?:\s+["']([^"'\n]*)["'])?\)$/gm,
-      (_match, alt: string, src: string, title = '') =>
-        renderImageHtml(alt, src, title)
-    );
-
-const renderInlineHtml = (content: JSONContent[] = []): string =>
-  content.map(renderInlineNodeHtml).join('');
-
-const renderInlineNodeHtml = (node: JSONContent): string => {
-  if (node.type === 'text') {
-    return (node.marks ?? []).reduce(
-      (text, mark) => {
-        if (mark.type === 'bold') {
-          return `<strong>${text}</strong>`;
-        }
-
-        if (mark.type === 'italic') {
-          return `<em>${text}</em>`;
-        }
-
-        if (mark.type === 'strike') {
-          return `<s>${text}</s>`;
-        }
-
-        if (mark.type === 'code') {
-          return `<code>${text}</code>`;
-        }
-
-        if (mark.type === 'link') {
-          const href = escapeAttribute(mark.attrs?.href);
-          return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-        }
-
-        return text;
-      },
-      escapeHtml(node.text ?? '')
-    );
-  }
-
-  if (node.type === 'hardBreak') {
-    return '<br>';
-  }
-
-  if (node.type === 'image') {
-    const src = escapeAttribute(node.attrs?.src);
-    const alt = escapeAttribute(node.attrs?.alt);
-    return `<img src="${src}" alt="${alt}">`;
-  }
-
-  return renderInlineHtml(node.content);
-};
-
-const renderAlignedBlockHtml = (
-  tagName: 'p' | `h${Level}`,
-  alignment: string,
-  content: JSONContent[] = []
-) =>
-  `<${tagName} style="text-align: ${escapeAttribute(alignment)}">${renderInlineHtml(content)}</${tagName}>`;
-
-const RichParagraph = Paragraph.extend({
-  parseMarkdown: (token, h) => {
-    const tokens = token.tokens || [];
-
-    if (tokens.length === 1 && tokens[0].type === 'image') {
-      return h.parseChildren([tokens[0]]);
-    }
-
-    const content = h.parseInline(tokens);
-    const hasExplicitEmptyParagraphMarker =
-      tokens.length === 1 &&
-      tokens[0].type === 'text' &&
-      (tokens[0].raw === EMPTY_PARAGRAPH_MARKDOWN ||
-        tokens[0].text === EMPTY_PARAGRAPH_MARKDOWN ||
-        tokens[0].raw === NBSP_CHAR ||
-        tokens[0].text === NBSP_CHAR);
-
-    if (
-      hasExplicitEmptyParagraphMarker &&
-      content.length === 1 &&
-      content[0].type === 'text' &&
-      (content[0].text === EMPTY_PARAGRAPH_MARKDOWN ||
-        content[0].text === NBSP_CHAR)
-    ) {
-      return h.createNode('paragraph', undefined, []);
-    }
-
-    return h.createNode('paragraph', undefined, content);
-  },
-  renderMarkdown: (node, h, ctx) => {
-    const alignment = node.attrs?.textAlign;
-
-    if (alignment && alignment !== 'left') {
-      return renderAlignedBlockHtml('p', alignment, node.content);
-    }
-
-    const content = Array.isArray(node.content) ? node.content : [];
-
-    if (content.length === 0) {
-      const previousContent = Array.isArray(ctx?.previousNode?.content)
-        ? ctx.previousNode.content
-        : [];
-      const previousNodeIsEmptyParagraph =
-        ctx?.previousNode?.type === 'paragraph' && previousContent.length === 0;
-
-      return previousNodeIsEmptyParagraph ? EMPTY_PARAGRAPH_MARKDOWN : '';
-    }
-
-    return h.renderChildren(content);
-  },
-});
-
-const RichHeading = Heading.extend({
-  renderMarkdown: (node, h) => {
-    const level = node.attrs?.level
-      ? parseInt(String(node.attrs.level), 10)
-      : 1;
-    const safeLevel = headingLevels.includes(level as Level)
-      ? (level as Level)
-      : 1;
-    const alignment = node.attrs?.textAlign;
-
-    if (!node.content) {
-      return '';
-    }
-
-    if (alignment && alignment !== 'left') {
-      return renderAlignedBlockHtml(`h${safeLevel}`, alignment, node.content);
-    }
-
-    return `${'#'.repeat(safeLevel)} ${h.renderChildren(node.content)}`;
-  },
-});
-
-const normalizeUrl = (value: string) => {
-  const trimmedValue = value.trim();
-
-  if (!trimmedValue) {
-    return '';
-  }
-
-  if (/^(https?:|mailto:|data:image\/)/i.test(trimmedValue)) {
-    return trimmedValue;
-  }
-
-  return `https://${trimmedValue}`;
-};
-
-const isSupportedUrl = (value: string, allowDataImage = false) => {
-  try {
-    const url = new URL(value);
-
-    if (url.protocol === 'https:' || url.protocol === 'mailto:') {
-      return true;
-    }
-
-    return (
-      allowDataImage &&
-      url.protocol === 'data:' &&
-      value.startsWith('data:image/')
-    );
-  } catch {
-    return false;
-  }
-};
-
-const isSupportedImageUrl = (value: string) => {
-  try {
-    const url = new URL(value);
-
-    return (
-      url.protocol === 'https:' ||
-      (url.protocol === 'data:' && value.startsWith('data:image/'))
-    );
-  } catch {
-    return false;
-  }
-};
-
-const getEditorMarkdown = (editor: NonNullable<ReturnType<typeof useEditor>>) =>
-  editor
-    .getMarkdown()
-    .replace(/[ \t]+$/gm, '')
-    .trimEnd();
-
-const selectImageElement = (
-  view: NonNullable<ReturnType<typeof useEditor>>['view'],
-  target: EventTarget | null
-) => {
-  if (!(target instanceof HTMLImageElement)) {
-    return false;
-  }
-
-  const src = target.getAttribute('src');
-  let position: number | null = null;
-
-  view.state.doc.descendants((node, nodePosition) => {
-    if (node.type.name !== 'image') {
-      return true;
-    }
-
-    const domNode = view.nodeDOM(nodePosition);
-
-    if (
-      domNode === target ||
-      (domNode instanceof HTMLElement && domNode.contains(target))
-    ) {
-      position = nodePosition;
-      return false;
-    }
-
-    return true;
-  });
-
-  if (position === null) {
-    view.state.doc.descendants((node, nodePosition) => {
-      if (node.type.name === 'image' && (!src || node.attrs.src === src)) {
-        position = nodePosition;
-        return false;
-      }
-
-      return true;
-    });
-  }
-
-  if (position === null) {
-    return false;
-  }
-
-  view.dispatch(
-    view.state.tr.setSelection(NodeSelection.create(view.state.doc, position))
-  );
-  view.focus();
-
-  return true;
-};
-
-const insertImageFiles = async (
-  editor: NonNullable<ReturnType<typeof useEditor>>,
-  files: File[],
-  position?: number
-) => {
-  const images = files.filter((file) => imageMimeTypes.includes(file.type));
-  const imageSources = await Promise.all(
-    images.map(async (image) => ({
-      image,
-      src: await readFileAsDataUrl(image),
-    }))
-  );
-
-  for (const { image, src } of imageSources) {
-    const chain = editor.chain().focus();
-
-    if (typeof position === 'number') {
-      chain.insertContentAt(position, {
-        attrs: { alt: image.name, src },
-        type: 'image',
-      });
-    } else {
-      chain.setImage({ alt: image.name, src });
-    }
-
-    chain.run();
-  }
-};
-
-const applyHeadingChange = (editor: Editor | null, nextValue: HeadingValue) => {
-  if (!editor) {
-    return;
-  }
-
-  if (nextValue === 'paragraph') {
-    editor.chain().focus().setParagraph().run();
-    return;
-  }
-
-  editor
-    .chain()
-    .focus()
-    .toggleHeading({
-      level: Number(nextValue.replace('heading-', '')) as Level,
-    })
-    .run();
-};
-
-const applyListChange = (editor: Editor | null, nextValue: ListValue) => {
-  if (!editor) {
-    return;
-  }
-
-  const chain = editor.chain().focus();
-
-  if (nextValue === 'none') {
-    chain.setParagraph().run();
-    return;
-  }
-
-  if (nextValue === 'bullet') {
-    chain.toggleBulletList().run();
-    return;
-  }
-
-  if (nextValue === 'ordered') {
-    chain.toggleOrderedList().run();
-    return;
-  }
-
-  chain.toggleTaskList().run();
-};
-
-const applyAlignChange = (editor: Editor | null, nextValue: AlignValue) => {
-  if (!editor) {
-    return;
-  }
-
-  const chain = editor.chain().focus();
-
-  if (nextValue === 'left') {
-    chain.unsetTextAlign().run();
-    return;
-  }
-
-  chain.setTextAlign(nextValue).run();
-};
-
-const getCardContentExtensions = (
-  options: { fileHandling: boolean },
-  messages: Messages
-) => [
-  StarterKit.configure({
-    heading: false,
-    link: {
-      HTMLAttributes: {
-        rel: 'noopener noreferrer',
-        target: '_blank',
-      },
-      openOnClick: !options.fileHandling,
-    },
-    paragraph: false,
-  }),
-  RichParagraph,
-  RichHeading.configure({ levels: headingLevels }),
-  TaskList,
-  TaskItem.configure({
-    a11y: {
-      checkboxLabel: (node, checked) =>
-        messages.contentEditor.taskCheckboxLabel(checked, node.textContent),
-    },
-    nested: true,
-  }),
-  TextAlign.configure({
-    types: ['heading', 'paragraph'],
-  }),
-  Image.configure({ allowBase64: true }),
-  ...(options.fileHandling
-    ? [
-        FileHandler.configure({
-          allowedMimeTypes: imageMimeTypes,
-          onDrop: (currentEditor, files, position) => {
-            void insertImageFiles(currentEditor, files, position);
-          },
-          onPaste: (currentEditor, files) => {
-            void insertImageFiles(currentEditor, files);
-          },
-        }),
-      ]
-    : []),
-  Markdown.configure({
-    indentation: { size: 2, style: 'space' },
-  }),
-];
 
 const useCardContentTipTapEditor = ({
   id,
@@ -552,7 +157,10 @@ const useCardContentTipTapEditor = ({
         return true;
       },
     },
-    extensions: getCardContentExtensions({ fileHandling: true }, messages),
+    extensions: getCardContentExtensions(
+      { fileHandling: true },
+      messages.contentEditor
+    ),
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => {
       const markdown = getEditorMarkdown(currentEditor);
@@ -592,7 +200,10 @@ export const CardContentViewer = ({
           'card-content-editor__surface card-content-editor__surface--readonly',
       },
     },
-    extensions: getCardContentExtensions({ fileHandling: false }, messages),
+    extensions: getCardContentExtensions(
+      { fileHandling: false },
+      messages.contentEditor
+    ),
     immediatelyRender: false,
   });
 
