@@ -86,11 +86,11 @@
 
 - [x] 11.1 Keep `App.test.tsx` mostly intact during the first production refactor phases so it remains the integration safety net.
 - [x] 11.2 Add focused tests next to newly extracted pure helpers and hooks as they are created, starting with board commands, tag helpers, storage helpers, and editor helper modules.
-- [ ] 11.3 Extract shared render/setup/test helper utilities only when at least two moved test suites need them, and avoid creating a large catch-all helper module.
-- [ ] 11.4 Move auth and route tests into focused app route/auth suites after auth and route modules are extracted.
-- [ ] 11.5 Move composer, card dialog, tag manager, history, editor, board command, and storage tests into feature-owned suites as each production owner is extracted.
-- [ ] 11.6 Keep a small app-shell integration smoke suite for cross-feature wiring.
-- [ ] 11.7 Run the full suite after each test split to confirm no coverage was lost.
+- [x] 11.3 Extract shared render/setup/test helper utilities only when at least two moved test suites need them, and avoid creating a large catch-all helper module.
+- [x] 11.4 Move auth and route tests into focused app route/auth suites after auth and route modules are extracted.
+- [x] 11.5 Move composer, card dialog, tag manager, history, editor, board command, and storage tests into feature-owned suites as each production owner is extracted.
+- [x] 11.6 Keep a small app-shell integration smoke suite for cross-feature wiring.
+- [x] 11.7 Run the full suite after each test split to confirm no coverage was lost.
 
 ## 12. Verification
 

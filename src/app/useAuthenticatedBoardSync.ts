@@ -104,6 +104,8 @@ const useAuthenticatedBoardSync = (
     authenticatedBoardLoading,
     persistenceMessage,
     persistAuthenticatedBoard,
+    setAuthenticatedBoardLoading,
+    setPersistenceMessage,
   };
 };
 
