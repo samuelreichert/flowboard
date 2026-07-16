@@ -13,8 +13,8 @@ import type {
 
 const createCycle = (id: string, endDate: string): CompletedWorkCycle => ({
   cards: [],
-  columnTitle: 'Done',
-  completedAt: endDate,
+  completedColumnId: 'done',
+  completedColumnTitle: 'Done',
   endDate,
   id,
   startDate: '2026-06-01T00:00:00.000Z',
@@ -22,8 +22,6 @@ const createCycle = (id: string, endDate: string): CompletedWorkCycle => ({
 
 const createCard = (tagIds: string[]): ArchivedBoardCard => ({
   archivedAt: '2026-06-05T00:00:00.000Z',
-  columnId: 'done',
-  columnTitle: 'Done',
   content: '',
   createdAt: '2026-06-01T00:00:00.000Z',
   id: 'card-1',
@@ -54,9 +52,7 @@ test('formats valid history dates and leaves invalid values visible', () => {
 });
 
 test('resolves visible history tags from live tags and archived snapshots', () => {
-  const tags: BoardTag[] = [
-    { color: '#123456', id: 'live-tag', name: 'Live Tag' },
-  ];
+  const tags: BoardTag[] = [{ id: 'live-tag', name: 'Live Tag' }];
 
   expect(
     getVisibleTagNames(createCard(['live-tag', 'deleted-tag']), tags)
