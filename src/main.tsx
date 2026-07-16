@@ -1,3 +1,5 @@
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
@@ -14,6 +16,8 @@ if (!root) {
 createRoot(root).render(
   <React.StrictMode>
     <App />
+    <Analytics />
+    <SpeedInsights />
   </React.StrictMode>
 );
 

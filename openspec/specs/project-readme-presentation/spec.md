@@ -34,7 +34,7 @@ The project README SHALL include a screenshot that shows the latest actual Flowb
 
 ### Requirement: README documents offline and deployment behavior
 
-The project README SHALL document how the app behaves in local SQLite mode, production Supabase Postgres mode, static UI-only mode, and offline/PWA app-shell mode.
+The project README SHALL document how the app behaves in local SQLite mode, production Supabase Postgres mode, static UI-only mode, offline/PWA app-shell mode, and Vercel analytics-enabled deployment mode.
 
 #### Scenario: Developer chooses a run mode
 
@@ -45,3 +45,9 @@ The project README SHALL document how the app behaves in local SQLite mode, prod
 
 - **WHEN** a reader looks for offline behavior
 - **THEN** the README explains that PWA support is app-shell caching and not offline-durable board editing
+
+#### Scenario: Developer enables Vercel analytics
+
+- **WHEN** a developer prepares a Vercel deployment
+- **THEN** the README documents that Web Analytics and Speed Insights must be enabled in the Vercel project
+- **AND** the README describes the post-deployment validation checks for CSP, analytics requests, page views, and vitals

@@ -65,10 +65,12 @@ const persistBoardState = (state = boardCache) => {
     return Promise.resolve();
   }
 
+  const boardId = localBoardId;
+
   pendingDatabaseWrite = pendingDatabaseWrite
     .catch(() => undefined)
     .then(async () => {
-      const payload = await saveBoard(localBoardId, state);
+      const payload = await saveBoard(boardId, state);
       const nextState = normalizeMemoryState(payload.state);
 
       localBoardId = payload.board.id;
