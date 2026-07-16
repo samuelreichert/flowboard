@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ReactNode } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import DialogShell from '../DialogShell';
 import './ContentDialog.css';
 
@@ -67,6 +68,7 @@ const ContentDialogContent = ({
   submitLabel,
   title,
 }: ContentDialogProps) => {
+  const { messages } = useLocalization();
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState('');
 
@@ -127,7 +129,7 @@ const ContentDialogContent = ({
               onClick={() => onOpenChange(false)}
               type="button"
             >
-              Cancel
+              {messages.common.cancel}
             </Button>
           )}
           <Button className="button button--primary" type="submit">

@@ -3,8 +3,10 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import ProfileDialog from '../components/ProfileDialog';
 import type { ProfileDialogValues } from '../components/ProfileDialog';
 import TagManagerDialog from '../components/TagManagerDialog';
+import { useLocalization } from '../LocalizationProvider';
 import { fetchStorage } from '../storage';
 import type { AuthenticatedProfile } from '../storage/authenticatedApi';
+import type { LanguagePreference, ResolvedLanguage } from '../localization';
 import type { ThemePreference } from '../theme';
 import type { BoardActiveWorkCycle, BoardColumn, BoardTag } from '../types';
 
@@ -31,17 +33,20 @@ type AppDialogsProps = {
   onCompleteWorkOpenChange: (open: boolean) => void;
   onCompletedColumnChange: (completedColumnId: string | null) => void;
   onDeleteTag: (tagId: string) => void;
+  onLanguagePreferenceChange: (preference: LanguagePreference) => void;
   onProfileOpenChange: (open: boolean) => void;
   onProfileSave: (values: ProfileDialogValues) => Promise<void>;
   onSettingsOpenChange: (open: boolean) => void;
   onThemePreferenceChange: (preference: ThemePreference) => void;
   onTagManagerOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
+  languagePreference: LanguagePreference;
   routeManagementOpen: boolean;
   profileError: string | null;
   profileOpen: boolean;
   profileSaving: boolean;
   settingsOpen: boolean;
+  systemLanguage: ResolvedLanguage;
   tagManagerOpen: boolean;
   tags: BoardTag[];
   themePreference: ThemePreference;
@@ -63,73 +68,86 @@ const AppDialogs = ({
   onCompleteWorkOpenChange,
   onCompletedColumnChange,
   onDeleteTag,
+  onLanguagePreferenceChange,
   onProfileOpenChange,
   onProfileSave,
   onSettingsOpenChange,
   onThemePreferenceChange,
   onTagManagerOpenChange,
   onTagsChange,
+  languagePreference,
   routeManagementOpen,
   profileError,
   profileOpen,
   profileSaving,
   settingsOpen,
+  systemLanguage,
   tagManagerOpen,
   tags,
   themePreference,
-}: AppDialogsProps) => (
-  <>
-    <AppSettingsDialog
-      canClearBoard={columnCount > 0}
-      columns={columns}
-      completedColumnId={activeWorkCycle.completedColumnId}
-      onClearBoard={onClearBoardRequest}
-      onCompletedColumnChange={onCompletedColumnChange}
-      onOpenChange={onSettingsOpenChange}
-      onThemePreferenceChange={onThemePreferenceChange}
-      open={settingsOpen}
-      routeOwned={routeManagementOpen}
-      themePreference={themePreference}
-    />
-    <ProfileDialog
-      error={profileError}
-      onOpenChange={onProfileOpenChange}
-      onSave={onProfileSave}
-      open={profileOpen}
-      profile={authenticatedProfile}
-      saving={profileSaving}
-    />
-    <TagManagerDialog
-      getTagUsageCount={getTagUsageCount}
-      onDeleteTag={onDeleteTag}
-      onOpenChange={onTagManagerOpenChange}
-      onTagsChange={onTagsChange}
-      open={tagManagerOpen}
-      routeOwned={routeManagementOpen}
-      tags={tags}
-    />
-    <ConfirmDialog
-      confirmLabel="Clear board"
-      description={`This will permanently delete ${columnCount} columns and all of their cards.`}
-      onConfirm={onClearBoard}
-      onOpenChange={onClearBoardOpenChange}
-      open={clearBoardOpen}
-      title="Clear this board?"
-    />
-    <ConfirmDialog
-      confirmLabel="Complete work"
-      confirmVariant="primary"
-      description={
-        completedColumn
-          ? `This will archive ${completedCardCount} ${completedCardCount === 1 ? 'card' : 'cards'} from ${completedColumn.title} and start a new work cycle.`
-          : 'Choose a completed column in settings before completing work.'
-      }
-      onConfirm={onCompleteWork}
-      onOpenChange={onCompleteWorkOpenChange}
-      open={completeWorkOpen}
-      title="Complete work?"
-    />
-  </>
-);
+}: AppDialogsProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <>
+      <AppSettingsDialog
+        canClearBoard={columnCount > 0}
+        columns={columns}
+        completedColumnId={activeWorkCycle.completedColumnId}
+        onClearBoard={onClearBoardRequest}
+        onCompletedColumnChange={onCompletedColumnChange}
+        onLanguagePreferenceChange={onLanguagePreferenceChange}
+        onOpenChange={onSettingsOpenChange}
+        onThemePreferenceChange={onThemePreferenceChange}
+        languagePreference={languagePreference}
+        open={settingsOpen}
+        routeOwned={routeManagementOpen}
+        systemLanguage={systemLanguage}
+        themePreference={themePreference}
+      />
+      <ProfileDialog
+        error={profileError}
+        onOpenChange={onProfileOpenChange}
+        onSave={onProfileSave}
+        open={profileOpen}
+        profile={authenticatedProfile}
+        saving={profileSaving}
+      />
+      <TagManagerDialog
+        getTagUsageCount={getTagUsageCount}
+        onDeleteTag={onDeleteTag}
+        onOpenChange={onTagManagerOpenChange}
+        onTagsChange={onTagsChange}
+        open={tagManagerOpen}
+        routeOwned={routeManagementOpen}
+        tags={tags}
+      />
+      <ConfirmDialog
+        confirmLabel={messages.confirmations.clearBoardConfirm}
+        description={messages.confirmations.clearBoardDescription(columnCount)}
+        onConfirm={onClearBoard}
+        onOpenChange={onClearBoardOpenChange}
+        open={clearBoardOpen}
+        title={messages.confirmations.clearBoardTitle}
+      />
+      <ConfirmDialog
+        confirmLabel={messages.confirmations.completeWorkConfirm}
+        confirmVariant="primary"
+        description={
+          completedColumn
+            ? messages.confirmations.completeWorkDescription(
+                completedCardCount,
+                completedColumn.title
+              )
+            : messages.app.workspace.completeWorkNeedsColumn
+        }
+        onConfirm={onCompleteWork}
+        onOpenChange={onCompleteWorkOpenChange}
+        open={completeWorkOpen}
+        title={messages.confirmations.completeWorkTitle}
+      />
+    </>
+  );
+};
 
 export default AppDialogs;

@@ -1,4 +1,5 @@
 import type { ResolvedTheme, ThemePreference } from '../theme';
+import type { LanguagePreference, ResolvedLanguage } from '../localization';
 import type {
   BoardActiveWorkCycle,
   BoardColumn,
@@ -18,13 +19,16 @@ export type AppState = {
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
+  languagePreference: LanguagePreference;
   manageColumnsOpen: boolean;
   mobileSidebarOpen: boolean;
   profileDialogOpen: boolean;
   resolvedTheme: ResolvedTheme;
+  resolvedLanguage: ResolvedLanguage;
   settingsOpen: boolean;
   sidebarExpanded: boolean;
   storageVersion: number;
+  systemLanguage: ResolvedLanguage;
   tagManagerOpen: boolean;
   tags: BoardTag[];
   themePreference: ThemePreference;
@@ -39,6 +43,7 @@ export type AppAction =
   | { type: 'completeWorkOpenChanged'; open: boolean }
   | { type: 'completionPulseChanged'; active: boolean }
   | { type: 'currentViewChanged'; view: AppView }
+  | { type: 'languagePreferenceChanged'; preference: LanguagePreference }
   | { type: 'manageColumnsOpenChanged'; open: boolean }
   | { type: 'mobileSidebarOpenChanged'; open: boolean }
   | { type: 'profileDialogOpenChanged'; open: boolean }

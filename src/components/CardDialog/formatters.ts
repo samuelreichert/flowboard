@@ -1,14 +1,7 @@
-const createdAtFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
+import { formatDate, type ResolvedLanguage } from '../../localization';
 
-export const formatCreatedAt = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return createdAtFormatter.format(date);
-};
+export const formatCreatedAt = (value: string, language: ResolvedLanguage) =>
+  formatDate(language, value, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });

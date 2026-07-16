@@ -4,6 +4,7 @@ import { Button } from '@base-ui/react/button';
 import { Columns3, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import CardComposer from '../CardComposer';
 import Column from '../Column';
 import ContentDialog from '../ContentDialog';
@@ -48,6 +49,7 @@ const Columns = ({
   onTagsChange,
   tags,
 }: ColumnsProps) => {
+  const { messages } = useLocalization();
   const [columns, setColumns] = useState<BoardColumn[]>(() =>
     normalizeColumnOrder(fetchStorage())
   );
@@ -67,7 +69,7 @@ const Columns = ({
 
   const onSaveColumn = (title: string) => {
     if (!title) {
-      return 'Enter a column title.';
+      return messages.board.columnTitleRequired;
     }
 
     if (
@@ -75,7 +77,7 @@ const Columns = ({
         (column) => column.title.toLowerCase() === title.toLowerCase()
       )
     ) {
-      return 'Column titles must be unique.';
+      return messages.board.columnTitlesUnique;
     }
 
     updateColumns([
@@ -86,7 +88,7 @@ const Columns = ({
 
   const onRenameColumn = (columnId: string, title: string) => {
     if (!title) {
-      return 'Enter a column title.';
+      return messages.board.columnTitleRequired;
     }
 
     if (
@@ -96,7 +98,7 @@ const Columns = ({
           column.title.toLowerCase() === title.toLowerCase()
       )
     ) {
-      return 'Column titles must be unique.';
+      return messages.board.columnTitlesUnique;
     }
 
     updateColumns(
@@ -119,7 +121,7 @@ const Columns = ({
 
   const onSaveCard = (values: CardDialogValues) => {
     if (!values.title) {
-      return 'Enter a card title.';
+      return messages.card.titleRequired;
     }
 
     updateColumns(
@@ -150,7 +152,7 @@ const Columns = ({
     values: CardDialogValues
   ) => {
     if (!values.title) {
-      return 'Enter a card title.';
+      return messages.card.titleRequired;
     }
 
     const sourceColumn = columns.find((column) => column.id === sourceColumnId);
@@ -271,7 +273,7 @@ const Columns = ({
             className="columns-board__route-missing"
             variant="surface"
           >
-            Card not found.
+            {messages.board.cardNotFound}
           </InlineEmptyState>
         )}
         <div className="columns-list">
@@ -296,7 +298,7 @@ const Columns = ({
             onClick={() => setAddColumnOpen(true)}
           >
             <Plus size={16} />
-            Add another column
+            {messages.board.addAnotherColumn}
           </Button>
         </div>
         <div className="card-composer-dock">
@@ -319,16 +321,16 @@ const Columns = ({
         renameColumn={onRenameColumn}
       />
       <ContentDialog
-        description="Give the next stage of your workflow a clear name."
+        description={messages.board.addColumnDescription}
         hideCancel
-        label="Column title"
+        label={messages.board.columnTitle}
         leadingIcon={<Columns3 size={15} />}
         onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
-        placeholder="Ready for review"
-        submitLabel="Add column"
-        title="Add column"
+        placeholder={messages.board.readyForReview}
+        submitLabel={messages.board.addColumn}
+        title={messages.board.addColumn}
       />
     </>
   );

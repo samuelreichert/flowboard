@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { useLocalization } from '../LocalizationProvider';
 import {
   getProfileDisplayName,
   getProfileSubtitle,
@@ -60,34 +61,35 @@ const AppSidebar = ({
   showProfile,
   showSignOut,
 }: AppSidebarProps) => {
+  const { messages } = useLocalization();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const navItems: SidebarNavItem[] = [
     {
       active: currentView === 'board',
       icon: <KanbanSquare size={18} />,
       id: 'board',
-      label: 'Board',
+      label: messages.app.navigation.board,
       onClick: onBoardClick,
     },
     {
       active: currentView === 'history',
       icon: <History size={18} />,
       id: 'history',
-      label: 'History',
+      label: messages.app.navigation.history,
       onClick: onHistoryClick,
     },
     {
-      ariaLabel: 'Manage columns',
+      ariaLabel: messages.app.navigation.manageColumns,
       icon: <Columns3 size={18} />,
       id: 'columns',
-      label: 'Columns',
+      label: messages.app.navigation.columns,
       onClick: onManageColumnsClick,
     },
     {
-      ariaLabel: 'Manage tags',
+      ariaLabel: messages.app.navigation.manageTags,
       icon: <Tags size={18} />,
       id: 'tags',
-      label: 'Tags',
+      label: messages.app.navigation.tags,
       onClick: onManageTagsClick,
     },
   ];
@@ -100,15 +102,15 @@ const AppSidebar = ({
 
   return (
     <Sidebar
-      ariaLabel="Flowboard navigation"
+      ariaLabel={messages.app.navigation.flowboardNavigation}
       brand={{
         iconSrc: getThemeIconSrc(resolvedTheme),
         text: 'Flowboard',
       }}
       closeIcon={<X size={18} />}
-      closeLabel="Close navigation"
+      closeLabel={messages.app.navigation.closeNavigation}
       collapseIcon={<PanelLeftClose size={18} />}
-      collapseLabel="Collapse sidebar"
+      collapseLabel={messages.app.navigation.collapseSidebar}
       expandIcon={
         <img
           alt=""
@@ -117,12 +119,12 @@ const AppSidebar = ({
           src={getThemeIconSrc(resolvedTheme)}
         />
       }
-      expandLabel="Expand sidebar"
+      expandLabel={messages.app.navigation.expandSidebar}
       expanded={sidebarExpanded}
       footer={
         <Menu.Root open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
           <Menu.Trigger
-            aria-label="Open account menu"
+            aria-label={messages.app.navigation.openAccountMenu}
             className="app-sidebar__account-trigger"
             render={<Button />}
             title={displayName}
@@ -170,7 +172,7 @@ const AppSidebar = ({
                   type="button"
                 >
                   <Settings size={15} />
-                  Settings
+                  {messages.app.navigation.settings}
                 </button>
                 {showSignOut && (
                   <button
@@ -180,7 +182,7 @@ const AppSidebar = ({
                     type="button"
                   >
                     <LogOut size={15} />
-                    Log out
+                    {messages.app.navigation.signOut}
                   </button>
                 )}
               </Menu.Popup>
@@ -188,7 +190,7 @@ const AppSidebar = ({
           </Menu.Portal>
         </Menu.Root>
       }
-      navAriaLabel="Primary navigation"
+      navAriaLabel={messages.app.navigation.primaryNavigation}
       navItems={navItems}
       onClose={onCloseMobileSidebar}
       onToggle={onToggleSidebar}

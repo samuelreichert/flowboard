@@ -33,6 +33,7 @@ import {
 import { useId, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import type {
   AlignValue,
   EditorToolbarState,
@@ -104,38 +105,15 @@ type EditorToolbarProps = {
   toolbarState: EditorToolbarState;
 };
 
-const headingOptions: ToolbarSelectOption<HeadingValue>[] = [
-  { icon: <Pilcrow size={15} />, label: 'Paragraph', value: 'paragraph' },
-  { icon: <Heading1 size={15} />, label: 'Heading 1', value: 'heading-1' },
-  { icon: <Heading2 size={15} />, label: 'Heading 2', value: 'heading-2' },
-  { icon: <Heading3 size={15} />, label: 'Heading 3', value: 'heading-3' },
-  { icon: <Heading4 size={15} />, label: 'Heading 4', value: 'heading-4' },
-];
-
-const listOptions: ToolbarSelectOption<ListValue>[] = [
-  { icon: <List size={15} />, label: 'Bullet list', value: 'bullet' },
-  { icon: <ListOrdered size={15} />, label: 'Ordered list', value: 'ordered' },
-  { icon: <ListChecks size={15} />, label: 'Task list', value: 'task' },
-];
-
-const alignOptions: ToolbarSelectOption<AlignValue>[] = [
-  { icon: <AlignLeft size={15} />, label: 'Align left', value: 'left' },
-  { icon: <AlignCenter size={15} />, label: 'Align center', value: 'center' },
-  { icon: <AlignRight size={15} />, label: 'Align right', value: 'right' },
-  { icon: <AlignJustify size={15} />, label: 'Justify', value: 'justify' },
-];
-
-const defaultListOption: ToolbarSelectOption<ListValue> = {
-  icon: <List size={15} />,
-  label: 'List style',
-  value: 'none',
-};
-
 const ToolbarHint = ({ children, label }: ToolbarHintProps) => {
   const [open, setOpen] = useState(false);
   const hintId = useId();
   const hint = open ? (
-    <span aria-hidden="true" className="editor-toolbar__hover-label" id={hintId}>
+    <span
+      aria-hidden="true"
+      className="editor-toolbar__hover-label"
+      id={hintId}
+    >
       {label}
     </span>
   ) : null;
@@ -197,7 +175,9 @@ const ToolbarSelect = <TValue extends string>({
 }: ToolbarSelectProps<TValue>) => {
   const selectLabelId = useId();
   const selectedOption =
-    options.find((option) => option.value === value) ?? fallbackOption ?? options[0];
+    options.find((option) => option.value === value) ??
+    fallbackOption ??
+    options[0];
   const triggerLabel = selectedOption.triggerLabel ?? selectedOption.label;
 
   return (
@@ -223,7 +203,10 @@ const ToolbarSelect = <TValue extends string>({
             render={<Select.Trigger />}
             {...hintTriggerProps}
           >
-            <span className="editor-toolbar__select-trigger-icon" title={triggerLabel}>
+            <span
+              className="editor-toolbar__select-trigger-icon"
+              title={triggerLabel}
+            >
               {selectedOption.icon}
             </span>
             <Select.Icon className="editor-toolbar__select-icon">
@@ -296,236 +279,343 @@ export const EditorToolbar = ({
   onStrike,
   onUndo,
   toolbarState,
-}: EditorToolbarProps) => (
-  <Toolbar.Root className="editor-toolbar" aria-label="Content formatting">
-    <ToolbarButton disabled={!toolbarState.canUndo} label="Undo" onClick={onUndo}>
-      <Undo2 size={16} />
-    </ToolbarButton>
-    <ToolbarButton disabled={!toolbarState.canRedo} label="Redo" onClick={onRedo}>
-      <Redo2 size={16} />
-    </ToolbarButton>
-    <ToolbarSelect
-      active={toolbarState.headingValue !== 'paragraph'}
-      disabled={!editorReady}
-      label="Text style"
-      onValueChange={onHeadingChange}
-      options={headingOptions}
-      value={toolbarState.headingValue}
-    />
-    <ToolbarButton
-      active={toolbarState.isBold}
-      disabled={!editorReady}
-      label="Bold"
-      onClick={onBold}
+}: EditorToolbarProps) => {
+  const { messages } = useLocalization();
+  const headingOptions: ToolbarSelectOption<HeadingValue>[] = [
+    {
+      icon: <Pilcrow size={15} />,
+      label: messages.contentEditor.paragraph,
+      value: 'paragraph',
+    },
+    {
+      icon: <Heading1 size={15} />,
+      label: messages.contentEditor.heading1,
+      value: 'heading-1',
+    },
+    {
+      icon: <Heading2 size={15} />,
+      label: messages.contentEditor.heading2,
+      value: 'heading-2',
+    },
+    {
+      icon: <Heading3 size={15} />,
+      label: messages.contentEditor.heading3,
+      value: 'heading-3',
+    },
+    {
+      icon: <Heading4 size={15} />,
+      label: messages.contentEditor.heading4,
+      value: 'heading-4',
+    },
+  ];
+  const listOptions: ToolbarSelectOption<ListValue>[] = [
+    {
+      icon: <List size={15} />,
+      label: messages.contentEditor.bulletList,
+      value: 'bullet',
+    },
+    {
+      icon: <ListOrdered size={15} />,
+      label: messages.contentEditor.orderedList,
+      value: 'ordered',
+    },
+    {
+      icon: <ListChecks size={15} />,
+      label: messages.contentEditor.taskList,
+      value: 'task',
+    },
+  ];
+  const alignOptions: ToolbarSelectOption<AlignValue>[] = [
+    {
+      icon: <AlignLeft size={15} />,
+      label: messages.contentEditor.alignLeft,
+      value: 'left',
+    },
+    {
+      icon: <AlignCenter size={15} />,
+      label: messages.contentEditor.alignCenter,
+      value: 'center',
+    },
+    {
+      icon: <AlignRight size={15} />,
+      label: messages.contentEditor.alignRight,
+      value: 'right',
+    },
+    {
+      icon: <AlignJustify size={15} />,
+      label: messages.contentEditor.justify,
+      value: 'justify',
+    },
+  ];
+  const defaultListOption: ToolbarSelectOption<ListValue> = {
+    icon: <List size={15} />,
+    label: messages.contentEditor.listStyle,
+    value: 'none',
+  };
+
+  return (
+    <Toolbar.Root
+      className="editor-toolbar"
+      aria-label={messages.contentEditor.contentFormatting}
     >
-      <Bold size={16} />
-    </ToolbarButton>
-    <ToolbarButton
-      active={toolbarState.isItalic}
-      disabled={!editorReady}
-      label="Italic"
-      onClick={onItalic}
-    >
-      <Italic size={16} />
-    </ToolbarButton>
-    <ToolbarButton
-      active={toolbarState.isStrike}
-      disabled={!editorReady}
-      label="Strike"
-      onClick={onStrike}
-    >
-      <Strikethrough size={16} />
-    </ToolbarButton>
-    <ToolbarSelect
-      active={toolbarState.listValue !== 'none'}
-      disabled={!editorReady}
-      label="List style"
-      onValueChange={onListChange}
-      options={listOptions}
-      value={toolbarState.listValue}
-      fallbackOption={defaultListOption}
-    />
-    <ToolbarSelect
-      active={toolbarState.alignValue !== 'left'}
-      disabled={!editorReady}
-      label="Text alignment"
-      onValueChange={onAlignChange}
-      options={alignOptions}
-      value={toolbarState.alignValue}
-    />
-    <ToolbarButton
-      active={toolbarState.isBlockquote}
-      disabled={!editorReady}
-      label="Quote"
-      onClick={onBlockquote}
-    >
-      <Quote size={16} />
-    </ToolbarButton>
-    <ToolbarButton
-      active={toolbarState.isCode}
-      disabled={!editorReady}
-      label="Inline code"
-      onClick={onCode}
-    >
-      <Code size={16} />
-    </ToolbarButton>
-    <ToolbarButton
-      active={toolbarState.isCodeBlock}
-      disabled={!editorReady}
-      label="Code block"
-      onClick={onCodeBlock}
-    >
-      <Code2 size={16} />
-    </ToolbarButton>
-    <Popover.Root onOpenChange={onLinkPopoverOpenChange} open={linkPopoverOpen}>
-      <ToolbarHint label="Link">
-        {({ hint, hintTriggerProps }) => (
-          <Toolbar.Button
-            aria-label="Link"
-            aria-pressed={toolbarState.isLink}
-            className={`editor-toolbar__button ${toolbarState.isLink ? 'editor-toolbar__button--active' : ''}`}
-            disabled={!editorReady}
-            onClick={onLinkPopoverOpen}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              onLinkMouseDown();
-            }}
-            render={<Popover.Trigger />}
-            {...hintTriggerProps}
-          >
-            <LinkIcon size={16} />
-            {hint}
-          </Toolbar.Button>
-        )}
-      </ToolbarHint>
-      <Popover.Portal>
-        <Popover.Positioner
-          align="start"
-          className="editor-url-popover__positioner"
-          sideOffset={6}
-        >
-          <Popover.Popup className="editor-url-popover">
-            <form
-              className="editor-url-popover__form"
-              onSubmit={(event) => {
+      <ToolbarButton
+        disabled={!toolbarState.canUndo}
+        label={messages.contentEditor.undo}
+        onClick={onUndo}
+      >
+        <Undo2 size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        disabled={!toolbarState.canRedo}
+        label={messages.contentEditor.redo}
+        onClick={onRedo}
+      >
+        <Redo2 size={16} />
+      </ToolbarButton>
+      <ToolbarSelect
+        active={toolbarState.headingValue !== 'paragraph'}
+        disabled={!editorReady}
+        label={messages.contentEditor.textStyle}
+        onValueChange={onHeadingChange}
+        options={headingOptions}
+        value={toolbarState.headingValue}
+      />
+      <ToolbarButton
+        active={toolbarState.isBold}
+        disabled={!editorReady}
+        label={messages.contentEditor.bold}
+        onClick={onBold}
+      >
+        <Bold size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        active={toolbarState.isItalic}
+        disabled={!editorReady}
+        label={messages.contentEditor.italic}
+        onClick={onItalic}
+      >
+        <Italic size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        active={toolbarState.isStrike}
+        disabled={!editorReady}
+        label={messages.contentEditor.strike}
+        onClick={onStrike}
+      >
+        <Strikethrough size={16} />
+      </ToolbarButton>
+      <ToolbarSelect
+        active={toolbarState.listValue !== 'none'}
+        disabled={!editorReady}
+        label={messages.contentEditor.listStyle}
+        onValueChange={onListChange}
+        options={listOptions}
+        value={toolbarState.listValue}
+        fallbackOption={defaultListOption}
+      />
+      <ToolbarSelect
+        active={toolbarState.alignValue !== 'left'}
+        disabled={!editorReady}
+        label={messages.contentEditor.textAlignment}
+        onValueChange={onAlignChange}
+        options={alignOptions}
+        value={toolbarState.alignValue}
+      />
+      <ToolbarButton
+        active={toolbarState.isBlockquote}
+        disabled={!editorReady}
+        label={messages.contentEditor.quote}
+        onClick={onBlockquote}
+      >
+        <Quote size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        active={toolbarState.isCode}
+        disabled={!editorReady}
+        label={messages.contentEditor.inlineCode}
+        onClick={onCode}
+      >
+        <Code size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        active={toolbarState.isCodeBlock}
+        disabled={!editorReady}
+        label={messages.contentEditor.codeBlock}
+        onClick={onCodeBlock}
+      >
+        <Code2 size={16} />
+      </ToolbarButton>
+      <Popover.Root
+        onOpenChange={onLinkPopoverOpenChange}
+        open={linkPopoverOpen}
+      >
+        <ToolbarHint label={messages.contentEditor.link}>
+          {({ hint, hintTriggerProps }) => (
+            <Toolbar.Button
+              aria-label={messages.contentEditor.link}
+              aria-pressed={toolbarState.isLink}
+              className={`editor-toolbar__button ${toolbarState.isLink ? 'editor-toolbar__button--active' : ''}`}
+              disabled={!editorReady}
+              onClick={onLinkPopoverOpen}
+              onMouseDown={(event) => {
                 event.preventDefault();
-                event.stopPropagation();
-                onApplyLink();
+                onLinkMouseDown();
               }}
+              render={<Popover.Trigger />}
+              {...hintTriggerProps}
             >
-              <Field.Root invalid={Boolean(linkError)}>
-                <Field.Label className="editor-url-popover__label">Link URL</Field.Label>
-                <Field.Control
-                  autoFocus
-                  className="editor-url-popover__input"
-                  inputMode="url"
-                  maxLength={2048}
-                  onValueChange={onSetLinkUrl}
-                  placeholder="https://tiptap.dev"
-                  type="text"
-                  value={linkUrl}
-                />
-                <Field.Error className="editor-url-popover__error" match={Boolean(linkError)}>
-                  {linkError}
-                </Field.Error>
-              </Field.Root>
-              <div className="editor-url-popover__actions">
-                <Popover.Close
-                  className="editor-url-popover__button"
-                  render={<Button />}
-                  type="button"
-                >
-                  Cancel
-                </Popover.Close>
-                <Button
-                  className="editor-url-popover__button editor-url-popover__button--primary"
-                  type="submit"
-                >
-                  Apply
-                </Button>
-              </div>
-            </form>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-    <Popover.Root onOpenChange={onImagePopoverOpenChange} open={imagePopoverOpen}>
-      <ToolbarHint label="Insert image URL">
+              <LinkIcon size={16} />
+              {hint}
+            </Toolbar.Button>
+          )}
+        </ToolbarHint>
+        <Popover.Portal>
+          <Popover.Positioner
+            align="start"
+            className="editor-url-popover__positioner"
+            sideOffset={6}
+          >
+            <Popover.Popup className="editor-url-popover">
+              <form
+                className="editor-url-popover__form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onApplyLink();
+                }}
+              >
+                <Field.Root invalid={Boolean(linkError)}>
+                  <Field.Label className="editor-url-popover__label">
+                    {messages.contentEditor.linkUrl}
+                  </Field.Label>
+                  <Field.Control
+                    autoFocus
+                    className="editor-url-popover__input"
+                    inputMode="url"
+                    maxLength={2048}
+                    onValueChange={onSetLinkUrl}
+                    placeholder="https://tiptap.dev"
+                    type="text"
+                    value={linkUrl}
+                  />
+                  <Field.Error
+                    className="editor-url-popover__error"
+                    match={Boolean(linkError)}
+                  >
+                    {linkError}
+                  </Field.Error>
+                </Field.Root>
+                <div className="editor-url-popover__actions">
+                  <Popover.Close
+                    className="editor-url-popover__button"
+                    render={<Button />}
+                    type="button"
+                  >
+                    {messages.common.cancel}
+                  </Popover.Close>
+                  <Button
+                    className="editor-url-popover__button editor-url-popover__button--primary"
+                    type="submit"
+                  >
+                    {messages.contentEditor.apply}
+                  </Button>
+                </div>
+              </form>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+      <Popover.Root
+        onOpenChange={onImagePopoverOpenChange}
+        open={imagePopoverOpen}
+      >
+        <ToolbarHint label={messages.contentEditor.insertImageUrl}>
+          {({ hint, hintTriggerProps }) => (
+            <Toolbar.Button
+              aria-label={messages.contentEditor.insertImageUrl}
+              className={`editor-toolbar__button ${toolbarState.isImage ? 'editor-toolbar__button--active' : ''}`}
+              disabled={!editorReady}
+              aria-pressed={toolbarState.isImage}
+              onMouseDown={(event) => event.preventDefault()}
+              render={<Popover.Trigger />}
+              {...hintTriggerProps}
+            >
+              <ImageIcon size={16} />
+              {hint}
+            </Toolbar.Button>
+          )}
+        </ToolbarHint>
+        <Popover.Portal>
+          <Popover.Positioner
+            align="start"
+            className="editor-url-popover__positioner"
+            sideOffset={6}
+          >
+            <Popover.Popup className="editor-url-popover">
+              <form
+                className="editor-url-popover__form"
+                onSubmit={onApplyImage}
+              >
+                <Field.Root invalid={Boolean(imageError)}>
+                  <Field.Label className="editor-url-popover__label">
+                    {messages.contentEditor.imageUrl}
+                  </Field.Label>
+                  <Field.Control
+                    autoFocus
+                    className="editor-url-popover__input"
+                    inputMode="url"
+                    maxLength={2048}
+                    onValueChange={onSetImageUrl}
+                    placeholder="https://images.example.com/diagram.png"
+                    type="text"
+                    value={imageUrl}
+                  />
+                  <Field.Error
+                    className="editor-url-popover__error"
+                    match={Boolean(imageError)}
+                  >
+                    {imageError}
+                  </Field.Error>
+                </Field.Root>
+                <div className="editor-url-popover__actions">
+                  <Popover.Close
+                    className="editor-url-popover__button"
+                    render={<Button />}
+                    type="button"
+                  >
+                    {messages.common.cancel}
+                  </Popover.Close>
+                  <Button
+                    className="editor-url-popover__button editor-url-popover__button--primary"
+                    type="submit"
+                  >
+                    {messages.contentEditor.insert}
+                  </Button>
+                </div>
+              </form>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+      <ToolbarHint label={messages.contentEditor.copyMarkdown}>
         {({ hint, hintTriggerProps }) => (
-          <Toolbar.Button
-            aria-label="Insert image URL"
-            className={`editor-toolbar__button ${toolbarState.isImage ? 'editor-toolbar__button--active' : ''}`}
+          <Button
+            aria-label={messages.contentEditor.copyMarkdown}
+            className="editor-toolbar__copy"
             disabled={!editorReady}
-            aria-pressed={toolbarState.isImage}
-            onMouseDown={(event) => event.preventDefault()}
-            render={<Popover.Trigger />}
+            onClick={onCopyMarkdown}
+            type="button"
             {...hintTriggerProps}
           >
-            <ImageIcon size={16} />
+            <Copy size={16} />
+            <strong>.MD</strong>
+            {copyStatus && (
+              <span className="editor-toolbar__copy-status">{copyStatus}</span>
+            )}
             {hint}
-          </Toolbar.Button>
+          </Button>
         )}
       </ToolbarHint>
-      <Popover.Portal>
-        <Popover.Positioner
-          align="start"
-          className="editor-url-popover__positioner"
-          sideOffset={6}
-        >
-          <Popover.Popup className="editor-url-popover">
-            <form className="editor-url-popover__form" onSubmit={onApplyImage}>
-              <Field.Root invalid={Boolean(imageError)}>
-                <Field.Label className="editor-url-popover__label">Image URL</Field.Label>
-                <Field.Control
-                  autoFocus
-                  className="editor-url-popover__input"
-                  inputMode="url"
-                  maxLength={2048}
-                  onValueChange={onSetImageUrl}
-                  placeholder="https://images.example.com/diagram.png"
-                  type="text"
-                  value={imageUrl}
-                />
-                <Field.Error className="editor-url-popover__error" match={Boolean(imageError)}>
-                  {imageError}
-                </Field.Error>
-              </Field.Root>
-              <div className="editor-url-popover__actions">
-                <Popover.Close
-                  className="editor-url-popover__button"
-                  render={<Button />}
-                  type="button"
-                >
-                  Cancel
-                </Popover.Close>
-                <Button
-                  className="editor-url-popover__button editor-url-popover__button--primary"
-                  type="submit"
-                >
-                  Insert
-                </Button>
-              </div>
-            </form>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-    <ToolbarHint label="Copy Markdown">
-      {({ hint, hintTriggerProps }) => (
-        <Button
-          aria-label="Copy Markdown"
-          className="editor-toolbar__copy"
-          disabled={!editorReady}
-          onClick={onCopyMarkdown}
-          type="button"
-          {...hintTriggerProps}
-        >
-          <Copy size={16} />
-          <strong>.MD</strong>
-          {copyStatus && <span className="editor-toolbar__copy-status">{copyStatus}</span>}
-          {hint}
-        </Button>
-      )}
-    </ToolbarHint>
-  </Toolbar.Root>
-);
+    </Toolbar.Root>
+  );
+};

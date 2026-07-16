@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import type { ColumnMoveDirection } from '../../board/columns';
 import type { BoardColumn } from '../../types';
 import ColumnRenameDialog from '../ColumnRenameDialog';
@@ -39,6 +40,7 @@ const ManageColumnsDialog = ({
   open,
   renameColumn,
 }: ManageColumnsDialogProps) => {
+  const { messages } = useLocalization();
   const [renameColumnTarget, setRenameColumnTarget] =
     useState<BoardColumn | null>(null);
   const [deleteColumnTarget, setDeleteColumnTarget] =
@@ -52,12 +54,12 @@ const ManageColumnsDialog = ({
   return (
     <>
       <DialogShell
-        closeLabel="Close column manager"
-        description="Reorder and edit the columns on this board."
+        closeLabel={messages.board.closeColumnManager}
+        description={messages.board.manageColumnsDescription}
         onOpenChange={onOpenChange}
         open={open}
         popupClassName="dialog-popup--column-management"
-        title="Manage columns"
+        title={messages.board.manageColumns}
       >
         <div className="column-manager">
           {columns.length > 0 ? (
@@ -73,13 +75,14 @@ const ManageColumnsDialog = ({
                         {column.title}
                       </span>
                       <span className="column-manager__meta">
-                        {column.cards.length}{' '}
-                        {column.cards.length === 1 ? 'card' : 'cards'}
+                        {messages.board.cardCount(column.cards.length)}
                       </span>
                     </div>
                     <div className="column-manager__actions">
                       <Button
-                        aria-label={`Move ${column.title} to top`}
+                        aria-label={messages.board.moveColumnToTop(
+                          column.title
+                        )}
                         className="icon-button"
                         disabled={isFirst}
                         onClick={() => moveColumn(column.id, 'first')}
@@ -88,7 +91,7 @@ const ManageColumnsDialog = ({
                         <ChevronsUp size={16} />
                       </Button>
                       <Button
-                        aria-label={`Move ${column.title} up`}
+                        aria-label={messages.board.moveColumnUp(column.title)}
                         className="icon-button"
                         disabled={isFirst}
                         onClick={() => moveColumn(column.id, 'previous')}
@@ -97,7 +100,7 @@ const ManageColumnsDialog = ({
                         <ArrowUp size={16} />
                       </Button>
                       <Button
-                        aria-label={`Move ${column.title} down`}
+                        aria-label={messages.board.moveColumnDown(column.title)}
                         className="icon-button"
                         disabled={isLast}
                         onClick={() => moveColumn(column.id, 'next')}
@@ -106,7 +109,9 @@ const ManageColumnsDialog = ({
                         <ArrowDown size={16} />
                       </Button>
                       <Button
-                        aria-label={`Move ${column.title} to bottom`}
+                        aria-label={messages.board.moveColumnToBottom(
+                          column.title
+                        )}
                         className="icon-button"
                         disabled={isLast}
                         onClick={() => moveColumn(column.id, 'last')}
@@ -115,7 +120,9 @@ const ManageColumnsDialog = ({
                         <ChevronsDown size={16} />
                       </Button>
                       <Button
-                        aria-label={`Rename ${column.title} column`}
+                        aria-label={messages.board.renameColumnAction(
+                          column.title
+                        )}
                         className="icon-button"
                         onClick={() => setRenameColumnTarget(column)}
                         type="button"
@@ -123,7 +130,9 @@ const ManageColumnsDialog = ({
                         <Pencil size={16} />
                       </Button>
                       <Button
-                        aria-label={`Delete ${column.title} column`}
+                        aria-label={messages.board.deleteColumnAction(
+                          column.title
+                        )}
                         className="icon-button column-manager__delete"
                         onClick={() => setDeleteColumnTarget(column)}
                         type="button"
@@ -137,7 +146,7 @@ const ManageColumnsDialog = ({
             </div>
           ) : (
             <InlineEmptyState variant="surface">
-              Create a column before arranging this board.
+              {messages.board.emptyColumnManager}
             </InlineEmptyState>
           )}
           <Button
@@ -146,7 +155,7 @@ const ManageColumnsDialog = ({
             type="button"
           >
             <Plus size={15} />
-            <span>Add column</span>
+            <span>{messages.board.addColumn}</span>
           </Button>
         </div>
       </DialogShell>
@@ -165,10 +174,13 @@ const ManageColumnsDialog = ({
         open={Boolean(renameColumnTarget)}
       />
       <ConfirmDialog
-        confirmLabel="Delete column"
+        confirmLabel={messages.board.deleteColumn}
         description={
           deleteColumnTarget
-            ? `This will permanently delete ${deleteColumnTarget.cards.length} ${deleteColumnTarget.cards.length === 1 ? 'card' : 'cards'} in ${deleteColumnTarget.title}.`
+            ? messages.board.deleteColumnDescription(
+                deleteColumnTarget.cards.length,
+                deleteColumnTarget.title
+              )
             : ''
         }
         onConfirm={() => {
@@ -183,7 +195,7 @@ const ManageColumnsDialog = ({
           }
         }}
         open={Boolean(deleteColumnTarget)}
-        title="Delete this column?"
+        title={messages.board.deleteColumnTitle}
       />
     </>
   );

@@ -1,5 +1,7 @@
 import type { KeyboardEvent, RefObject } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
+
 type ComposerInputProps = {
   disabled: boolean;
   draft: string;
@@ -25,6 +27,7 @@ const ComposerInput = ({
   onSubmitShortcut,
   textareaRef,
 }: ComposerInputProps) => {
+  const { messages } = useLocalization();
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
@@ -35,7 +38,7 @@ const ComposerInput = ({
   return (
     <div className="card-composer__input-row">
       <label className="card-composer__label" htmlFor={inputId}>
-        New card
+        {messages.composer.newCard}
       </label>
       <textarea
         aria-describedby={error ? errorId : undefined}
@@ -49,7 +52,9 @@ const ComposerInput = ({
         onFocus={onFocus}
         onKeyDown={onKeyDown}
         placeholder={
-          disabled ? 'Add a column before capturing cards' : 'Capture a card...'
+          disabled
+            ? messages.composer.addColumnBeforeCapturingPlaceholder
+            : messages.composer.captureCard
         }
         ref={textareaRef}
         rows={1}
