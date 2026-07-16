@@ -1,7 +1,4 @@
-import {
-  isProtectedAppRoute,
-  type ParsedAppRoute,
-} from './routes';
+import { isProtectedAppRoute, type ParsedAppRoute } from './routes';
 
 export type AuthGateStatus = 'loading' | 'signedOut' | 'static' | 'signedIn';
 

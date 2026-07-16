@@ -3,6 +3,7 @@ import { Field } from '@base-ui/react/field';
 import { Popover } from '@base-ui/react/popover';
 import { Check, ChevronDown, Plus } from 'lucide-react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import { InlineEmptyState } from '../EmptyState';
 import type { BoardTag } from '../../types';
 
@@ -35,11 +36,12 @@ const TagSelectField = ({
   tags,
   tagsOpen,
 }: TagSelectFieldProps) => {
+  const { messages } = useLocalization();
   const selectedTagIdSet = new Set(selectedTagIds);
 
   return (
     <div className="dialog-field">
-      <span className="dialog-label">Tags</span>
+      <span className="dialog-label">{messages.card.tags}</span>
       <Popover.Root
         modal={false}
         onOpenChange={onTagsOpenChange}
@@ -83,14 +85,14 @@ const TagSelectField = ({
                 })
               ) : (
                 <InlineEmptyState variant="dropdown">
-                  No tags yet
+                  {messages.composer.noTagsYet}
                 </InlineEmptyState>
               )}
               <div className="tag-select__create">
                 {creatingTag ? (
                   <Field.Root invalid={Boolean(tagError)}>
                     <Field.Control
-                      aria-label="New tag name"
+                      aria-label={messages.composer.newTagName}
                       autoFocus
                       maxLength={60}
                       onValueChange={onNewTagNameChange}
@@ -105,7 +107,7 @@ const TagSelectField = ({
                           onTagsOpenChange(false);
                         }
                       }}
-                      placeholder="New tag name"
+                      placeholder={messages.composer.newTagName}
                       type="text"
                       value={newTagName}
                     />
@@ -123,7 +125,7 @@ const TagSelectField = ({
                     type="button"
                   >
                     <Plus size={15} />
-                    Create tag
+                    {messages.composer.createTag}
                   </Button>
                 )}
               </div>

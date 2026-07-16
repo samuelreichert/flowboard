@@ -35,6 +35,8 @@ import {
 } from '../storage/authenticatedApi';
 import { getSystemTheme, updateThemePreference } from '../theme';
 import type { ThemePreference } from '../theme';
+import { getMessages, updateLanguagePreference } from '../localization';
+import type { LanguagePreference } from '../localization';
 import type { BoardState, BoardTag } from '../types';
 import { appReducer, initAppState } from './appReducer';
 import { getThemeIconSrc } from './appTheme';
@@ -50,6 +52,11 @@ type AuthState =
       session: SupabaseSession;
       status: 'signedIn';
     };
+
+const hasBoardData = (state: BoardState) =>
+  state.columns.length > 0 ||
+  state.tags.length > 0 ||
+  state.completedWorkCycles.length > 0;
 
 const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
@@ -82,17 +89,26 @@ const useAppController = () => {
     completedWorkCycles,
     completionPulse,
     currentView,
+    languagePreference,
     manageColumnsOpen,
     mobileSidebarOpen,
     profileDialogOpen,
+    resolvedLanguage,
     resolvedTheme,
     settingsOpen,
     sidebarExpanded,
     storageVersion,
+    systemLanguage,
     tagManagerOpen,
     tags,
     themePreference,
   } = state;
+  const messages = getMessages(resolvedLanguage);
+  const persistenceMessagesRef = useRef(messages.app.persistence);
+
+  useEffect(() => {
+    persistenceMessagesRef.current = messages.app.persistence;
+  }, [messages.app.persistence]);
 
   useEffect(() => {
     if (supabase) {
@@ -102,7 +118,7 @@ const useAppController = () => {
     let active = true;
 
     setAuthenticatedBoardLoading(true);
-    setPersistenceMessage('Loading local board...');
+    setPersistenceMessage(persistenceMessagesRef.current.loadingLocalBoard);
     void hydrateStorageFromDatabase().then((state) => {
       if (!active) {
         return;
@@ -112,7 +128,7 @@ const useAppController = () => {
 
       if (!state) {
         setPersistenceMessage(
-          'Local database is unavailable. Changes are not durably saved yet.'
+          persistenceMessagesRef.current.localDatabaseUnavailable
         );
         return;
       }
@@ -173,13 +189,26 @@ const useAppController = () => {
     }
 
     let active = true;
+    const localStateBeforeLoad = fetchBoardState();
 
     setAuthenticatedBoardLoading(true);
-    setPersistenceMessage('Loading your board...');
+    setPersistenceMessage(persistenceMessagesRef.current.loadingBoard);
     void fetchAuthenticatedDefaultBoard(authState.session.access_token)
-      .then((payload) => {
+      .then(async (payload) => {
         if (!active) {
           return;
+        }
+
+        if (
+          hasBoardData(localStateBeforeLoad) &&
+          !hasBoardData(payload.state)
+        ) {
+          setPersistenceMessage(persistenceMessagesRef.current.importingBoard);
+          payload = await saveAuthenticatedBoard(
+            payload.board.id,
+            localStateBeforeLoad,
+            authState.session.access_token
+          );
         }
 
         updateBoardStateStorage(payload.state);
@@ -193,9 +222,7 @@ const useAppController = () => {
           return;
         }
 
-        setPersistenceMessage(
-          'Your cloud board is unavailable. Check your connection and try again.'
-        );
+        setPersistenceMessage(persistenceMessagesRef.current.boardUnavailable);
         setAuthenticatedBoardLoading(false);
       });
 
@@ -224,7 +251,7 @@ const useAppController = () => {
           return;
         }
 
-        setProfileError('Your profile is unavailable. Try again in a moment.');
+        setProfileError(persistenceMessagesRef.current.profileUnavailable);
       });
 
     return () => {
@@ -267,6 +294,10 @@ const useAppController = () => {
     favicon.href = getThemeIconSrc(resolvedTheme);
   }, [resolvedTheme]);
 
+  useEffect(() => {
+    document.documentElement.lang = resolvedLanguage;
+  }, [resolvedLanguage]);
+
   useEffect(
     () => () => {
       if (completionPulseTimeoutRef.current !== null) {
@@ -281,7 +312,7 @@ const useAppController = () => {
       return;
     }
 
-    setPersistenceMessage('Saving...');
+    setPersistenceMessage(messages.app.persistence.saving);
     void saveAuthenticatedBoard(
       authenticatedBoard.id,
       nextState,
@@ -291,11 +322,7 @@ const useAppController = () => {
         setAuthenticatedBoard(payload.board);
         setPersistenceMessage(null);
       })
-      .catch(() =>
-        setPersistenceMessage(
-          'Changes are not durably saved yet. Check your connection and try again.'
-        )
-      );
+      .catch(() => setPersistenceMessage(messages.app.persistence.unsaved));
   };
 
   const updateTags = (newTags: BoardTag[]) => {
@@ -339,6 +366,11 @@ const useAppController = () => {
   const chooseThemePreference = (preference: ThemePreference) => {
     dispatch({ preference, type: 'themePreferenceChanged' });
     updateThemePreference(preference);
+  };
+
+  const chooseLanguagePreference = (preference: LanguagePreference) => {
+    dispatch({ preference, type: 'languagePreferenceChanged' });
+    updateLanguagePreference(preference);
   };
 
   const openTagManager = () => {
@@ -507,8 +539,8 @@ const useAppController = () => {
 
     setAuthState({
       message: error
-        ? 'Unable to send a sign-in link right now.'
-        : 'Check your email for a sign-in link.',
+        ? messages.app.auth.magicLinkFailure
+        : messages.app.auth.magicLinkSuccess,
       session: null,
       status: 'signedOut',
     });
@@ -522,8 +554,8 @@ const useAppController = () => {
 
     setAuthState({
       message: error
-        ? `Unable to start ${provider.label} sign-in right now.`
-        : `Opening ${provider.label} sign-in...`,
+        ? messages.app.auth.socialFailure(provider.label)
+        : messages.app.auth.socialOpening(provider.label),
       session: null,
       status: 'signedOut',
     });
@@ -586,7 +618,9 @@ const useAppController = () => {
       dispatch({ open: false, type: 'profileDialogOpenChanged' });
     } catch (error) {
       setProfileError(
-        error instanceof Error ? error.message : 'Unable to save profile.'
+        error instanceof Error
+          ? error.message
+          : messages.app.persistence.profileSaveFailure
       );
     } finally {
       setProfileSaving(false);
@@ -599,8 +633,8 @@ const useAppController = () => {
   const completedCardCount = completedColumn?.cards.length ?? 0;
   const canCompleteWork = Boolean(completedColumn && completedCardCount > 0);
   const completeWorkDisabledReason = activeWorkCycle.completedColumnId
-    ? 'Add cards to the completed column before completing work'
-    : 'Choose a completed column in settings before completing work';
+    ? messages.app.workspace.completeWorkNeedsCards
+    : messages.app.workspace.completeWorkNeedsColumn;
   const sessionProfile =
     authState.status === 'signedIn'
       ? getProfileFromSession(authState.session)
@@ -619,6 +653,7 @@ const useAppController = () => {
     authenticatedBoardLoading,
     authenticatedProfile: activeAuthenticatedProfile,
     canCompleteWork,
+    chooseLanguagePreference,
     completeWorkDisabledReason,
     chooseCompletedColumn,
     chooseThemePreference,
@@ -635,6 +670,7 @@ const useAppController = () => {
     confirmCompleteWork,
     currentView,
     deleteTag,
+    languagePreference,
     manageColumnsOpen,
     mobileSidebarOpen,
     openBoard,
@@ -653,6 +689,7 @@ const useAppController = () => {
     profileSaving,
     requestMagicLink,
     requestSocialAuth,
+    resolvedLanguage,
     resolvedTheme,
     setClearBoardOpen,
     setCompleteWorkOpen,
@@ -666,6 +703,7 @@ const useAppController = () => {
     signOut,
     storageVersion,
     syncBoardState,
+    systemLanguage,
     tagManagerOpen,
     tags,
     themePreference,

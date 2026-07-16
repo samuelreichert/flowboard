@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import type { BoardCard } from '../../types';
 import '../CardContentEditor/CardContentEditor.css';
 
@@ -16,12 +17,13 @@ const CardContentField = ({
   content,
   onContentChange,
 }: CardContentFieldProps) => {
+  const { messages } = useLocalization();
   const contentId = card.id;
 
   return (
     <div className="dialog-field">
       <span className="dialog-label" id={`card-content-label-${contentId}`}>
-        Content
+        {messages.card.content}
       </span>
       <Suspense
         fallback={
@@ -29,7 +31,7 @@ const CardContentField = ({
             aria-live="polite"
             className="card-content-editor card-content-editor--loading"
           >
-            Loading editor...
+            {messages.card.loadingEditor}
           </div>
         }
       >

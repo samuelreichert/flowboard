@@ -3,6 +3,7 @@ import { NodeSelection } from '@tiptap/pm/state';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { FormEvent } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import EditorAssetBubble from './EditorAssetBubble';
 
 type EditorBubbleMenusProps = {
@@ -66,6 +67,8 @@ export const EditorBubbleMenus = ({
   onSetImageBubbleUrl,
   onSetLinkBubbleUrl,
 }: EditorBubbleMenusProps) => {
+  const { messages } = useLocalization();
+
   if (!editor) {
     return null;
   }
@@ -84,7 +87,7 @@ export const EditorBubbleMenus = ({
         style={{ zIndex: 60 }}
       >
         <EditorAssetBubble
-          assetLabel="Link"
+          assetLabel={messages.contentEditor.link}
           currentUrl={currentHref}
           editing={linkBubbleEditing}
           error={linkBubbleError}
@@ -117,7 +120,7 @@ export const EditorBubbleMenus = ({
         style={{ zIndex: 60 }}
       >
         <EditorAssetBubble
-          assetLabel="Image"
+          assetLabel={messages.contentEditor.image}
           currentUrl={currentImageSrc}
           editing={imageBubbleEditing}
           error={imageBubbleError}

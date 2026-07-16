@@ -13,9 +13,17 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ClipboardEvent, DragEvent } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
+import type { Messages } from '../../localization';
 import { EditorBubbleMenus } from './EditorBubbleMenus';
 import { EditorToolbar } from './EditorToolbar';
-import type { AlignValue, EditorToolbarState, HeadingValue, ListValue } from './types';
+import { readFileAsDataUrl } from './readFileAsDataUrl';
+import type {
+  AlignValue,
+  EditorToolbarState,
+  HeadingValue,
+  ListValue,
+} from './types';
 
 import './CardContentEditor.css';
 
@@ -72,8 +80,12 @@ const getToolbarState = (currentEditor: Editor): EditorToolbarState => {
         ? 'ordered'
         : 'none';
   const alignValue =
-    alignValues.find((alignment) => currentEditor.isActive({ textAlign: alignment })) ?? 'left';
-  const linkHref = currentEditor.getAttributes('link').href as string | undefined;
+    alignValues.find((alignment) =>
+      currentEditor.isActive({ textAlign: alignment })
+    ) ?? 'left';
+  const linkHref = currentEditor.getAttributes('link').href as
+    | string
+    | undefined;
   const selectedNode =
     currentEditor.state.selection instanceof NodeSelection
       ? currentEditor.state.selection.node
@@ -128,7 +140,8 @@ const normalizeMarkdownForEditor = (markdown: string) =>
     )
     .replace(
       /^!\[([^\]\n]*)\]\((\S+?)(?:\s+["']([^"'\n]*)["'])?\)$/gm,
-      (_match, alt: string, src: string, title = '') => renderImageHtml(alt, src, title)
+      (_match, alt: string, src: string, title = '') =>
+        renderImageHtml(alt, src, title)
     );
 
 const renderInlineHtml = (content: JSONContent[] = []): string =>
@@ -136,30 +149,33 @@ const renderInlineHtml = (content: JSONContent[] = []): string =>
 
 const renderInlineNodeHtml = (node: JSONContent): string => {
   if (node.type === 'text') {
-    return (node.marks ?? []).reduce((text, mark) => {
-      if (mark.type === 'bold') {
-        return `<strong>${text}</strong>`;
-      }
+    return (node.marks ?? []).reduce(
+      (text, mark) => {
+        if (mark.type === 'bold') {
+          return `<strong>${text}</strong>`;
+        }
 
-      if (mark.type === 'italic') {
-        return `<em>${text}</em>`;
-      }
+        if (mark.type === 'italic') {
+          return `<em>${text}</em>`;
+        }
 
-      if (mark.type === 'strike') {
-        return `<s>${text}</s>`;
-      }
+        if (mark.type === 'strike') {
+          return `<s>${text}</s>`;
+        }
 
-      if (mark.type === 'code') {
-        return `<code>${text}</code>`;
-      }
+        if (mark.type === 'code') {
+          return `<code>${text}</code>`;
+        }
 
-      if (mark.type === 'link') {
-        const href = escapeAttribute(mark.attrs?.href);
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-      }
+        if (mark.type === 'link') {
+          const href = escapeAttribute(mark.attrs?.href);
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        }
 
-      return text;
-    }, escapeHtml(node.text ?? ''));
+        return text;
+      },
+      escapeHtml(node.text ?? '')
+    );
   }
 
   if (node.type === 'hardBreak') {
@@ -203,7 +219,8 @@ const RichParagraph = Paragraph.extend({
       hasExplicitEmptyParagraphMarker &&
       content.length === 1 &&
       content[0].type === 'text' &&
-      (content[0].text === EMPTY_PARAGRAPH_MARKDOWN || content[0].text === NBSP_CHAR)
+      (content[0].text === EMPTY_PARAGRAPH_MARKDOWN ||
+        content[0].text === NBSP_CHAR)
     ) {
       return h.createNode('paragraph', undefined, []);
     }
@@ -235,8 +252,12 @@ const RichParagraph = Paragraph.extend({
 
 const RichHeading = Heading.extend({
   renderMarkdown: (node, h) => {
-    const level = node.attrs?.level ? parseInt(String(node.attrs.level), 10) : 1;
-    const safeLevel = headingLevels.includes(level as Level) ? (level as Level) : 1;
+    const level = node.attrs?.level
+      ? parseInt(String(node.attrs.level), 10)
+      : 1;
+    const safeLevel = headingLevels.includes(level as Level)
+      ? (level as Level)
+      : 1;
     const alignment = node.attrs?.textAlign;
 
     if (!node.content) {
@@ -250,15 +271,6 @@ const RichHeading = Heading.extend({
     return `${'#'.repeat(safeLevel)} ${h.renderChildren(node.content)}`;
   },
 });
-
-export const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener('load', () => resolve(String(reader.result ?? '')));
-    reader.addEventListener('error', () => reject(reader.error));
-    reader.readAsDataURL(file);
-  });
 
 const normalizeUrl = (value: string) => {
   const trimmedValue = value.trim();
@@ -282,7 +294,11 @@ const isSupportedUrl = (value: string, allowDataImage = false) => {
       return true;
     }
 
-    return allowDataImage && url.protocol === 'data:' && value.startsWith('data:image/');
+    return (
+      allowDataImage &&
+      url.protocol === 'data:' &&
+      value.startsWith('data:image/')
+    );
   } catch {
     return false;
   }
@@ -292,14 +308,20 @@ const isSupportedImageUrl = (value: string) => {
   try {
     const url = new URL(value);
 
-    return url.protocol === 'https:' || (url.protocol === 'data:' && value.startsWith('data:image/'));
+    return (
+      url.protocol === 'https:' ||
+      (url.protocol === 'data:' && value.startsWith('data:image/'))
+    );
   } catch {
     return false;
   }
 };
 
 const getEditorMarkdown = (editor: NonNullable<ReturnType<typeof useEditor>>) =>
-  editor.getMarkdown().replace(/[ \t]+$/gm, '').trimEnd();
+  editor
+    .getMarkdown()
+    .replace(/[ \t]+$/gm, '')
+    .trimEnd();
 
 const selectImageElement = (
   view: NonNullable<ReturnType<typeof useEditor>>['view'],
@@ -395,7 +417,9 @@ const applyHeadingChange = (editor: Editor | null, nextValue: HeadingValue) => {
   editor
     .chain()
     .focus()
-    .toggleHeading({ level: Number(nextValue.replace('heading-', '')) as Level })
+    .toggleHeading({
+      level: Number(nextValue.replace('heading-', '')) as Level,
+    })
     .run();
 };
 
@@ -439,7 +463,10 @@ const applyAlignChange = (editor: Editor | null, nextValue: AlignValue) => {
   chain.setTextAlign(nextValue).run();
 };
 
-const getCardContentExtensions = (options: { fileHandling: boolean }) => [
+const getCardContentExtensions = (
+  options: { fileHandling: boolean },
+  messages: Messages
+) => [
   StarterKit.configure({
     heading: false,
     link: {
@@ -457,7 +484,7 @@ const getCardContentExtensions = (options: { fileHandling: boolean }) => [
   TaskItem.configure({
     a11y: {
       checkboxLabel: (node, checked) =>
-        `${checked ? 'Completed' : 'Incomplete'} task: ${node.textContent || 'empty task item'}`,
+        messages.contentEditor.taskCheckboxLabel(checked, node.textContent),
     },
     nested: true,
   }),
@@ -489,6 +516,7 @@ const useCardContentTipTapEditor = ({
   onChange,
   value,
 }: CardContentEditorProps) => {
+  const { messages } = useLocalization();
   const onChangeRef = useRef(onChange);
   const lastSyncedValue = useRef(value);
 
@@ -514,7 +542,9 @@ const useCardContentTipTapEditor = ({
         }
 
         view.dispatch(
-          view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePosition))
+          view.state.tr.setSelection(
+            NodeSelection.create(view.state.doc, nodePosition)
+          )
         );
         view.focus();
         event.preventDefault();
@@ -522,7 +552,7 @@ const useCardContentTipTapEditor = ({
         return true;
       },
     },
-    extensions: getCardContentExtensions({ fileHandling: true }),
+    extensions: getCardContentExtensions({ fileHandling: true }, messages),
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => {
       const markdown = getEditorMarkdown(currentEditor);
@@ -550,6 +580,7 @@ export const CardContentViewer = ({
   ariaLabel,
   value,
 }: CardContentViewerProps) => {
+  const { messages } = useLocalization();
   const editor = useEditor({
     content: normalizeMarkdownForEditor(value),
     contentType: 'markdown',
@@ -561,7 +592,7 @@ export const CardContentViewer = ({
           'card-content-editor__surface card-content-editor__surface--readonly',
       },
     },
-    extensions: getCardContentExtensions({ fileHandling: false }),
+    extensions: getCardContentExtensions({ fileHandling: false }, messages),
     immediatelyRender: false,
   });
 
@@ -583,6 +614,7 @@ const useCardContentEditorInteractions = (
   editor: Editor | null,
   toolbarState: EditorToolbarState
 ) => {
+  const { messages } = useLocalization();
   const [copyStatus, setCopyStatus] = useState('');
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -615,9 +647,18 @@ const useCardContentEditorInteractions = (
 
     const selection = window.getSelection();
 
-    if (selection?.anchorNode && editor.view.dom.contains(selection.anchorNode)) {
-      const anchor = editor.view.posAtDOM(selection.anchorNode, selection.anchorOffset);
-      const head = editor.view.posAtDOM(selection.focusNode ?? selection.anchorNode, selection.focusOffset);
+    if (
+      selection?.anchorNode &&
+      editor.view.dom.contains(selection.anchorNode)
+    ) {
+      const anchor = editor.view.posAtDOM(
+        selection.anchorNode,
+        selection.anchorOffset
+      );
+      const head = editor.view.posAtDOM(
+        selection.focusNode ?? selection.anchorNode,
+        selection.focusOffset
+      );
       linkSelectionRef.current = {
         from: Math.min(anchor, head),
         to: Math.max(anchor, head),
@@ -660,8 +701,8 @@ const useCardContentEditorInteractions = (
     }
 
     if (!isSupportedUrl(href)) {
-      setLinkError('Enter a secure HTTPS or mailto link.');
-      setLinkBubbleError('Enter a secure HTTPS or mailto link.');
+      setLinkError(messages.contentEditor.secureLinkRequired);
+      setLinkBubbleError(messages.contentEditor.secureLinkRequired);
       return;
     }
 
@@ -689,12 +730,12 @@ const useCardContentEditorInteractions = (
     const src = normalizeUrl(imageUrl);
 
     if (!src) {
-      setImageError('Enter an image URL.');
+      setImageError(messages.contentEditor.imageUrlRequired);
       return;
     }
 
     if (!isSupportedImageUrl(src)) {
-      setImageError('Enter a secure HTTPS image URL.');
+      setImageError(messages.contentEditor.secureImageUrlRequired);
       return;
     }
 
@@ -715,12 +756,12 @@ const useCardContentEditorInteractions = (
     const src = normalizeUrl(imageBubbleUrl);
 
     if (!src) {
-      setImageBubbleError('Enter an image URL.');
+      setImageBubbleError(messages.contentEditor.imageUrlRequired);
       return;
     }
 
     if (!isSupportedImageUrl(src)) {
-      setImageBubbleError('Enter a secure HTTPS image URL.');
+      setImageBubbleError(messages.contentEditor.secureImageUrlRequired);
       return;
     }
 
@@ -754,7 +795,11 @@ const useCardContentEditorInteractions = (
       return;
     }
 
-    const openedWindow = window.open(currentHref, '_blank', 'noopener,noreferrer');
+    const openedWindow = window.open(
+      currentHref,
+      '_blank',
+      'noopener,noreferrer'
+    );
 
     if (openedWindow) {
       openedWindow.opener = null;
@@ -766,7 +811,11 @@ const useCardContentEditorInteractions = (
       return;
     }
 
-    const openedWindow = window.open(currentImageSrc, '_blank', 'noopener,noreferrer');
+    const openedWindow = window.open(
+      currentImageSrc,
+      '_blank',
+      'noopener,noreferrer'
+    );
 
     if (openedWindow) {
       openedWindow.opener = null;
@@ -794,7 +843,7 @@ const useCardContentEditorInteractions = (
     }
 
     await navigator.clipboard.writeText(getEditorMarkdown(editor));
-    setCopyStatus('Copied');
+    setCopyStatus(messages.common.copied);
     window.setTimeout(() => setCopyStatus(''), 1600);
   };
 
@@ -823,8 +872,10 @@ const useCardContentEditorInteractions = (
   return {
     applyImageBubbleValue,
     applyImageValue,
-    applyLinkPopoverValue: () => applyLinkValue(linkUrl, () => setLinkPopoverOpen(false)),
-    applyLinkBubbleValue: () => applyLinkValue(linkBubbleUrl, () => setLinkBubbleEditing(false)),
+    applyLinkPopoverValue: () =>
+      applyLinkValue(linkUrl, () => setLinkPopoverOpen(false)),
+    applyLinkBubbleValue: () =>
+      applyLinkValue(linkBubbleUrl, () => setLinkBubbleEditing(false)),
     copyMarkdown,
     copyStatus,
     currentHref,
@@ -886,7 +937,8 @@ const useCardContentEditorInteractions = (
       storeImageSelection();
       removeCurrentImage();
     },
-    onRemoveLink: () => editor?.chain().focus().extendMarkRange('link').unsetLink().run(),
+    onRemoveLink: () =>
+      editor?.chain().focus().extendMarkRange('link').unsetLink().run(),
     setImageBubbleUrl,
     setImageUrl,
     setLinkBubbleUrl,
@@ -902,16 +954,17 @@ const CardContentEditor = ({
 }: CardContentEditorProps) => {
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const editor = useCardContentTipTapEditor({ id, labelId, onChange, value });
-  const toolbarState = useEditorState({
-    editor,
-    selector: ({ editor: currentEditor }) => {
-      if (!currentEditor) {
-        return defaultToolbarState;
-      }
+  const toolbarState =
+    useEditorState({
+      editor,
+      selector: ({ editor: currentEditor }) => {
+        if (!currentEditor) {
+          return defaultToolbarState;
+        }
 
-      return getToolbarState(currentEditor);
-    },
-  }) ?? defaultToolbarState;
+        return getToolbarState(currentEditor);
+      },
+    }) ?? defaultToolbarState;
   const interactions = useCardContentEditorInteractions(editor, toolbarState);
 
   return (

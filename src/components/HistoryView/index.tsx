@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { useLocalization } from '../../LocalizationProvider';
 import { resolveArchivedTagName } from '../../board/completedWork';
 import { findArchivedCardRouteTarget } from '../../board/routeLookup';
 import { createArchivedCardPath } from '../../app/routes';
@@ -42,37 +43,6 @@ type HistoryDetailState = {
 
 type HistoryLayout = 'grid' | 'list';
 
-const HISTORY_LAYOUT_OPTIONS: SegmentedControlOption<HistoryLayout>[] = [
-  {
-    ariaLabel: 'Grid view',
-    icon: <LayoutGrid size={15} />,
-    label: 'Grid',
-    value: 'grid',
-  },
-  {
-    ariaLabel: 'List view',
-    icon: <List size={15} />,
-    label: 'List',
-    value: 'list',
-  },
-];
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return dateFormatter.format(date);
-};
-
 const getVisibleTagNames = (card: ArchivedBoardCard, tags: BoardTag[]) =>
   card.tagIds
     .map((tagId) => resolveArchivedTagName(tagId, card, tags))
@@ -85,6 +55,7 @@ const HistoryView = ({
   routeCard,
   tags,
 }: HistoryViewProps) => {
+  const { formatDate, messages } = useLocalization();
   const navigate = useNavigate();
   const [detailState, setDetailState] = useState<HistoryDetailState>({
     copyStatus: '',
@@ -92,6 +63,20 @@ const HistoryView = ({
     selectedCycleId: null,
   });
   const [historyLayout, setHistoryLayout] = useState<HistoryLayout>('grid');
+  const historyLayoutOptions: SegmentedControlOption<HistoryLayout>[] = [
+    {
+      ariaLabel: messages.history.gridView,
+      icon: <LayoutGrid size={15} />,
+      label: messages.history.grid,
+      value: 'grid',
+    },
+    {
+      ariaLabel: messages.history.listView,
+      icon: <List size={15} />,
+      label: messages.history.list,
+      value: 'list',
+    },
+  ];
   const { copyStatus, selectedCardId, selectedCycleId } = detailState;
   const sortedCycles = useMemo(
     () =>
@@ -131,7 +116,7 @@ const HistoryView = ({
     await navigator.clipboard.writeText(selectedCard.content);
     setDetailState((currentState) => ({
       ...currentState,
-      copyStatus: 'Copied',
+      copyStatus: messages.common.copied,
     }));
     window.setTimeout(
       () =>
@@ -145,17 +130,20 @@ const HistoryView = ({
 
   if (sortedCycles.length === 0) {
     return (
-      <section className="history-view" aria-label="Completed work history">
+      <section
+        className="history-view"
+        aria-label={messages.history.completedHistory}
+      >
         {routeCardMissing ? (
-          <EmptyState title="Archived card not found">
-            This history link does not match a completed work card.
+          <EmptyState title={messages.history.archivedCardNotFoundTitle}>
+            {messages.history.archivedCardNotFoundBody}
           </EmptyState>
         ) : (
           <EmptyState
             icon={<CheckCircle2 size={22} />}
-            title="No completed work yet"
+            title={messages.history.noCompletedWorkTitle}
           >
-            Complete work from the board to start building your history.
+            {messages.history.noCompletedWorkBody}
           </EmptyState>
         )}
       </section>
@@ -163,19 +151,22 @@ const HistoryView = ({
   }
 
   return (
-    <section className="history-view" aria-label="Completed work history">
+    <section
+      className="history-view"
+      aria-label={messages.history.completedHistory}
+    >
       <div className="history-view__toolbar">
         <SegmentedControl
-          ariaLabel="History layout"
+          ariaLabel={messages.history.historyLayout}
           className="history-view__layout-toggle"
           onValueChange={setHistoryLayout}
-          options={HISTORY_LAYOUT_OPTIONS}
+          options={historyLayoutOptions}
           value={historyLayout}
         />
       </div>
       {routeCardMissing && (
         <InlineEmptyState variant="surface">
-          Archived card not found.
+          {messages.history.archivedCardNotFound}
         </InlineEmptyState>
       )}
       <div className="history-list">
@@ -183,19 +174,20 @@ const HistoryView = ({
           <section className="history-cycle" key={cycle.id}>
             <header className="history-cycle__header">
               <div>
-                <p className="history-cycle__eyebrow">Work cycle</p>
+                <p className="history-cycle__eyebrow">
+                  {messages.history.workCycle}
+                </p>
                 <h2 className="history-cycle__title">
                   {formatDate(cycle.startDate)} - {formatDate(cycle.endDate)}
                 </h2>
               </div>
               <span className="history-cycle__count">
-                {cycle.cards.length}{' '}
-                {cycle.cards.length === 1 ? 'card' : 'cards'}
+                {messages.history.cardCount(cycle.cards.length)}
               </span>
             </header>
             {cycle.cards.length === 0 ? (
               <InlineEmptyState>
-                Completed without archived cards.
+                {messages.history.completedWithoutCards}
               </InlineEmptyState>
             ) : (
               <div className={`history-cards history-cards--${historyLayout}`}>
@@ -217,7 +209,7 @@ const HistoryView = ({
                           </span>
                           {card.content && (
                             <AlignLeft
-                              aria-label="Has content"
+                              aria-label={messages.card.hasContent}
                               className="history-card__content-icon"
                               size={13}
                             />
@@ -229,7 +221,9 @@ const HistoryView = ({
                             visibleTagNames.length - 2
                           )}
                           leadingClassName="history-card__created-date"
-                          leadingText={`Created ${formatDate(card.createdAt)}`}
+                          leadingText={messages.history.created(
+                            formatDate(card.createdAt)
+                          )}
                           priority={card.priority}
                           tags={visibleTagNames.slice(0, 2).map((tagName) => ({
                             id: tagName,
@@ -246,10 +240,10 @@ const HistoryView = ({
         ))}
       </div>
       <DialogShell
-        closeLabel="Close archived card"
+        closeLabel={messages.history.closeArchivedCard}
         description={
           selectedCard
-            ? `Created ${formatDate(selectedCard.createdAt)}`
+            ? messages.history.created(formatDate(selectedCard.createdAt))
             : undefined
         }
         open={Boolean(selectedCard)}
@@ -268,7 +262,7 @@ const HistoryView = ({
           }
         }}
         popupClassName="dialog-popup--card"
-        title={selectedCard?.title ?? 'Archived card'}
+        title={selectedCard?.title ?? messages.history.archivedCard}
       >
         {selectedCard && (
           <div className="history-card-detail__body">
@@ -276,7 +270,7 @@ const HistoryView = ({
               <div className="history-card-detail__metadata">
                 <div className="history-card-detail__metadata-row">
                   <span className="history-card-detail__metadata-label">
-                    Priority
+                    {messages.card.priority}
                   </span>
                   <span className="history-card-detail__metadata-chips">
                     <PriorityBadge priority={selectedCard.priority} />
@@ -284,7 +278,7 @@ const HistoryView = ({
                 </div>
                 <div className="history-card-detail__metadata-row">
                   <span className="history-card-detail__metadata-label">
-                    Tags
+                    {messages.card.tags}
                   </span>
                   <span className="history-card-detail__metadata-chips">
                     {selectedTagNames.length > 0 ? (
@@ -293,20 +287,20 @@ const HistoryView = ({
                       ))
                     ) : (
                       <InlineEmptyState variant="soft">
-                        No tags
+                        {messages.card.noTags}
                       </InlineEmptyState>
                     )}
                   </span>
                 </div>
               </div>
               <Button
-                aria-label="Copy Markdown"
+                aria-label={messages.history.copyMarkdown}
                 className="button button--subtle history-card-detail__copy"
                 onClick={copySelectedCardMarkdown}
                 type="button"
               >
                 <Copy size={15} />
-                <span>Copy Markdown</span>
+                <span>{messages.history.copyMarkdown}</span>
                 {copyStatus && (
                   <span className="history-card-detail__copy-status">
                     {copyStatus}
@@ -323,7 +317,7 @@ const HistoryView = ({
               </div>
             ) : (
               <InlineEmptyState>
-                This archived card has no content.
+                {messages.history.archivedCardNoContent}
               </InlineEmptyState>
             )}
           </div>
@@ -331,7 +325,9 @@ const HistoryView = ({
         {selectedCard && (
           <div className="history-card-detail__meta">
             <CalendarDays size={14} />
-            <span>Archived {formatDate(selectedCard.archivedAt)}</span>
+            <span>
+              {messages.history.archived(formatDate(selectedCard.archivedAt))}
+            </span>
           </div>
         )}
       </DialogShell>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useReducer, useRef } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import Card from '../Card';
 import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
@@ -79,6 +80,7 @@ const Column = ({
   renameColumn,
   tags,
 }: ColumnProps) => {
+  const { messages } = useLocalization();
   const columnRef = useRef<HTMLElement | null>(null);
   const [state, dispatch] = useReducer(columnReducer, {
     deleteOpen: false,
@@ -123,7 +125,7 @@ const Column = ({
           </div>
           <Menu.Root>
             <Menu.Trigger
-              aria-label={`Open ${column.title} column actions`}
+              aria-label={messages.board.columnActions(column.title)}
               className="icon-button"
               render={<Button />}
             >
@@ -171,7 +173,7 @@ const Column = ({
                     }
                   >
                     <Pencil size={15} />
-                    Rename column
+                    {messages.board.renameColumn}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item menu-item--danger"
@@ -180,7 +182,7 @@ const Column = ({
                     }
                   >
                     <Trash2 size={15} />
-                    Delete column
+                    {messages.board.deleteColumn}
                   </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -204,7 +206,9 @@ const Column = ({
           ))}
         </div>
         {isDragOver && column.cards.length === 0 && (
-          <div className="column__empty-drop-indicator">Drop card here</div>
+          <div className="column__empty-drop-indicator">
+            {messages.board.dropCardHere}
+          </div>
         )}
       </section>
       <ColumnRenameDialog
@@ -214,12 +218,15 @@ const Column = ({
         open={renameOpen}
       />
       <ConfirmDialog
-        confirmLabel="Delete column"
-        description={`This will permanently delete ${column.cards.length} ${column.cards.length === 1 ? 'card' : 'cards'} in ${column.title}.`}
+        confirmLabel={messages.board.deleteColumn}
+        description={messages.board.deleteColumnDescription(
+          column.cards.length,
+          column.title
+        )}
         onConfirm={() => deleteColumn(column.id)}
         onOpenChange={(open) => dispatch({ open, type: 'deleteOpenChanged' })}
         open={deleteOpen}
-        title="Delete this column?"
+        title={messages.board.deleteColumnTitle}
       />
     </>
   );

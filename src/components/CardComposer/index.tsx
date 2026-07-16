@@ -2,11 +2,8 @@ import { useId, useLayoutEffect, useMemo, useReducer, useRef } from 'react';
 import type { FormEvent } from 'react';
 
 import type { CardDialogValues } from '../CardDialog';
-import {
-  CARD_PRIORITY_OPTIONS,
-  type BoardColumn,
-  type BoardTag,
-} from '../../types';
+import { CARD_PRIORITIES, type BoardColumn, type BoardTag } from '../../types';
+import { useLocalization } from '../../LocalizationProvider';
 import ComposerInput from './ComposerInput';
 import ComposerMetaControls from './ComposerMetaControls';
 import {
@@ -34,6 +31,7 @@ const CardComposer = ({
   onTagsChange,
   tags,
 }: CardComposerProps) => {
+  const { messages } = useLocalization();
   const inputId = useId();
   const errorId = useId();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -110,12 +108,18 @@ const CardComposer = ({
     const name = newTagName.trim();
 
     if (!name) {
-      dispatch({ error: 'Enter a tag name.', type: 'tagErrorChanged' });
+      dispatch({
+        error: messages.card.tagNameRequired,
+        type: 'tagErrorChanged',
+      });
       return;
     }
 
     if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
-      dispatch({ error: 'Tag names must be unique.', type: 'tagErrorChanged' });
+      dispatch({
+        error: messages.card.tagNamesUnique,
+        type: 'tagErrorChanged',
+      });
       return;
     }
 
@@ -131,7 +135,7 @@ const CardComposer = ({
   const submitDraft = () => {
     if (!hasColumns || !selectedColumn) {
       dispatch({
-        error: 'Add a column before capturing cards.',
+        error: messages.composer.addColumnBeforeCapturing,
         type: 'submitFailed',
       });
       return;
@@ -140,7 +144,7 @@ const CardComposer = ({
     const parsedDraft = parseComposerDraft(draft);
 
     if (!parsedDraft.title) {
-      dispatch({ error: 'Enter a card title.', type: 'submitFailed' });
+      dispatch({ error: messages.card.titleRequired, type: 'submitFailed' });
       return;
     }
 
@@ -168,7 +172,7 @@ const CardComposer = ({
 
   return (
     <form
-      aria-label="Card composer"
+      aria-label={messages.composer.ariaLabel}
       className={`card-composer${focused || draft ? ' card-composer--active' : ''}`}
       onSubmit={onSubmit}
     >
@@ -214,7 +218,10 @@ const CardComposer = ({
           open ? dispatch({ type: 'tagsOpened' }) : closeTags()
         }
         priority={priority}
-        priorityOptions={CARD_PRIORITY_OPTIONS}
+        priorityOptions={CARD_PRIORITIES.map((nextPriority) => ({
+          label: messages.priority[nextPriority],
+          value: nextPriority,
+        }))}
         selectedColumnId={selectedColumnId}
         selectedTagIdSet={selectedTagIdSet}
         tagError={tagError}

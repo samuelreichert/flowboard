@@ -2,6 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { CheckCircle2, Menu as MenuIcon } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 
+import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
 import type { BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
@@ -51,16 +52,25 @@ const AppWorkspace = ({
   storageVersion,
   tags,
 }: AppWorkspaceProps) => {
-  const workspaceTitle = currentView === 'history' ? 'History' : 'Board';
+  const { messages } = useLocalization();
+  const workspaceTitle =
+    currentView === 'history'
+      ? messages.app.workspace.history
+      : messages.app.navigation.board;
   const workspaceEyebrow =
-    currentView === 'history' ? 'Completed work' : 'Workspace';
+    currentView === 'history'
+      ? messages.app.workspace.completedWork
+      : messages.app.workspace.workspace;
 
   return (
-    <section className="app-workspace" aria-label="Board workspace">
+    <section
+      className="app-workspace"
+      aria-label={messages.app.workspace.boardWorkspace}
+    >
       <header className="board__header">
         <div className="board__title-group">
           <Button
-            aria-label="Open navigation"
+            aria-label={messages.app.navigation.openNavigation}
             className="icon-button board__mobile-nav-trigger"
             onClick={onOpenMobileSidebar}
             type="button"
@@ -75,27 +85,32 @@ const AppWorkspace = ({
         {currentView === 'board' && (
           <div className="board__header-actions">
             <Button
-              aria-label="Complete work"
+              aria-label={messages.app.workspace.completeWork}
               className="button button--primary board__complete-work"
               disabled={!canCompleteWork}
               onClick={onCompleteWorkClick}
               title={
-                canCompleteWork ? 'Complete work' : completeWorkDisabledReason
+                canCompleteWork
+                  ? messages.app.workspace.completeWork
+                  : completeWorkDisabledReason
               }
               type="button"
             >
               <CheckCircle2 size={16} />
-              <span>Complete work</span>
+              <span>{messages.app.workspace.completeWork}</span>
             </Button>
           </div>
         )}
       </header>
       {currentView === 'board' ? (
-        <section className="board" aria-label="Flowboard board">
+        <section
+          className="board"
+          aria-label={messages.app.workspace.boardAriaLabel}
+        >
           {completionPulse && (
             <div className="complete-work-pulse" aria-live="polite">
               <CheckCircle2 size={18} />
-              <span>Work completed</span>
+              <span>{messages.app.workspace.workCompleted}</span>
             </div>
           )}
           <Columns
@@ -115,7 +130,7 @@ const AppWorkspace = ({
         <Suspense
           fallback={
             <section
-              aria-label="Completed work history"
+              aria-label={messages.history.completedHistory}
               className="history-view"
             />
           }

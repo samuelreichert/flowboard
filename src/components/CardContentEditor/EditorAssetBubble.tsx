@@ -3,6 +3,8 @@ import { Field } from '@base-ui/react/field';
 import { Check, Edit3, ExternalLink, Trash2, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
+
 type EditorAssetBubbleProps = {
   assetLabel: string;
   currentUrl: string;
@@ -30,7 +32,7 @@ const EditorAssetBubble = ({
   onUrlChange,
   url,
 }: EditorAssetBubbleProps) => {
-  const lowerAssetLabel = assetLabel.toLowerCase();
+  const { messages } = useLocalization();
 
   if (editing) {
     return (
@@ -57,7 +59,7 @@ const EditorAssetBubble = ({
         </Field.Root>
         <div className="editor-link-bubble__actions">
           <Button
-            aria-label={`Cancel ${lowerAssetLabel} edit`}
+            aria-label={messages.contentEditor.cancelAssetEdit(assetLabel)}
             className="editor-link-bubble__icon-button"
             onClick={onCancelEdit}
             type="button"
@@ -65,7 +67,7 @@ const EditorAssetBubble = ({
             <X size={14} />
           </Button>
           <Button
-            aria-label={`Apply ${lowerAssetLabel} edit`}
+            aria-label={messages.contentEditor.applyAssetEdit(assetLabel)}
             className="editor-link-bubble__icon-button editor-link-bubble__icon-button--primary"
             type="submit"
           >
@@ -81,7 +83,7 @@ const EditorAssetBubble = ({
       <span className="editor-link-bubble__href">{currentUrl}</span>
       <div className="editor-link-bubble__actions">
         <Button
-          aria-label={`Edit ${lowerAssetLabel}`}
+          aria-label={messages.contentEditor.editAsset(assetLabel)}
           className="editor-link-bubble__icon-button"
           onClick={onEdit}
           type="button"
@@ -89,7 +91,7 @@ const EditorAssetBubble = ({
           <Edit3 size={14} />
         </Button>
         <Button
-          aria-label={`Open ${lowerAssetLabel}`}
+          aria-label={messages.contentEditor.openAsset(assetLabel)}
           className="editor-link-bubble__icon-button"
           onClick={onOpen}
           type="button"
@@ -97,7 +99,7 @@ const EditorAssetBubble = ({
           <ExternalLink size={14} />
         </Button>
         <Button
-          aria-label={`Remove ${lowerAssetLabel}`}
+          aria-label={messages.contentEditor.removeAsset(assetLabel)}
           className="editor-link-bubble__icon-button"
           onClick={onRemove}
           type="button"

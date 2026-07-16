@@ -4,6 +4,7 @@ import { Pencil, Tag, Trash2 } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { KeyboardEvent } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import ConfirmDialog from '../ConfirmDialog';
 import DialogShell from '../DialogShell';
 import { InlineEmptyState } from '../EmptyState';
@@ -112,6 +113,7 @@ const TagManagerDialog = ({
   routeOwned = false,
   tags,
 }: TagManagerDialogProps) => {
+  const { messages } = useLocalization();
   const [state, dispatch] = useReducer(
     tagManagerReducer,
     initialTagManagerState
@@ -138,7 +140,7 @@ const TagManagerDialog = ({
 
     if (!name) {
       dispatch({
-        error: 'Enter a tag name.',
+        error: messages.card.tagNameRequired,
         type: 'createErrorChanged',
       });
       return;
@@ -146,7 +148,7 @@ const TagManagerDialog = ({
 
     if (isDuplicateName(tags, name)) {
       dispatch({
-        error: 'Tag names must be unique.',
+        error: messages.card.tagNamesUnique,
         type: 'createErrorChanged',
       });
       return;
@@ -166,7 +168,10 @@ const TagManagerDialog = ({
         return;
       }
 
-      dispatch({ error: 'Enter a tag name.', type: 'editErrorChanged' });
+      dispatch({
+        error: messages.card.tagNameRequired,
+        type: 'editErrorChanged',
+      });
       return;
     }
 
@@ -177,7 +182,7 @@ const TagManagerDialog = ({
       }
 
       dispatch({
-        error: 'Tag names must be unique.',
+        error: messages.card.tagNamesUnique,
         type: 'editErrorChanged',
       });
       return;
@@ -208,18 +213,18 @@ const TagManagerDialog = ({
   return (
     <>
       <DialogShell
-        closeLabel="Close tag manager"
-        description="Create reusable tags for cards on this board."
+        closeLabel={messages.tagManager.close}
+        description={messages.tagManager.createDescription}
         onOpenChange={onOpenChange}
         open={open}
         popupClassName={
           routeOwned ? 'dialog-popup--route-management' : undefined
         }
-        title="Manage tags"
+        title={messages.tagManager.manageTags}
       >
         <div className="tag-manager__create">
           <Field.Root className="dialog-field" invalid={Boolean(createError)}>
-            <Field.Label>New tag</Field.Label>
+            <Field.Label>{messages.tagManager.newTag}</Field.Label>
             <div className="tag-manager__create-row">
               <div className="tag-manager__input">
                 <Tag size={15} />
@@ -260,7 +265,7 @@ const TagManagerDialog = ({
                       invalid={Boolean(editError)}
                     >
                       <Field.Control
-                        aria-label={`Edit ${tag.name} tag`}
+                        aria-label={messages.tagManager.editTag(tag.name)}
                         autoFocus
                         className="dialog-input tag-manager__edit-input"
                         maxLength={60}
@@ -299,12 +304,12 @@ const TagManagerDialog = ({
                       <div>
                         <span className="tag-manager__name">{tag.name}</span>
                         <span className="tag-manager__usage">
-                          {getTagUsageCount(tag.id)} cards
+                          {messages.tagManager.usage(getTagUsageCount(tag.id))}
                         </span>
                       </div>
                       <div className="tag-manager__actions">
                         <Button
-                          aria-label={`Rename ${tag.name} tag`}
+                          aria-label={messages.tagManager.renameTag(tag.name)}
                           className="icon-button"
                           onClick={() => {
                             dispatch({
@@ -317,7 +322,9 @@ const TagManagerDialog = ({
                           <Pencil size={15} />
                         </Button>
                         <Button
-                          aria-label={`Remove ${tag.name} tag`}
+                          aria-label={messages.tagManager.removeTagAction(
+                            tag.name
+                          )}
                           className="icon-button tag-manager__delete"
                           onClick={() => requestDelete(tag)}
                           type="button"
@@ -331,14 +338,19 @@ const TagManagerDialog = ({
               );
             })
           ) : (
-            <InlineEmptyState variant="list">No tags yet.</InlineEmptyState>
+            <InlineEmptyState variant="list">
+              {messages.tagManager.noTagsYet}
+            </InlineEmptyState>
           )}
         </div>
       </DialogShell>
       {pendingDelete && (
         <ConfirmDialog
-          confirmLabel="Remove tag"
-          description={`${pendingDelete.name} is assigned to ${getTagUsageCount(pendingDelete.id)} cards. Removing it will clear the tag from those cards.`}
+          confirmLabel={messages.tagManager.removeTag}
+          description={messages.tagManager.removeTagDescription(
+            pendingDelete.name,
+            getTagUsageCount(pendingDelete.id)
+          )}
           onConfirm={() => {
             onDeleteTag(pendingDelete.id);
             dispatch({ tag: null, type: 'tagDeleteRequested' });
@@ -349,7 +361,7 @@ const TagManagerDialog = ({
             }
           }}
           open={Boolean(pendingDelete)}
-          title="Remove this tag?"
+          title={messages.tagManager.removeTagTitle}
         />
       )}
     </>

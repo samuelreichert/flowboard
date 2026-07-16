@@ -1,9 +1,16 @@
 import { fetchBoardState } from '../storage';
 import { fetchThemePreference, resolveThemePreference } from '../theme';
+import {
+  fetchLanguagePreference,
+  resolveBrowserLanguage,
+  resolveLanguagePreference,
+} from '../localization';
 import type { AppAction, AppState } from './appTypes';
 
 export const initAppState = (): AppState => {
   const themePreference = fetchThemePreference();
+  const languagePreference = fetchLanguagePreference();
+  const systemLanguage = resolveBrowserLanguage();
   const boardState = fetchBoardState();
 
   return {
@@ -15,13 +22,19 @@ export const initAppState = (): AppState => {
     completedWorkCycles: boardState.completedWorkCycles,
     completionPulse: false,
     currentView: 'board',
+    languagePreference,
     manageColumnsOpen: false,
     mobileSidebarOpen: false,
     profileDialogOpen: false,
+    resolvedLanguage: resolveLanguagePreference(
+      languagePreference,
+      systemLanguage
+    ),
     resolvedTheme: resolveThemePreference(themePreference),
     settingsOpen: false,
     sidebarExpanded: true,
     storageVersion: 0,
+    systemLanguage,
     tagManagerOpen: false,
     tags: boardState.tags,
     themePreference,
@@ -64,6 +77,15 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, completionPulse: action.active };
     case 'currentViewChanged':
       return { ...state, currentView: action.view };
+    case 'languagePreferenceChanged':
+      return {
+        ...state,
+        languagePreference: action.preference,
+        resolvedLanguage: resolveLanguagePreference(
+          action.preference,
+          state.systemLanguage
+        ),
+      };
     case 'manageColumnsOpenChanged':
       return { ...state, manageColumnsOpen: action.open };
     case 'mobileSidebarOpenChanged':

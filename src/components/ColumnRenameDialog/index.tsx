@@ -1,6 +1,7 @@
 import { Field } from '@base-ui/react/field';
 import { useState } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import DialogShell from '../DialogShell';
 import '../ContentDialog/ContentDialog.css';
 
@@ -36,6 +37,7 @@ const ColumnRenameDialogContent = ({
   onSave,
   open,
 }: ColumnRenameDialogProps) => {
+  const { messages } = useLocalization();
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState('');
 
@@ -43,7 +45,7 @@ const ColumnRenameDialogContent = ({
     const trimmedValue = nextValue.trim();
 
     if (!trimmedValue) {
-      setError('Enter a column title.');
+      setError(messages.board.columnTitleRequired);
       return false;
     }
 
@@ -73,14 +75,14 @@ const ColumnRenameDialogContent = ({
 
   return (
     <DialogShell
-      description="Choose a clear name for this workflow stage."
+      description={messages.board.renameColumnDescription}
       descriptionClassName="dialog-description--compact"
       onOpenChange={onDialogOpenChange}
       open={open}
-      title="Rename column"
+      title={messages.board.renameColumn}
     >
       <Field.Root className="dialog-field" invalid={Boolean(error)}>
-        <Field.Label>Column title</Field.Label>
+        <Field.Label>{messages.board.columnTitle}</Field.Label>
         <Field.Control
           autoFocus
           className="dialog-input"

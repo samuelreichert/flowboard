@@ -4,12 +4,8 @@ import { Select } from '@base-ui/react/select';
 import { ArrowUp, Check, ChevronDown, Plus } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 
-import {
-  formatPriorityLabel,
-  type BoardColumn,
-  type BoardTag,
-  type CardPriority,
-} from '../../types';
+import { useLocalization } from '../../LocalizationProvider';
+import type { BoardColumn, BoardTag, CardPriority } from '../../types';
 
 type PriorityOption = {
   label: string;
@@ -62,57 +58,61 @@ const ComposerMetaControls = ({
   tagSummary,
   tags,
   tagsOpen,
-}: ComposerMetaControlsProps) => (
-  <div className="card-composer__meta-row">
-    <div className="card-composer__meta-controls">
-      {hasColumns ? (
-        <>
-          <ColumnSelect
-            columns={columns}
-            onValueChange={onSelectedColumnChange}
-            value={selectedColumnId}
-          />
-          <PrioritySelect
-            onValueChange={onPriorityChange}
-            options={priorityOptions}
-            value={priority}
-          />
-          <TagPicker
-            creatingTag={creatingTag}
-            newTagName={newTagName}
-            onCreateTag={onCreateTag}
-            onNewTagNameChange={onNewTagNameChange}
-            onOpenChange={onTagsOpenChange}
-            onStartCreatingTag={onStartCreatingTag}
-            onTagToggle={onTagToggle}
-            selectedTagIdSet={selectedTagIdSet}
-            tagError={tagError}
-            tagSummary={tagSummary}
-            tags={tags}
-            tagsOpen={tagsOpen}
-          />
-        </>
-      ) : (
-        <Button
-          className="card-composer__add-column"
-          onClick={onAddColumnClick}
-          type="button"
-        >
-          Add column first
-        </Button>
-      )}
+}: ComposerMetaControlsProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <div className="card-composer__meta-row">
+      <div className="card-composer__meta-controls">
+        {hasColumns ? (
+          <>
+            <ColumnSelect
+              columns={columns}
+              onValueChange={onSelectedColumnChange}
+              value={selectedColumnId}
+            />
+            <PrioritySelect
+              onValueChange={onPriorityChange}
+              options={priorityOptions}
+              value={priority}
+            />
+            <TagPicker
+              creatingTag={creatingTag}
+              newTagName={newTagName}
+              onCreateTag={onCreateTag}
+              onNewTagNameChange={onNewTagNameChange}
+              onOpenChange={onTagsOpenChange}
+              onStartCreatingTag={onStartCreatingTag}
+              onTagToggle={onTagToggle}
+              selectedTagIdSet={selectedTagIdSet}
+              tagError={tagError}
+              tagSummary={tagSummary}
+              tags={tags}
+              tagsOpen={tagsOpen}
+            />
+          </>
+        ) : (
+          <Button
+            className="card-composer__add-column"
+            onClick={onAddColumnClick}
+            type="button"
+          >
+            {messages.composer.addColumnFirst}
+          </Button>
+        )}
+      </div>
+      <Button
+        aria-label={messages.composer.addCard}
+        className="card-composer__submit"
+        disabled={!canSubmit}
+        title={messages.composer.addCard}
+        type="submit"
+      >
+        <ArrowUp size={17} />
+      </Button>
     </div>
-    <Button
-      aria-label="Add card"
-      className="card-composer__submit"
-      disabled={!canSubmit}
-      title="Add card"
-      type="submit"
-    >
-      <ArrowUp size={17} />
-    </Button>
-  </div>
-);
+  );
+};
 
 type ColumnSelectProps = {
   columns: BoardColumn[];
@@ -121,55 +121,71 @@ type ColumnSelectProps = {
 };
 
 const ColumnSelect = ({ columns, onValueChange, value }: ColumnSelectProps) => (
-  <Select.Root
-    name="composer-column"
-    onValueChange={(nextValue) => {
-      if (nextValue) {
-        onValueChange(nextValue);
-      }
-    }}
+  <ColumnSelectContent
+    columns={columns}
+    onValueChange={onValueChange}
     value={value}
-  >
-    <Select.Trigger
-      aria-label="Destination column"
-      className="card-composer__chip"
-    >
-      <Select.Value className="card-composer__chip-value">
-        {(selectedValue: string | null) =>
-          columns.find((column) => column.id === selectedValue)?.title ??
-          'Choose column'
-        }
-      </Select.Value>
-      <Select.Icon className="card-composer__chip-icon">
-        <ChevronDown size={15} />
-      </Select.Icon>
-    </Select.Trigger>
-    <Select.Portal>
-      <Select.Positioner
-        align="start"
-        className="card-composer__select-positioner"
-        sideOffset={6}
-      >
-        <Select.Popup className="card-composer__popup">
-          <Select.List>
-            {columns.map((column) => (
-              <Select.Item
-                className="card-composer__option"
-                key={column.id}
-                value={column.id}
-              >
-                <Select.ItemText>{column.title}</Select.ItemText>
-                <Select.ItemIndicator>
-                  <Check size={15} />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
-          </Select.List>
-        </Select.Popup>
-      </Select.Positioner>
-    </Select.Portal>
-  </Select.Root>
+  />
 );
+
+const ColumnSelectContent = ({
+  columns,
+  onValueChange,
+  value,
+}: ColumnSelectProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <Select.Root
+      name="composer-column"
+      onValueChange={(nextValue) => {
+        if (nextValue) {
+          onValueChange(nextValue);
+        }
+      }}
+      value={value}
+    >
+      <Select.Trigger
+        aria-label={messages.composer.destinationColumn}
+        className="card-composer__chip"
+      >
+        <Select.Value className="card-composer__chip-value">
+          {(selectedValue: string | null) =>
+            columns.find((column) => column.id === selectedValue)?.title ??
+            messages.common.chooseColumn
+          }
+        </Select.Value>
+        <Select.Icon className="card-composer__chip-icon">
+          <ChevronDown size={15} />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner
+          align="start"
+          className="card-composer__select-positioner"
+          sideOffset={6}
+        >
+          <Select.Popup className="card-composer__popup">
+            <Select.List>
+              {columns.map((column) => (
+                <Select.Item
+                  className="card-composer__option"
+                  key={column.id}
+                  value={column.id}
+                >
+                  <Select.ItemText>{column.title}</Select.ItemText>
+                  <Select.ItemIndicator>
+                    <Check size={15} />
+                  </Select.ItemIndicator>
+                </Select.Item>
+              ))}
+            </Select.List>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  );
+};
 
 type PrioritySelectProps = {
   onValueChange: (value: CardPriority) => void;
@@ -182,50 +198,68 @@ const PrioritySelect = ({
   options,
   value,
 }: PrioritySelectProps) => (
-  <Select.Root
-    name="composer-priority"
-    onValueChange={(nextValue) => onValueChange(nextValue as CardPriority)}
+  <PrioritySelectContent
+    onValueChange={onValueChange}
+    options={options}
     value={value}
-  >
-    <Select.Trigger
-      aria-label="Priority"
-      className={`card-composer__chip card-composer__priority card-composer__priority--${value}`}
-    >
-      <Select.Value className="card-composer__chip-value">
-        {(selectedValue: CardPriority | null) =>
-          selectedValue ? formatPriorityLabel(selectedValue) : 'Choose priority'
-        }
-      </Select.Value>
-      <Select.Icon className="card-composer__chip-icon">
-        <ChevronDown size={15} />
-      </Select.Icon>
-    </Select.Trigger>
-    <Select.Portal>
-      <Select.Positioner
-        align="start"
-        className="card-composer__select-positioner"
-        sideOffset={6}
-      >
-        <Select.Popup className="card-composer__popup">
-          <Select.List>
-            {options.map((option) => (
-              <Select.Item
-                className="card-composer__option"
-                key={option.value}
-                value={option.value}
-              >
-                <Select.ItemText>{option.label}</Select.ItemText>
-                <Select.ItemIndicator>
-                  <Check size={15} />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
-          </Select.List>
-        </Select.Popup>
-      </Select.Positioner>
-    </Select.Portal>
-  </Select.Root>
+  />
 );
+
+const PrioritySelectContent = ({
+  onValueChange,
+  options,
+  value,
+}: PrioritySelectProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <Select.Root
+      name="composer-priority"
+      onValueChange={(nextValue) => onValueChange(nextValue as CardPriority)}
+      value={value}
+    >
+      <Select.Trigger
+        aria-label={messages.card.priority}
+        className={`card-composer__chip card-composer__priority card-composer__priority--${value}`}
+      >
+        <Select.Value className="card-composer__chip-value">
+          {(selectedValue: CardPriority | null) =>
+            selectedValue
+              ? messages.priority[selectedValue]
+              : messages.common.choosePriority
+          }
+        </Select.Value>
+        <Select.Icon className="card-composer__chip-icon">
+          <ChevronDown size={15} />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner
+          align="start"
+          className="card-composer__select-positioner"
+          sideOffset={6}
+        >
+          <Select.Popup className="card-composer__popup">
+            <Select.List>
+              {options.map((option) => (
+                <Select.Item
+                  className="card-composer__option"
+                  key={option.value}
+                  value={option.value}
+                >
+                  <Select.ItemText>{option.label}</Select.ItemText>
+                  <Select.ItemIndicator>
+                    <Check size={15} />
+                  </Select.ItemIndicator>
+                </Select.Item>
+              ))}
+            </Select.List>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  );
+};
 
 type TagPickerProps = {
   creatingTag: boolean;
@@ -256,6 +290,7 @@ const TagPicker = ({
   tags,
   tagsOpen,
 }: TagPickerProps) => {
+  const { messages } = useLocalization();
   const onTagCreateKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -271,7 +306,7 @@ const TagPicker = ({
   return (
     <Popover.Root modal={false} onOpenChange={onOpenChange} open={tagsOpen}>
       <Popover.Trigger
-        aria-label="Tags"
+        aria-label={messages.card.tags}
         className="card-composer__tag-trigger"
         render={<Button />}
       >
@@ -308,19 +343,21 @@ const TagPicker = ({
                 );
               })
             ) : (
-              <div className="card-composer__empty-tags">No tags yet</div>
+              <div className="card-composer__empty-tags">
+                {messages.composer.noTagsYet}
+              </div>
             )}
             <div className="card-composer__tag-create">
               {creatingTag ? (
                 <>
                   <input
                     aria-invalid={Boolean(tagError)}
-                    aria-label="New tag name"
+                    aria-label={messages.composer.newTagName}
                     autoFocus
                     maxLength={60}
                     onChange={(event) => onNewTagNameChange(event.target.value)}
                     onKeyDown={onTagCreateKeyDown}
-                    placeholder="New tag name"
+                    placeholder={messages.composer.newTagName}
                     type="text"
                     value={newTagName}
                   />
@@ -335,7 +372,7 @@ const TagPicker = ({
                   type="button"
                 >
                   <Plus size={15} />
-                  Create tag
+                  {messages.composer.createTag}
                 </Button>
               )}
             </div>

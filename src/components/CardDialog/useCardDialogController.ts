@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react';
 
+import { useLocalization } from '../../LocalizationProvider';
 import type { BoardTag, CardPriority } from '../../types';
 import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
 import { formatCreatedAt } from './formatters';
@@ -16,6 +17,7 @@ const useCardDialogController = ({
   open,
   tags,
 }: CardDialogProps) => {
+  const { language, messages } = useLocalization();
   const [state, dispatch] = useReducer(
     cardDialogReducer,
     createCardDialogState(card, columnId)
@@ -75,7 +77,7 @@ const useCardDialogController = ({
     if (!trimmedTitle) {
       dispatch({
         type: 'fieldsChanged',
-        values: { error: 'Enter a card title.' },
+        values: { error: messages.card.titleRequired },
       });
     } else {
       lastValidTitleRef.current = trimmedTitle;
@@ -139,7 +141,7 @@ const useCardDialogController = ({
     if (!name) {
       dispatch({
         type: 'fieldsChanged',
-        values: { tagError: 'Enter a tag name.' },
+        values: { tagError: messages.card.tagNameRequired },
       });
       return;
     }
@@ -147,7 +149,7 @@ const useCardDialogController = ({
     if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
       dispatch({
         type: 'fieldsChanged',
-        values: { tagError: 'Tag names must be unique.' },
+        values: { tagError: messages.card.tagNamesUnique },
       });
       return;
     }
@@ -213,13 +215,15 @@ const useCardDialogController = ({
       },
     });
 
-  const createdAtLabel = formatCreatedAt(card.createdAt);
+  const createdAtLabel = formatCreatedAt(card.createdAt, language);
   const tagNameById = new Map(tags.map((tag) => [tag.id, tag.name]));
   const selectedTagNames = selectedTagIds
     .map((tagId) => tagNameById.get(tagId))
     .filter((tagName): tagName is string => Boolean(tagName));
   const tagSummary =
-    selectedTagNames.length > 0 ? selectedTagNames.join(', ') : 'No tags';
+    selectedTagNames.length > 0
+      ? selectedTagNames.join(', ')
+      : messages.card.noTags;
 
   return {
     card,

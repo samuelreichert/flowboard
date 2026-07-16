@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router';
 import CardMetadata from '../CardMetadata';
 import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
+import { useLocalization } from '../../LocalizationProvider';
 import { isCardDragData } from '../../dnd';
 import { createActiveCardPath } from '../../app/routes';
 import type { BoardCard, BoardColumn, BoardTag } from '../../types';
@@ -220,6 +221,7 @@ const Card = ({
     .filter((tag): tag is BoardTag => Boolean(tag));
   const visibleTags = cardTags.slice(0, 2);
   const hiddenTagCount = cardTags.length - visibleTags.length;
+  const { messages } = useLocalization();
 
   return (
     <>
@@ -233,7 +235,7 @@ const Card = ({
           />
         )}
         <button
-          aria-label={`Open ${card.title}`}
+          aria-label={messages.card.openCard(card.title)}
           className="card__body"
           onClick={onCardClick}
           type="button"
@@ -244,7 +246,7 @@ const Card = ({
             </span>
             {card.content && (
               <AlignLeft
-                aria-label="Has content"
+                aria-label={messages.card.hasContent}
                 className="card__content-icon"
                 size={13}
               />

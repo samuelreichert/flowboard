@@ -8,13 +8,11 @@ import {
   useNavigate,
 } from 'react-router';
 
+import { LocalizationProvider, useLocalization } from './LocalizationProvider';
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
-import {
-  shouldRenderAuthGate,
-  type AuthGateStatus,
-} from './app/authGate';
+import { shouldRenderAuthGate, type AuthGateStatus } from './app/authGate';
 import { getThemeIconSrc } from './app/appTheme';
 import {
   APP_ROUTES,
@@ -55,6 +53,7 @@ export const AuthGate = ({
   onSocialAuthRequest,
   status,
 }: AuthGateProps) => {
+  const { messages } = useLocalization();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittingProvider, setSubmittingProvider] = useState<
@@ -84,7 +83,7 @@ export const AuthGate = ({
 
   return (
     <main className="app app--auth">
-      <section className="auth-panel" aria-label="Sign in to Flowboard">
+      <section className="auth-panel" aria-label={messages.app.auth.ariaLabel}>
         <div className="auth-panel__brand">
           <img
             alt=""
@@ -94,19 +93,20 @@ export const AuthGate = ({
           />
           <div>
             <p className="app__eyebrow">Flowboard</p>
-            <h1 className="app__title">Sign in</h1>
+            <h1 className="app__title">{messages.app.auth.signIn}</h1>
           </div>
         </div>
         {status === 'loading' ? (
-          <p className="auth-panel__message">Checking your session...</p>
+          <p className="auth-panel__message">
+            {messages.app.auth.checkingSession}
+          </p>
         ) : (
           <div className="auth-panel__content">
             <p className="auth-panel__description">
-              Continue with your account. If you are new, Flowboard will create
-              one for you.
+              {messages.app.auth.description}
             </p>
             <div
-              aria-label="Social sign-in options"
+              aria-label={messages.app.auth.socialOptionsLabel}
               className="auth-panel__providers"
             >
               {socialAuthProviders.map((provider) => (
@@ -118,23 +118,25 @@ export const AuthGate = ({
                     type="button"
                   >
                     {submittingProvider === provider.id
-                      ? 'Opening...'
-                      : `Continue with ${provider.label}`}
+                      ? messages.app.auth.opening
+                      : messages.app.auth.continueWith(provider.label)}
                   </Button>
                   {!provider.enabled && provider.disabledReason ? (
                     <p className="auth-panel__provider-note">
-                      {provider.disabledReason}
+                      {provider.id === 'apple'
+                        ? messages.app.auth.appleDisabledReason
+                        : provider.disabledReason}
                     </p>
                   ) : null}
                 </div>
               ))}
             </div>
             <div className="auth-panel__divider" role="separator">
-              <span>or</span>
+              <span>{messages.app.auth.divider}</span>
             </div>
             <form className="auth-panel__form" onSubmit={submit}>
               <label className="auth-panel__label" htmlFor="auth-email">
-                Email
+                {messages.app.auth.email}
               </label>
               <input
                 className="auth-panel__input"
@@ -150,7 +152,9 @@ export const AuthGate = ({
                 disabled={submitting}
                 type="submit"
               >
-                {submitting ? 'Sending...' : 'Send magic link'}
+                {submitting
+                  ? messages.app.auth.sending
+                  : messages.app.auth.sendMagicLink}
               </Button>
             </form>
           </div>
@@ -167,6 +171,7 @@ type AuthRedirectProps = {
 
 const AuthRedirect = ({ destination }: AuthRedirectProps) => {
   const navigate = useNavigate();
+  const { messages } = useLocalization();
 
   useEffect(() => {
     navigate(destination, { replace: true });
@@ -174,8 +179,11 @@ const AuthRedirect = ({ destination }: AuthRedirectProps) => {
 
   return (
     <main className="app app--auth">
-      <section className="auth-panel" aria-label="Opening Flowboard">
-        <p className="auth-panel__message">Opening your board...</p>
+      <section
+        className="auth-panel"
+        aria-label={messages.app.auth.openingFlowboardLabel}
+      >
+        <p className="auth-panel__message">{messages.app.auth.openingBoard}</p>
       </section>
     </main>
   );
@@ -193,32 +201,58 @@ const NotFoundView = ({
   onBoardClick,
   onHistoryClick,
   requestedPath,
-}: NotFoundViewProps) => (
-  <main className="app app--not-found">
-    <section className="not-found-panel" aria-label="Route not found">
-      <div className="not-found-panel__mark" aria-hidden="true">
-        <img alt="" className="not-found-panel__brand-icon" src={iconSrc} />
-        <span>404</span>
-      </div>
-      <p className="app__eyebrow">Page not found</p>
-      <h1 className="not-found-panel__title">That page is off the board</h1>
-      <p className="not-found-panel__body">
-        The link points to a Flowboard route that does not exist anymore.
-      </p>
-      <code className="not-found-panel__path">{requestedPath}</code>
-      <div className="not-found-panel__actions">
-        <Button className="button button--primary" onClick={onBoardClick}>
-          <Home aria-hidden="true" size={15} />
-          Open board
-        </Button>
-        <Button className="button button--subtle" onClick={onHistoryClick}>
-          <History aria-hidden="true" size={15} />
-          View history
-        </Button>
-      </div>
-    </section>
-  </main>
-);
+}: NotFoundViewProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <main className="app app--not-found">
+      <section
+        className="not-found-panel"
+        aria-label={messages.app.notFound.ariaLabel}
+      >
+        <div className="not-found-panel__mark" aria-hidden="true">
+          <img alt="" className="not-found-panel__brand-icon" src={iconSrc} />
+          <span>404</span>
+        </div>
+        <p className="app__eyebrow">{messages.app.notFound.eyebrow}</p>
+        <h1 className="not-found-panel__title">
+          {messages.app.notFound.title}
+        </h1>
+        <p className="not-found-panel__body">{messages.app.notFound.body}</p>
+        <code className="not-found-panel__path">{requestedPath}</code>
+        <div className="not-found-panel__actions">
+          <Button className="button button--primary" onClick={onBoardClick}>
+            <Home aria-hidden="true" size={15} />
+            {messages.app.notFound.openBoard}
+          </Button>
+          <Button className="button button--subtle" onClick={onHistoryClick}>
+            <History aria-hidden="true" size={15} />
+            {messages.app.notFound.viewHistory}
+          </Button>
+        </div>
+      </section>
+    </main>
+  );
+};
+
+type MobileNavigationBackdropProps = {
+  onClose: () => void;
+};
+
+const MobileNavigationBackdrop = ({
+  onClose,
+}: MobileNavigationBackdropProps) => {
+  const { messages } = useLocalization();
+
+  return (
+    <button
+      aria-label={messages.app.navigation.closeNavigation}
+      className="app__mobile-backdrop"
+      onClick={onClose}
+      type="button"
+    />
+  );
+};
 
 const getLocationDestination = (location: {
   hash: string;
@@ -252,14 +286,16 @@ const RoutedApp = () => {
     })
   ) {
     return (
-      <AuthGate
-        message={controller.authState.message}
-        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
-        nextDestination={nextDestination}
-        onMagicLinkRequest={controller.requestMagicLink}
-        onSocialAuthRequest={controller.requestSocialAuth}
-        status={controller.authState.status}
-      />
+      <LocalizationProvider language={controller.resolvedLanguage}>
+        <AuthGate
+          message={controller.authState.message}
+          iconSrc={getThemeIconSrc(controller.resolvedTheme)}
+          nextDestination={nextDestination}
+          onMagicLinkRequest={controller.requestMagicLink}
+          onSocialAuthRequest={controller.requestSocialAuth}
+          status={controller.authState.status}
+        />
+      </LocalizationProvider>
     );
   }
 
@@ -267,17 +303,23 @@ const RoutedApp = () => {
     controller.authState.status === 'signedIn' &&
     (route.type === 'auth-callback' || route.type === 'sign-in')
   ) {
-    return <AuthRedirect destination={nextDestination} />;
+    return (
+      <LocalizationProvider language={controller.resolvedLanguage}>
+        <AuthRedirect destination={nextDestination} />
+      </LocalizationProvider>
+    );
   }
 
   if (route.type === 'not-found') {
     return (
-      <NotFoundView
-        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
-        onBoardClick={() => navigate(APP_ROUTES.board, { replace: true })}
-        onHistoryClick={() => navigate(APP_ROUTES.history, { replace: true })}
-        requestedPath={getLocationDestination(location)}
-      />
+      <LocalizationProvider language={controller.resolvedLanguage}>
+        <NotFoundView
+          iconSrc={getThemeIconSrc(controller.resolvedTheme)}
+          onBoardClick={() => navigate(APP_ROUTES.board, { replace: true })}
+          onHistoryClick={() => navigate(APP_ROUTES.history, { replace: true })}
+          requestedPath={getLocationDestination(location)}
+        />
+      </LocalizationProvider>
     );
   }
 
@@ -295,115 +337,117 @@ const RoutedApp = () => {
       : null;
 
   return (
-    <main
-      className={`app ${controller.sidebarExpanded ? 'app--sidebar-expanded' : 'app--sidebar-collapsed'} ${controller.mobileSidebarOpen ? 'app--mobile-sidebar-open' : ''}`}
-      data-theme={controller.resolvedTheme}
-      data-theme-preference={controller.themePreference}
-    >
-      <button
-        aria-label="Close navigation"
-        className="app__mobile-backdrop"
-        onClick={closeMobileSidebar}
-        type="button"
-      />
-      <AppSidebar
-        currentView={currentView}
-        onBoardClick={() => navigateTo(APP_ROUTES.board)}
-        onCloseMobileSidebar={closeMobileSidebar}
-        onHistoryClick={() => navigateTo(APP_ROUTES.history)}
-        onManageColumnsClick={() => {
-          navigate(APP_ROUTES.board);
-          controller.openManageColumns();
-        }}
-        onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
-        onProfileClick={controller.openProfileDialog}
-        onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
-        onSignOut={controller.signOut}
-        onToggleSidebar={controller.toggleSidebar}
-        profile={controller.profileIdentity}
-        resolvedTheme={controller.resolvedTheme}
-        sidebarExpanded={controller.sidebarExpanded}
-        showProfile={controller.authState.status === 'signedIn'}
-        showSignOut={controller.authState.status === 'signedIn'}
-      />
-      {controller.persistenceMessage && (
-        <div className="app__persistence-status" role="status">
-          {controller.persistenceMessage}
-        </div>
-      )}
-      <AppWorkspace
-        activeCardId={activeCardId}
-        archivedCardRoute={archivedCardRoute}
-        boardLoading={controller.authenticatedBoardLoading}
-        canCompleteWork={controller.canCompleteWork}
-        completeWorkDisabledReason={controller.completeWorkDisabledReason}
-        completedWorkCycles={controller.completedWorkCycles}
-        completionPulse={controller.completionPulse}
-        currentView={currentView}
-        manageColumnsOpen={controller.manageColumnsOpen}
-        onActiveCardClose={() => navigate(APP_ROUTES.board)}
-        onArchivedCardClose={() => navigate(APP_ROUTES.history)}
-        onBoardStateChange={controller.syncBoardState}
-        onColumnCountChange={controller.updateColumnCount}
-        onCompleteWorkClick={controller.openCompleteWorkConfirmation}
-        onManageColumnsOpenChange={controller.setManageColumnsOpen}
-        onOpenMobileSidebar={controller.openMobileSidebar}
-        onTagsChange={controller.updateTags}
-        storageVersion={controller.storageVersion}
-        tags={controller.tags}
-      />
-      <AppDialogs
-        activeWorkCycle={controller.activeWorkCycle}
-        authenticatedProfile={controller.authenticatedProfile}
-        clearBoardOpen={controller.clearBoardOpen}
-        columnCount={controller.columnCount}
-        columns={controller.columns}
-        completeWorkOpen={controller.completeWorkOpen}
-        completedCardCount={controller.completedCardCount}
-        completedColumn={controller.completedColumn}
-        onSettingsOpenChange={(open) => {
-          if (routeBoardSettingsOpen && !open) {
+    <LocalizationProvider language={controller.resolvedLanguage}>
+      <main
+        className={`app ${controller.sidebarExpanded ? 'app--sidebar-expanded' : 'app--sidebar-collapsed'} ${controller.mobileSidebarOpen ? 'app--mobile-sidebar-open' : ''}`}
+        data-theme={controller.resolvedTheme}
+        data-theme-preference={controller.themePreference}
+        data-language={controller.resolvedLanguage}
+        data-language-preference={controller.languagePreference}
+      >
+        <MobileNavigationBackdrop onClose={closeMobileSidebar} />
+        <AppSidebar
+          currentView={currentView}
+          onBoardClick={() => navigateTo(APP_ROUTES.board)}
+          onCloseMobileSidebar={closeMobileSidebar}
+          onHistoryClick={() => navigateTo(APP_ROUTES.history)}
+          onManageColumnsClick={() => {
             navigate(APP_ROUTES.board);
-            return;
-          }
+            controller.openManageColumns();
+          }}
+          onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
+          onProfileClick={controller.openProfileDialog}
+          onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
+          onSignOut={controller.signOut}
+          onToggleSidebar={controller.toggleSidebar}
+          profile={controller.profileIdentity}
+          resolvedTheme={controller.resolvedTheme}
+          sidebarExpanded={controller.sidebarExpanded}
+          showProfile={controller.authState.status === 'signedIn'}
+          showSignOut={controller.authState.status === 'signedIn'}
+        />
+        {controller.persistenceMessage && (
+          <div className="app__persistence-status" role="status">
+            {controller.persistenceMessage}
+          </div>
+        )}
+        <AppWorkspace
+          activeCardId={activeCardId}
+          archivedCardRoute={archivedCardRoute}
+          boardLoading={controller.authenticatedBoardLoading}
+          canCompleteWork={controller.canCompleteWork}
+          completeWorkDisabledReason={controller.completeWorkDisabledReason}
+          completedWorkCycles={controller.completedWorkCycles}
+          completionPulse={controller.completionPulse}
+          currentView={currentView}
+          manageColumnsOpen={controller.manageColumnsOpen}
+          onActiveCardClose={() => navigate(APP_ROUTES.board)}
+          onArchivedCardClose={() => navigate(APP_ROUTES.history)}
+          onBoardStateChange={controller.syncBoardState}
+          onColumnCountChange={controller.updateColumnCount}
+          onCompleteWorkClick={controller.openCompleteWorkConfirmation}
+          onManageColumnsOpenChange={controller.setManageColumnsOpen}
+          onOpenMobileSidebar={controller.openMobileSidebar}
+          onTagsChange={controller.updateTags}
+          storageVersion={controller.storageVersion}
+          tags={controller.tags}
+        />
+        <AppDialogs
+          activeWorkCycle={controller.activeWorkCycle}
+          authenticatedProfile={controller.authenticatedProfile}
+          clearBoardOpen={controller.clearBoardOpen}
+          columnCount={controller.columnCount}
+          columns={controller.columns}
+          completeWorkOpen={controller.completeWorkOpen}
+          completedCardCount={controller.completedCardCount}
+          completedColumn={controller.completedColumn}
+          onSettingsOpenChange={(open) => {
+            if (routeBoardSettingsOpen && !open) {
+              navigate(APP_ROUTES.board);
+              return;
+            }
 
-          controller.setSettingsOpen(open);
-        }}
-        onClearBoard={controller.clearBoard}
-        onClearBoardOpenChange={controller.setClearBoardOpen}
-        onClearBoardRequest={() => {
-          if (routeBoardSettingsOpen) {
-            navigate(APP_ROUTES.board);
-          }
+            controller.setSettingsOpen(open);
+          }}
+          onClearBoard={controller.clearBoard}
+          onClearBoardOpenChange={controller.setClearBoardOpen}
+          onClearBoardRequest={() => {
+            if (routeBoardSettingsOpen) {
+              navigate(APP_ROUTES.board);
+            }
 
-          controller.openClearBoardConfirmation();
-        }}
-        onCompleteWork={controller.confirmCompleteWork}
-        onCompleteWorkOpenChange={controller.setCompleteWorkOpen}
-        onCompletedColumnChange={controller.chooseCompletedColumn}
-        onDeleteTag={controller.deleteTag}
-        onProfileOpenChange={controller.setProfileDialogOpen}
-        onProfileSave={controller.saveProfile}
-        onThemePreferenceChange={controller.chooseThemePreference}
-        onTagManagerOpenChange={(open) => {
-          if (routeTagManagerOpen && !open) {
-            navigate(APP_ROUTES.board);
-            return;
-          }
+            controller.openClearBoardConfirmation();
+          }}
+          onCompleteWork={controller.confirmCompleteWork}
+          onCompleteWorkOpenChange={controller.setCompleteWorkOpen}
+          onCompletedColumnChange={controller.chooseCompletedColumn}
+          onDeleteTag={controller.deleteTag}
+          onLanguagePreferenceChange={controller.chooseLanguagePreference}
+          onProfileOpenChange={controller.setProfileDialogOpen}
+          onProfileSave={controller.saveProfile}
+          onThemePreferenceChange={controller.chooseThemePreference}
+          onTagManagerOpenChange={(open) => {
+            if (routeTagManagerOpen && !open) {
+              navigate(APP_ROUTES.board);
+              return;
+            }
 
-          controller.setTagManagerOpen(open);
-        }}
-        onTagsChange={controller.updateTags}
-        profileError={controller.profileError}
-        profileOpen={controller.profileDialogOpen}
-        profileSaving={controller.profileSaving}
-        routeManagementOpen={routeBoardSettingsOpen || routeTagManagerOpen}
-        settingsOpen={routeBoardSettingsOpen || controller.settingsOpen}
-        tagManagerOpen={routeTagManagerOpen || controller.tagManagerOpen}
-        tags={controller.tags}
-        themePreference={controller.themePreference}
-      />
-    </main>
+            controller.setTagManagerOpen(open);
+          }}
+          onTagsChange={controller.updateTags}
+          languagePreference={controller.languagePreference}
+          profileError={controller.profileError}
+          profileOpen={controller.profileDialogOpen}
+          profileSaving={controller.profileSaving}
+          routeManagementOpen={routeBoardSettingsOpen || routeTagManagerOpen}
+          settingsOpen={routeBoardSettingsOpen || controller.settingsOpen}
+          systemLanguage={controller.systemLanguage}
+          tagManagerOpen={routeTagManagerOpen || controller.tagManagerOpen}
+          tags={controller.tags}
+          themePreference={controller.themePreference}
+        />
+      </main>
+    </LocalizationProvider>
   );
 };
 
