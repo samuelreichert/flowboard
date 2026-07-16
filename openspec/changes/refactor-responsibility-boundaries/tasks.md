@@ -49,8 +49,8 @@
 ## 7. Split Card Composer And Dialog Responsibilities
 
 - [x] 7.1 Move composer tag creation/validation to shared tag helpers while keeping composer UI state local.
-- [ ] 7.2 Split `ComposerMetaControls` into smaller column select, priority select, and tag picker modules if the file remains difficult to scan.
-- [ ] 7.3 Split `useCardDialogController` into focused hooks or helpers for autosave, title editing, tag creation/selection, delete confirmation, and derived labels.
+- [x] 7.2 Split `ComposerMetaControls` into smaller column select, priority select, and tag picker modules if the file remains difficult to scan.
+- [x] 7.3 Split `useCardDialogController` into focused hooks or helpers for autosave, title editing, tag creation/selection, delete confirmation, and derived labels.
 - [x] 7.4 Ensure card dialog and composer continue sharing validation rules without sharing inappropriate UI state.
 - [x] 7.5 Verify composer keyboard submit, inline tag creation, selected column/priority/tags, card autosave, delete confirmation, and title fallback behavior.
 
