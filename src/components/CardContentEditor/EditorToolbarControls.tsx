@@ -41,7 +41,11 @@ export const ToolbarHint = ({ children, label }: ToolbarHintProps) => {
   const [open, setOpen] = useState(false);
   const hintId = useId();
   const hint = open ? (
-    <span aria-hidden="true" className="editor-toolbar__hover-label" id={hintId}>
+    <span
+      aria-hidden="true"
+      className="editor-toolbar__hover-label"
+      id={hintId}
+    >
       {label}
     </span>
   ) : null;

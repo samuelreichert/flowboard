@@ -26,7 +26,7 @@ const hasSelectionInside = (element: HTMLElement) => {
 
   return Boolean(
     (selection.anchorNode && element.contains(selection.anchorNode)) ||
-      (selection.focusNode && element.contains(selection.focusNode))
+    (selection.focusNode && element.contains(selection.focusNode))
   );
 };
 
