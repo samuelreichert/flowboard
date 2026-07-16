@@ -37,7 +37,7 @@ type ToolbarHintProps = {
   label: string;
 };
 
-export const ToolbarHint = ({ children, label }: ToolbarHintProps) => {
+export function ToolbarHint({ children, label }: ToolbarHintProps) {
   const [open, setOpen] = useState(false);
   const hintId = useId();
   const hint = open ? (
@@ -50,16 +50,20 @@ export const ToolbarHint = ({ children, label }: ToolbarHintProps) => {
     </span>
   ) : null;
 
-  return children({
-    hint,
-    hintTriggerProps: {
-      onBlur: () => setOpen(false),
-      onFocus: () => setOpen(true),
-      onPointerEnter: () => setOpen(true),
-      onPointerLeave: () => setOpen(false),
-    },
-  });
-};
+  return (
+    <>
+      {children({
+        hint,
+        hintTriggerProps: {
+          onBlur: () => setOpen(false),
+          onFocus: () => setOpen(true),
+          onPointerEnter: () => setOpen(true),
+          onPointerLeave: () => setOpen(false),
+        },
+      })}
+    </>
+  );
+}
 
 export const ToolbarButton = ({
   active = false,

@@ -12,6 +12,14 @@ import {
 import { insertImageFiles } from './extensions';
 import type { EditorToolbarState } from './types';
 
+const openExternal = (url: string) => {
+  const openedWindow = window.open(url, '_blank', 'noopener,noreferrer');
+
+  if (openedWindow) {
+    openedWindow.opener = null;
+  }
+};
+
 export const useCardContentInteractions = (
   editor: Editor | null,
   toolbarState: EditorToolbarState
@@ -190,14 +198,6 @@ export const useCardContentInteractions = (
     setImageUrl('');
     setImageError('');
     setImagePopoverOpen(true);
-  };
-
-  const openExternal = (url: string) => {
-    const openedWindow = window.open(url, '_blank', 'noopener,noreferrer');
-
-    if (openedWindow) {
-      openedWindow.opener = null;
-    }
   };
 
   const removeCurrentImage = () => {

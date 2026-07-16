@@ -48,14 +48,6 @@ export const useCardDragAndDrop = ({
   const ignoreNextClickRef = useRef(false);
   const resetIgnoreClickTimerRef = useRef<number | null>(null);
 
-  const setCardDraggingEnabled = (enabled: boolean) => {
-    const cardElement = cardRef.current;
-
-    if (cardElement) {
-      cardElement.draggable = enabled;
-    }
-  };
-
   useEffect(() => {
     const cardElement = cardRef.current;
 
@@ -111,6 +103,13 @@ export const useCardDragAndDrop = ({
       return;
     }
 
+    const setCardDraggingEnabled = (enabled: boolean) => {
+      const cardElement = cardRef.current;
+
+      if (cardElement) {
+        cardElement.draggable = enabled;
+      }
+    };
     const disableDragging = () => setCardDraggingEnabled(false);
     const enableDragging = () => setCardDraggingEnabled(true);
 
@@ -123,7 +122,7 @@ export const useCardDragAndDrop = ({
       titleElement.removeEventListener('mousedown', disableDragging);
       titleElement.removeEventListener('mouseleave', enableDragging);
     };
-  }, [titleRef]);
+  }, [cardRef, titleRef]);
 
   useEffect(
     () => () => {

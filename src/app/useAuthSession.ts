@@ -24,6 +24,14 @@ type AuthState =
 
 type AuthMessages = Messages['app']['auth'];
 
+const signOut = () => {
+  if (!supabase) {
+    return;
+  }
+
+  void supabase.auth.signOut();
+};
+
 const useAuthSession = (messages: AuthMessages) => {
   const [authState, setAuthState] = useState<AuthState>(() =>
     isSupabaseConfigured
@@ -100,14 +108,6 @@ const useAuthSession = (messages: AuthMessages) => {
       session: null,
       status: 'signedOut',
     });
-  };
-
-  const signOut = () => {
-    if (!supabase) {
-      return;
-    }
-
-    void supabase.auth.signOut();
   };
 
   return {
