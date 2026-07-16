@@ -7,6 +7,12 @@ import type { KeyboardEvent } from 'react';
 import { useLocalization } from '../../LocalizationProvider';
 import ConfirmDialog from '../ConfirmDialog';
 import DialogShell from '../DialogShell';
+import {
+  createTag as createBoardTag,
+  getTagNameError,
+  renameTag,
+  TAG_NAME_REQUIRED_MESSAGE,
+} from '../../board/tags';
 import { InlineEmptyState } from '../EmptyState';
 import type { BoardTag } from '../../types';
 import './TagManagerDialog.css';
@@ -20,16 +26,6 @@ type TagManagerDialogProps = {
   routeOwned?: boolean;
   tags: BoardTag[];
 };
-
-const isDuplicateName = (
-  tags: BoardTag[],
-  name: string,
-  ignoredTagId?: string
-) =>
-  tags.some(
-    (tag) =>
-      tag.id !== ignoredTagId && tag.name.toLowerCase() === name.toLowerCase()
-  );
 
 type TagManagerState = {
   createError: string;
@@ -136,61 +132,44 @@ const TagManagerDialog = ({
   }, [open]);
 
   const createTag = () => {
-    const name = newTagName.trim();
+    const error = getTagNameError(tags, newTagName);
 
-    if (!name) {
+    if (error) {
       dispatch({
-        error: messages.card.tagNameRequired,
+        error:
+          error === TAG_NAME_REQUIRED_MESSAGE
+            ? messages.card.tagNameRequired
+            : messages.card.tagNamesUnique,
         type: 'createErrorChanged',
       });
       return;
     }
 
-    if (isDuplicateName(tags, name)) {
-      dispatch({
-        error: messages.card.tagNamesUnique,
-        type: 'createErrorChanged',
-      });
-      return;
-    }
-
-    onTagsChange([...tags, { id: crypto.randomUUID(), name }]);
+    onTagsChange(createBoardTag(tags, newTagName, crypto.randomUUID()).tags);
     dispatch({ type: 'tagCreated' });
   };
 
   const saveRename = (tagId: string, options?: { revertInvalid?: boolean }) => {
-    const name = editingTagName.trim();
+    const error = getTagNameError(tags, editingTagName, tagId);
     const revertInvalid = Boolean(options?.revertInvalid);
 
-    if (!name) {
+    if (error) {
       if (revertInvalid) {
         dispatch({ type: 'editingCanceled' });
         return;
       }
 
       dispatch({
-        error: messages.card.tagNameRequired,
+        error:
+          error === TAG_NAME_REQUIRED_MESSAGE
+            ? messages.card.tagNameRequired
+            : messages.card.tagNamesUnique,
         type: 'editErrorChanged',
       });
       return;
     }
 
-    if (isDuplicateName(tags, name, tagId)) {
-      if (revertInvalid) {
-        dispatch({ type: 'editingCanceled' });
-        return;
-      }
-
-      dispatch({
-        error: messages.card.tagNamesUnique,
-        type: 'editErrorChanged',
-      });
-      return;
-    }
-
-    onTagsChange(
-      tags.map((tag) => (tag.id === tagId ? { ...tag, name } : tag))
-    );
+    onTagsChange(renameTag(tags, tagId, editingTagName));
     dispatch({ type: 'tagRenamed' });
   };
 

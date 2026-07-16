@@ -8,10 +8,11 @@ import {
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import App, { AuthGate } from './App';
-import { shouldRenderAuthGate } from './app/authGate';
+import App from './App';
+import { AuthGate } from './app/AuthGate';
+import { shouldRenderAuthGate } from './app/routeGuards';
 import { parseAppRoute } from './app/routes';
-import { reorderCard } from './dnd';
+import { reorderCard } from './board/commands';
 import {
   fetchBoardState,
   fetchStorage,

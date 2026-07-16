@@ -4,6 +4,7 @@ import ProfileDialog from '../components/ProfileDialog';
 import type { ProfileDialogValues } from '../components/ProfileDialog';
 import TagManagerDialog from '../components/TagManagerDialog';
 import { useLocalization } from '../LocalizationProvider';
+import { countTagUsage } from '../board/tags';
 import { fetchStorage } from '../storage';
 import type { AuthenticatedProfile } from '../storage/authenticatedApi';
 import type { LanguagePreference, ResolvedLanguage } from '../localization';
@@ -11,11 +12,7 @@ import type { ThemePreference } from '../theme';
 import type { BoardActiveWorkCycle, BoardColumn, BoardTag } from '../types';
 
 const getTagUsageCount = (tagId: string) =>
-  fetchStorage().reduce(
-    (count, column) =>
-      count + column.cards.filter((card) => card.tagIds.includes(tagId)).length,
-    0
-  );
+  countTagUsage(fetchStorage(), tagId);
 
 type AppDialogsProps = {
   activeWorkCycle: BoardActiveWorkCycle;

@@ -9,94 +9,38 @@ import type {
 import { normalizeColumnOrder } from '../board/columns';
 import { DEFAULT_BACKGROUND, DEFAULT_CARD_PRIORITY } from '../board/constants';
 import {
-  isBoardState,
   isSafeImageUrl,
   normalizeActiveWorkCycle,
-  normalizeBoardState,
   normalizeBoardStateForColumns,
 } from '../board/validation';
-import { fetchDefaultBoard, saveBoard } from './authenticatedApi';
-
-let localBoardId: string | null = null;
-let databaseReady = false;
-let pendingDatabaseWrite = Promise.resolve();
-
-const createEmptyBoardState = (now = new Date()): BoardState => ({
-  activeWorkCycle: {
-    completedColumnId: null,
-    startDate: now.toISOString(),
-  },
-  background: DEFAULT_BACKGROUND,
-  columns: [],
-  completedWorkCycles: [],
-  tags: [],
-});
-
-let boardCache = createEmptyBoardState();
+import { getBoardCache, updateBoardCache } from './memoryCache';
+import {
+  hydrateRemoteBoardState,
+  persistRemoteBoardState,
+} from './remotePersistence';
 
 export { DEFAULT_BACKGROUND, DEFAULT_CARD_PRIORITY, isSafeImageUrl };
 
-const normalizeMemoryState = (state: BoardState) => {
-  const normalizedState = normalizeBoardState(state);
-
-  if (!isBoardState(normalizedState)) {
-    return createEmptyBoardState();
-  }
-
-  const columns = normalizeColumnOrder(normalizedState.columns);
-
-  return {
-    ...normalizedState,
-    activeWorkCycle: normalizeActiveWorkCycle(
-      normalizedState.activeWorkCycle,
-      columns,
-      new Date().toISOString()
-    ),
-    columns,
-  };
-};
-
-const updateBoardCache = (state: BoardState) => {
-  boardCache = state;
-};
-
-const persistBoardState = (state = boardCache) => {
-  if (!databaseReady || !localBoardId || typeof fetch !== 'function') {
-    return Promise.resolve();
-  }
-
-  const boardId = localBoardId;
-
-  pendingDatabaseWrite = pendingDatabaseWrite
-    .catch(() => undefined)
-    .then(async () => {
-      const payload = await saveBoard(boardId, state);
-      const nextState = normalizeMemoryState(payload.state);
-
-      localBoardId = payload.board.id;
-      updateBoardCache(nextState);
-    });
-
-  pendingDatabaseWrite.catch((error) => console.error(error));
-  return pendingDatabaseWrite;
-};
+const persistBoardState = (state = getBoardCache()) =>
+  persistRemoteBoardState(state, updateBoardCache);
 
 export const fetchBackgroundStorage = (): BoardBackground =>
-  boardCache.background;
+  getBoardCache().background;
 
-export const fetchBoardState = (): BoardState => boardCache;
+export const fetchBoardState = (): BoardState => getBoardCache();
 
-export const fetchStorage = (): BoardColumn[] => boardCache.columns;
+export const fetchStorage = (): BoardColumn[] => getBoardCache().columns;
 
-export const fetchTagStorage = (): BoardTag[] => boardCache.tags;
+export const fetchTagStorage = (): BoardTag[] => getBoardCache().tags;
 
 export const fetchActiveWorkCycleStorage = (): BoardActiveWorkCycle =>
-  boardCache.activeWorkCycle;
+  getBoardCache().activeWorkCycle;
 
 export const fetchCompletedWorkCyclesStorage = (): CompletedWorkCycle[] =>
-  boardCache.completedWorkCycles;
+  getBoardCache().completedWorkCycles;
 
 export const updateStorage = (data: BoardColumn[]) => {
+  const boardCache = getBoardCache();
   const columns = normalizeColumnOrder(data);
   const state = normalizeBoardStateForColumns(
     {
@@ -110,82 +54,63 @@ export const updateStorage = (data: BoardColumn[]) => {
     columns
   );
 
-  updateBoardCache(state);
-  void persistBoardState(state);
+  const normalizedState = updateBoardCache(state);
+  void persistBoardState(normalizedState);
 };
 
 export const updateBackgroundStorage = (background: BoardBackground) => {
-  const state = {
-    ...boardCache,
+  const normalizedState = updateBoardCache({
+    ...getBoardCache(),
     background,
-  };
+  });
 
-  updateBoardCache(state);
-  void persistBoardState(state);
+  void persistBoardState(normalizedState);
 };
 
 export const updateTagStorage = (tags: BoardTag[]) => {
-  const state = {
-    ...boardCache,
+  const normalizedState = updateBoardCache({
+    ...getBoardCache(),
     tags,
-  };
+  });
 
-  updateBoardCache(state);
-  void persistBoardState(state);
+  void persistBoardState(normalizedState);
 };
 
 export const updateActiveWorkCycleStorage = (
   activeWorkCycle: BoardActiveWorkCycle
 ) => {
-  const state = {
+  const boardCache = getBoardCache();
+  const normalizedState = updateBoardCache({
     ...boardCache,
     activeWorkCycle: normalizeActiveWorkCycle(
       activeWorkCycle,
       boardCache.columns,
       new Date().toISOString()
     ),
-  };
+  });
 
-  updateBoardCache(state);
-  void persistBoardState(state);
+  void persistBoardState(normalizedState);
 };
 
 export const updateCompletedWorkCyclesStorage = (
   completedWorkCycles: CompletedWorkCycle[]
 ) => {
-  const state = {
-    ...boardCache,
+  const normalizedState = updateBoardCache({
+    ...getBoardCache(),
     completedWorkCycles,
-  };
+  });
 
-  updateBoardCache(state);
-  void persistBoardState(state);
+  void persistBoardState(normalizedState);
 };
 
 export const updateBoardStateStorage = (state: BoardState) => {
-  const normalizedState = normalizeMemoryState(state);
+  const normalizedState = updateBoardCache(state);
 
-  updateBoardCache(normalizedState);
   void persistBoardState(normalizedState);
 };
 
 export const hydrateStorageFromDatabase =
-  async (): Promise<BoardState | null> => {
-    if (typeof fetch !== 'function') {
-      return null;
-    }
-
-    try {
-      const payload = await fetchDefaultBoard();
-      const state = normalizeMemoryState(payload.state);
-
-      localBoardId = payload.board.id;
-      databaseReady = true;
-      updateBoardCache(state);
-      return state;
-    } catch {
-      databaseReady = false;
-      localBoardId = null;
-      return null;
-    }
-  };
+  async (): Promise<BoardState | null> =>
+    hydrateRemoteBoardState({
+      updateCache: updateBoardCache,
+    });

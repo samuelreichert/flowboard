@@ -4,7 +4,7 @@ import { lazy, Suspense } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
-import type { BoardTag, CompletedWorkCycle } from '../types';
+import type { BoardColumn, BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
 
 const HistoryView = lazy(() => import('../components/HistoryView'));
@@ -14,6 +14,7 @@ type AppWorkspaceProps = {
   archivedCardRoute: { cardId: string; cycleId: string } | null;
   boardLoading: boolean;
   canCompleteWork: boolean;
+  columns: BoardColumn[];
   completeWorkDisabledReason: string;
   completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
@@ -21,8 +22,7 @@ type AppWorkspaceProps = {
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
   onArchivedCardClose: () => void;
-  onBoardStateChange: () => void;
-  onColumnCountChange: (columnCount: number) => void;
+  onColumnsChange: (columns: BoardColumn[]) => void;
   onCompleteWorkClick: () => void;
   onManageColumnsOpenChange: (open: boolean) => void;
   onOpenMobileSidebar: () => void;
@@ -36,6 +36,7 @@ const AppWorkspace = ({
   archivedCardRoute,
   boardLoading,
   canCompleteWork,
+  columns,
   completeWorkDisabledReason,
   completedWorkCycles,
   completionPulse,
@@ -43,8 +44,7 @@ const AppWorkspace = ({
   manageColumnsOpen,
   onActiveCardClose,
   onArchivedCardClose,
-  onBoardStateChange,
-  onColumnCountChange,
+  onColumnsChange,
   onCompleteWorkClick,
   onManageColumnsOpenChange,
   onOpenMobileSidebar,
@@ -116,12 +116,12 @@ const AppWorkspace = ({
           <Columns
             activeCardId={activeCardId}
             boardLoading={boardLoading}
+            columns={columns}
             key={storageVersion}
             manageColumnsOpen={manageColumnsOpen}
             onActiveCardClose={onActiveCardClose}
-            onBoardStateChange={onBoardStateChange}
-            onColumnCountChange={onColumnCountChange}
             onManageColumnsOpenChange={onManageColumnsOpenChange}
+            onColumnsChange={onColumnsChange}
             onTagsChange={onTagsChange}
             tags={tags}
           />

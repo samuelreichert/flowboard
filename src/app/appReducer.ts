@@ -69,8 +69,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     case 'clearBoardOpenChanged':
       return { ...state, clearBoardOpen: action.open };
-    case 'columnCountChanged':
-      return { ...state, columnCount: action.columnCount };
     case 'completeWorkOpenChanged':
       return { ...state, completeWorkOpen: action.open };
     case 'completionPulseChanged':

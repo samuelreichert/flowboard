@@ -2,7 +2,7 @@ import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/ad
 import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 import { Button } from '@base-ui/react/button';
 import { Columns3, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import CardComposer from '../CardComposer';
@@ -14,11 +14,18 @@ import {
   isCardDragData,
   isCardDropTargetData,
   isColumnDropTargetData,
-  reorderCard,
 } from '../../dnd';
-import { moveColumn, normalizeColumnOrder } from '../../board/columns';
+import { moveColumn } from '../../board/columns';
+import {
+  createCard,
+  createColumn,
+  deleteCard,
+  deleteColumn,
+  editCard,
+  renameColumn,
+  reorderCard,
+} from '../../board/commands';
 import { findActiveCardRouteTarget } from '../../board/routeLookup';
-import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
 import type { BoardColumn, BoardTag } from '../../types';
 
@@ -29,10 +36,10 @@ const createId = () => crypto.randomUUID();
 type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
+  columns: BoardColumn[];
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
-  onBoardStateChange: () => void;
-  onColumnCountChange: (count: number) => void;
+  onColumnsChange: (columns: BoardColumn[]) => void;
   onManageColumnsOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   tags: BoardTag[];
@@ -41,32 +48,16 @@ type ColumnsProps = {
 const Columns = ({
   activeCardId,
   boardLoading,
+  columns,
   manageColumnsOpen,
   onActiveCardClose,
-  onBoardStateChange,
-  onColumnCountChange,
+  onColumnsChange,
   onManageColumnsOpenChange,
   onTagsChange,
   tags,
 }: ColumnsProps) => {
   const { messages } = useLocalization();
-  const [columns, setColumns] = useState<BoardColumn[]>(() =>
-    normalizeColumnOrder(fetchStorage())
-  );
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-
-  const updateColumns = useCallback(
-    (newColumns: BoardColumn[]) => {
-      const normalizedColumns = normalizeColumnOrder(newColumns);
-
-      setColumns(normalizedColumns);
-      updateStorage(normalizedColumns);
-      onColumnCountChange(normalizedColumns.length);
-      onBoardStateChange();
-    },
-    [onBoardStateChange, onColumnCountChange]
-  );
-
   const onSaveColumn = (title: string) => {
     if (!title) {
       return messages.board.columnTitleRequired;
@@ -80,10 +71,7 @@ const Columns = ({
       return messages.board.columnTitlesUnique;
     }
 
-    updateColumns([
-      ...columns,
-      { id: createId(), title, cards: [], position: columns.length * 10 },
-    ]);
+    onColumnsChange(createColumn(columns, { id: createId(), title }));
   };
 
   const onRenameColumn = (columnId: string, title: string) => {
@@ -101,22 +89,18 @@ const Columns = ({
       return messages.board.columnTitlesUnique;
     }
 
-    updateColumns(
-      columns.map((column) =>
-        column.id === columnId ? { ...column, title } : column
-      )
-    );
+    onColumnsChange(renameColumn(columns, columnId, title));
   };
 
   const onDeleteColumn = (columnId: string) => {
-    updateColumns(columns.filter((column) => column.id !== columnId));
+    onColumnsChange(deleteColumn(columns, columnId));
   };
 
   const onMoveColumn = (
     columnId: string,
     direction: Parameters<typeof moveColumn>[2]
   ) => {
-    updateColumns(moveColumn(columns, columnId, direction));
+    onColumnsChange(moveColumn(columns, columnId, direction));
   };
 
   const onSaveCard = (values: CardDialogValues) => {
@@ -124,25 +108,12 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    updateColumns(
-      columns.map((column) =>
-        column.id === values.columnId
-          ? {
-              ...column,
-              cards: [
-                ...column.cards,
-                {
-                  content: values.content,
-                  createdAt: new Date().toISOString(),
-                  id: createId(),
-                  priority: values.priority,
-                  tagIds: values.tagIds,
-                  title: values.title,
-                },
-              ],
-            }
-          : column
-      )
+    onColumnsChange(
+      createCard(columns, {
+        ...values,
+        createdAt: new Date().toISOString(),
+        id: createId(),
+      })
     );
   };
 
@@ -155,65 +126,11 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    const sourceColumn = columns.find((column) => column.id === sourceColumnId);
-    const existingCard = sourceColumn?.cards.find((card) => card.id === cardId);
-
-    if (!existingCard) {
-      return;
-    }
-
-    const updatedCard = {
-      ...existingCard,
-      content: values.content,
-      priority: values.priority,
-      tagIds: values.tagIds,
-      title: values.title,
-    };
-
-    updateColumns(
-      columns.map((column) => {
-        if (
-          sourceColumnId === values.columnId &&
-          column.id === sourceColumnId
-        ) {
-          return {
-            ...column,
-            cards: column.cards.map((card) =>
-              card.id === cardId ? updatedCard : card
-            ),
-          };
-        }
-
-        if (column.id === sourceColumnId) {
-          return {
-            ...column,
-            cards: column.cards.filter((card) => card.id !== cardId),
-          };
-        }
-
-        if (column.id === values.columnId) {
-          return {
-            ...column,
-            cards: [...column.cards, updatedCard],
-          };
-        }
-
-        return column;
-      })
-    );
+    onColumnsChange(editCard(columns, sourceColumnId, cardId, values));
   };
 
   const onDeleteCard = (columnId: string, cardId: string) => {
-    updateColumns(
-      columns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              cards: column.cards.filter((card) => card.id !== cardId),
-            }
-          : column
-      )
-    );
+    onColumnsChange(deleteCard(columns, columnId, cardId));
   };
 
   useEffect(
@@ -232,7 +149,7 @@ const Columns = ({
           }
 
           if (isCardDropTargetData(target.data)) {
-            updateColumns(
+            onColumnsChange(
               reorderCard(columns, {
                 cardId: source.data.cardId,
                 closestEdge: extractClosestEdge(target.data),
@@ -244,7 +161,7 @@ const Columns = ({
           }
 
           if (isColumnDropTargetData(target.data)) {
-            updateColumns(
+            onColumnsChange(
               reorderCard(columns, {
                 cardId: source.data.cardId,
                 closestEdge: null,
@@ -255,7 +172,7 @@ const Columns = ({
           }
         },
       }),
-    [columns, updateColumns]
+    [columns, onColumnsChange]
   );
 
   const sortedColumns = columns.toSorted(

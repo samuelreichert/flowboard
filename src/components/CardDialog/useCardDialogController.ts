@@ -1,6 +1,11 @@
 import { useEffect, useReducer, useRef } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import {
+  createTag as createBoardTag,
+  getTagNameError,
+  TAG_NAME_REQUIRED_MESSAGE,
+} from '../../board/tags';
 import type { BoardTag, CardPriority } from '../../types';
 import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
 import { formatCreatedAt } from './formatters';
@@ -136,26 +141,26 @@ const useCardDialogController = ({
   };
 
   const createTag = () => {
-    const name = newTagName.trim();
+    const error = getTagNameError(tags, newTagName);
 
-    if (!name) {
+    if (error) {
       dispatch({
         type: 'fieldsChanged',
-        values: { tagError: messages.card.tagNameRequired },
+        values: {
+          tagError:
+            error === TAG_NAME_REQUIRED_MESSAGE
+              ? messages.card.tagNameRequired
+              : messages.card.tagNamesUnique,
+        },
       });
       return;
     }
 
-    if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
-      dispatch({
-        type: 'fieldsChanged',
-        values: { tagError: messages.card.tagNamesUnique },
-      });
-      return;
-    }
-
-    const tag = { id: crypto.randomUUID(), name };
-    const nextTags = [...tags, tag];
+    const { tag, tags: nextTags } = createBoardTag(
+      tags,
+      newTagName,
+      crypto.randomUUID()
+    );
     const nextTagIds = [...selectedTagIds, tag.id];
 
     onTagsChange(nextTags);

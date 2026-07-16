@@ -39,7 +39,6 @@ export type AppAction =
   | { type: 'boardStateChanged'; state: BoardState }
   | { type: 'boardStateSynced'; state: BoardState }
   | { type: 'clearBoardOpenChanged'; open: boolean }
-  | { type: 'columnCountChanged'; columnCount: number }
   | { type: 'completeWorkOpenChanged'; open: boolean }
   | { type: 'completionPulseChanged'; active: boolean }
   | { type: 'currentViewChanged'; view: AppView }
