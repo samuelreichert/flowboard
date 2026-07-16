@@ -98,4 +98,4 @@
 - [x] 12.2 Run `npm run build`.
 - [x] 12.3 Run `npm run format:check` or format touched files.
 - [x] 12.4 For UI-affecting phases, run a local dev server and inspect key responsive states before calling the refactor complete.
-- [ ] 12.5 Review the final diff to confirm no route names, storage keys, API payloads, auth flows, persisted Markdown, or visible workflows changed unintentionally.
+- [x] 12.5 Review the final diff to confirm no route names, storage keys, API payloads, auth flows, persisted Markdown, or visible workflows changed unintentionally.
