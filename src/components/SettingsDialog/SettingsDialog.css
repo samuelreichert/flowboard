@@ -1,0 +1,66 @@
+.board-settings__content {
+  display: grid;
+  gap: 24px;
+}
+
+.board-settings__section {
+  margin-top: 0;
+}
+
+.board-settings__label-row {
+  align-items: center;
+  color: var(--color-text);
+  display: flex;
+  gap: 7px;
+}
+
+.board-settings__label-row svg {
+  color: var(--color-text-muted);
+}
+
+.board-settings__danger-zone {
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding-top: 22px;
+}
+
+.board-settings__danger-title {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0 0 4px;
+}
+
+.board-settings__danger-description {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.board-settings__danger-button {
+  color: var(--color-danger);
+  flex: 0 0 auto;
+}
+
+.board-settings__danger-button:hover,
+.board-settings__danger-button:focus-visible {
+  background-color: var(--color-danger-subtle);
+  border-color: transparent;
+  color: var(--color-danger);
+}
+
+.board-settings__done-button {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+@media (max-width: 760px) {
+  .board-settings__danger-zone {
+    align-items: stretch;
+    display: grid;
+  }
+}

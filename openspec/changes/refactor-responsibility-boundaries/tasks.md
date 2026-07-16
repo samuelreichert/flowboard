@@ -74,13 +74,13 @@
 
 ## 10. Split CSS Ownership
 
-- [ ] 10.1 Keep global design tokens in a global stylesheet.
-- [ ] 10.2 Move auth-gate and not-found styles near their extracted components.
-- [ ] 10.3 Move app shell/sidebar/persistence status styles near app shell components.
-- [ ] 10.4 Move profile avatar/profile dialog, settings, completion pulse, and history styles near their owning components.
-- [ ] 10.5 Move shared `.button` and `.menu-*` styles out of `App.css` into shared primitive CSS ownership, such as `src/components/Button/Button.css` and `src/components/Menu/Menu.css` or an equivalent shared primitive stylesheet.
-- [ ] 10.6 Preserve class names where practical to reduce visual churn, and remove obsolete global blocks only after migrated components render correctly.
-- [ ] 10.7 Visually verify desktop, mobile, light theme, dark theme, sidebar collapsed/expanded, route dialogs, profile dialog, history detail, and editor surfaces.
+- [x] 10.1 Keep global design tokens in a global stylesheet.
+- [x] 10.2 Move auth-gate and not-found styles near their extracted components.
+- [x] 10.3 Move app shell/sidebar/persistence status styles near app shell components.
+- [x] 10.4 Move profile avatar/profile dialog, settings, completion pulse, and history styles near their owning components.
+- [x] 10.5 Move shared `.button` and `.menu-*` styles out of `App.css` into shared primitive CSS ownership, such as `src/components/Button/Button.css` and `src/components/Menu/Menu.css` or an equivalent shared primitive stylesheet.
+- [x] 10.6 Preserve class names where practical to reduce visual churn, and remove obsolete global blocks only after migrated components render correctly.
+- [x] 10.7 Visually verify desktop, mobile, light theme, dark theme, sidebar collapsed/expanded, route dialogs, profile dialog, history detail, and editor surfaces.
 
 ## 11. Split Tests By Feature
 
@@ -97,5 +97,5 @@
 - [x] 12.1 Run `npm run test:run`.
 - [x] 12.2 Run `npm run build`.
 - [x] 12.3 Run `npm run format:check` or format touched files.
-- [ ] 12.4 For UI-affecting phases, run a local dev server and inspect key responsive states before calling the refactor complete.
+- [x] 12.4 For UI-affecting phases, run a local dev server and inspect key responsive states before calling the refactor complete.
 - [ ] 12.5 Review the final diff to confirm no route names, storage keys, API payloads, auth flows, persisted Markdown, or visible workflows changed unintentionally.

@@ -1,6 +1,8 @@
 import type { ProfileIdentity } from '../../auth/profileDisplay';
 import { getProfileInitials } from '../../auth/profileDisplay';
 
+import './ProfileAvatar.css';
+
 type ProfileAvatarProps = {
   className?: string;
   profile: ProfileIdentity | null;

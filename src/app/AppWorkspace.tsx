@@ -7,6 +7,8 @@ import Columns from '../components/Columns';
 import type { BoardColumn, BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
 
+import './AppWorkspace.css';
+
 const HistoryView = lazy(() => import('../components/HistoryView'));
 
 type AppWorkspaceProps = {

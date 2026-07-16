@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useLocalization } from '../LocalizationProvider';
+import './AuthGate.css';
+import './RouteFallbacks.css';
 
 type AuthRedirectProps = {
   destination: string;

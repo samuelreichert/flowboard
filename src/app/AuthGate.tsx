@@ -5,6 +5,8 @@ import { useLocalization } from '../LocalizationProvider';
 import { socialAuthProviders, type SocialAuthProvider } from '../auth/supabase';
 import type { AuthState } from './useAuthSession';
 
+import './AuthGate.css';
+
 type AuthGateProps = {
   iconSrc?: string;
   message: string | null;

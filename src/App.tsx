@@ -26,6 +26,8 @@ import useAppController from './app/useAppController';
 import { isSupabaseConfigured } from './auth/supabase';
 
 import './App.css';
+import './components/Primitives/Primitives.css';
+import './app/AppShell.css';
 
 type MobileNavigationBackdropProps = {
   onClose: () => void;

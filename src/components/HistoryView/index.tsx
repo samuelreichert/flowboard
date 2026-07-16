@@ -16,6 +16,8 @@ import type { HistoryLayout } from './HistoryCycleList';
 import { getVisibleTagNames, sortCompletedWorkCycles } from './historyHelpers';
 import { useHistoryDetail } from './useHistoryDetail';
 
+import './HistoryView.css';
+
 type HistoryViewProps = {
   boardLoading: boolean;
   completedWorkCycles: CompletedWorkCycle[];
