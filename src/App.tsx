@@ -4,12 +4,14 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router';
+import { useEffect } from 'react';
 
 import { LocalizationProvider, useLocalization } from './LocalizationProvider';
 import AuthGate from './app/AuthGate';
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
 import AppWorkspace from './app/AppWorkspace';
+import FlowboardQueryProvider from './app/FlowboardQueryProvider';
 import { AuthRedirect, NotFoundView } from './app/RouteFallbacks';
 import { getThemeIconSrc } from './app/appTheme';
 import {
@@ -54,10 +56,17 @@ const RoutedApp = () => {
   const navigate = useNavigate();
   const route = parseAppRoute(location.pathname);
   const currentView = getViewForRoute(route);
+  const { loadCompleteBoardState } = controller;
   const nextDestination =
     route.type === 'auth-callback' || route.type === 'sign-in'
       ? getNextSearchDestination(location.search)
       : getLocationDestination(location);
+
+  useEffect(() => {
+    if (currentView === 'history') {
+      loadCompleteBoardState();
+    }
+  }, [currentView, loadCompleteBoardState]);
 
   if (route.type === 'root') {
     return <Navigate replace to={APP_ROUTES.board} />;
@@ -120,6 +129,10 @@ const RoutedApp = () => {
     route.type === 'archived-card'
       ? { cardId: route.cardId, cycleId: route.cycleId }
       : null;
+  const cardDetailAccessToken =
+    controller.authState.status === 'signedIn'
+      ? controller.authState.session.access_token
+      : undefined;
 
   return (
     <LocalizationProvider language={controller.resolvedLanguage}>
@@ -160,6 +173,7 @@ const RoutedApp = () => {
           activeCardId={activeCardId}
           archivedCardRoute={archivedCardRoute}
           boardLoading={controller.authenticatedBoardLoading}
+          cardDetailAccessToken={cardDetailAccessToken}
           canCompleteWork={controller.canCompleteWork}
           columns={controller.columns}
           completeWorkDisabledReason={controller.completeWorkDisabledReason}
@@ -237,9 +251,11 @@ const RoutedApp = () => {
 };
 
 const App = () => (
-  <BrowserRouter>
-    <RoutedApp />
-  </BrowserRouter>
+  <FlowboardQueryProvider>
+    <BrowserRouter>
+      <RoutedApp />
+    </BrowserRouter>
+  </FlowboardQueryProvider>
 );
 
 export default App;

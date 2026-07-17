@@ -10,7 +10,6 @@ import { beforeEach, vi } from 'vitest';
 
 import App from '../App';
 import '../components/HistoryView';
-import { updateBoardStateStorage } from '../storage';
 import {
   CREATED_AT,
   addCard,
@@ -120,7 +119,7 @@ test('shows missing state for an unresolved active card route', async () => {
 
 test('directly opens and closes an archived card route', async () => {
   const user = userEvent.setup();
-  updateBoardStateStorage(createBoardStateWithHistory());
+  seedBoardState(createBoardStateWithHistory());
   window.history.replaceState(
     null,
     '',
@@ -139,7 +138,7 @@ test('directly opens and closes an archived card route', async () => {
 });
 
 test('shows missing state for an unresolved archived card route', async () => {
-  updateBoardStateStorage(createBoardStateWithHistory());
+  seedBoardState(createBoardStateWithHistory());
   window.history.replaceState(
     null,
     '',

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Dispatch } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { getProfileFromSession } from '../auth/profileDisplay';
 import {
@@ -7,58 +8,33 @@ import {
   uploadProfileAvatar,
 } from '../auth/profileAvatar';
 import {
-  fetchAuthenticatedProfile,
   saveAuthenticatedProfile,
   type AuthenticatedProfile,
 } from '../storage/authenticatedApi';
 import type { Messages } from '../localization';
 import type { AppAction } from './appTypes';
 import type { AuthState } from './useAuthSession';
+import { queryKeys } from './queryKeys';
+import { useAuthenticatedProfileQuery } from './useFlowboardQueries';
 
 const useAuthenticatedProfile = (
   authState: AuthState,
   dispatch: Dispatch<AppAction>,
   messages: Messages['app']['persistence']
 ) => {
-  const [authenticatedProfile, setAuthenticatedProfile] =
-    useState<AuthenticatedProfile | null>(null);
+  const queryClient = useQueryClient();
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
-
-  useEffect(() => {
-    if (authState.status !== 'signedIn') {
-      setAuthenticatedProfile(null);
-      return;
-    }
-
-    let active = true;
-
-    void fetchAuthenticatedProfile(authState.session.access_token)
-      .then((payload) => {
-        if (!active) {
-          return;
-        }
-
-        setAuthenticatedProfile(payload.profile);
-      })
-      .catch(() => {
-        if (!active) {
-          return;
-        }
-
-        setProfileError(messages.profileUnavailable);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [authState, messages]);
+  const accessToken =
+    authState.status === 'signedIn' ? authState.session.access_token : undefined;
+  const profileQuery = useAuthenticatedProfileQuery(accessToken);
 
   const sessionProfile =
     authState.status === 'signedIn'
       ? getProfileFromSession(authState.session)
       : null;
-  const activeAuthenticatedProfile = authenticatedProfile ?? sessionProfile;
+  const activeAuthenticatedProfile =
+    profileQuery.data?.profile ?? sessionProfile;
 
   const clearProfileError = () => setProfileError(null);
 
@@ -107,7 +83,10 @@ const useAuthenticatedProfile = (
         authState.session.access_token
       );
 
-      setAuthenticatedProfile(payload.profile);
+      queryClient.setQueryData<{ profile: AuthenticatedProfile }>(
+        queryKeys.profile,
+        payload
+      );
       dispatch({ open: false, type: 'profileDialogOpenChanged' });
     } catch (error) {
       setProfileError(
@@ -121,7 +100,9 @@ const useAuthenticatedProfile = (
   return {
     authenticatedProfile: activeAuthenticatedProfile,
     clearProfileError,
-    profileError,
+    profileError:
+      profileError ??
+      (profileQuery.isError ? messages.profileUnavailable : null),
     profileSaving,
     saveProfile,
   };

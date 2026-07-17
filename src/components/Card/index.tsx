@@ -9,12 +9,14 @@ import CardDialog from '../CardDialog';
 import type { CardDialogValues } from '../CardDialog';
 import { useLocalization } from '../../LocalizationProvider';
 import { createActiveCardPath } from '../../app/routes';
+import { useActiveCardDetailQuery } from '../../app/useFlowboardQueries';
 import type { BoardCard, BoardColumn, BoardTag } from '../../types';
 
 import './Card.css';
 
 type CardProps = {
   activeCardId: string | null;
+  cardDetailAccessToken?: string;
   card: BoardCard;
   columnId: string;
   columns: BoardColumn[];
@@ -44,6 +46,7 @@ const cardReducer = (state: CardState, action: CardAction): CardState => {
 
 const Card = ({
   activeCardId,
+  cardDetailAccessToken,
   card,
   columnId,
   columns,
@@ -69,6 +72,13 @@ const Card = ({
     });
   const routeDetailsOpen = activeCardId === card.id;
   const dialogOpen = detailsOpen || routeDetailsOpen;
+  const cardDetailQuery = useActiveCardDetailQuery(
+    dialogOpen ? card.id : null,
+    cardDetailAccessToken
+  );
+  const dialogCard = cardDetailQuery.data
+    ? { ...card, ...cardDetailQuery.data }
+    : card;
 
   const openCard = () => navigate(createActiveCardPath(card.id));
 
@@ -125,7 +135,7 @@ const Card = ({
         </button>
       </article>
       <CardDialog
-        card={card}
+        card={dialogCard}
         columnId={columnId}
         columns={columns}
         onDelete={() => deleteCard(columnId, card.id)}

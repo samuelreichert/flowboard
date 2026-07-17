@@ -27,6 +27,7 @@ const createId = () => crypto.randomUUID();
 type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
+  cardDetailAccessToken?: string;
   columns: BoardColumn[];
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
@@ -39,6 +40,7 @@ type ColumnsProps = {
 const Columns = ({
   activeCardId,
   boardLoading,
+  cardDetailAccessToken,
   columns,
   manageColumnsOpen,
   onActiveCardClose,
@@ -144,6 +146,7 @@ const Columns = ({
         />
         <ColumnList
           activeCardId={activeCardId}
+          cardDetailAccessToken={cardDetailAccessToken}
           columns={sortedColumns}
           deleteCard={onDeleteCard}
           deleteColumn={onDeleteColumn}

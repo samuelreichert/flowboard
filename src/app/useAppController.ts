@@ -1,15 +1,15 @@
 import { useEffect, useReducer, useRef } from 'react';
 
-import { isSupabaseConfigured, supabase } from '../auth/supabase';
+import { isSupabaseConfigured } from '../auth/supabase';
 import { LOCAL_PROFILE_IDENTITY } from '../auth/profileDisplay';
 import { getMessages } from '../localization';
-import { hydrateStorageFromDatabase } from '../storage';
 import { appReducer, initAppState } from './appReducer';
 import useBoardActions from './useBoardActions';
 import useAuthenticatedBoardSync from './useAuthenticatedBoardSync';
 import useAuthenticatedProfile from './useAuthenticatedProfile';
 import useAppThemeEffects from './useAppThemeEffects';
 import useAuthSession from './useAuthSession';
+import { clearFlowboardQueryCache } from './queryClient';
 
 const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
@@ -37,15 +37,14 @@ const useAppController = () => {
     themePreference,
   } = state;
   const messages = getMessages(resolvedLanguage);
-  const persistenceMessagesRef = useRef(messages.app.persistence);
+  const authenticatedUserIdRef = useRef<string | null | undefined>(undefined);
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
   const {
     authenticatedBoardLoading,
+    loadCompleteBoardState,
     persistenceMessage,
     persistAuthenticatedBoard,
-    setAuthenticatedBoardLoading,
-    setPersistenceMessage,
   } = useAuthenticatedBoardSync(
     authState,
     dispatch,
@@ -86,43 +85,18 @@ const useAppController = () => {
   });
 
   useEffect(() => {
-    persistenceMessagesRef.current = messages.app.persistence;
-  }, [messages.app.persistence]);
+    const authenticatedUserId =
+      authState.status === 'signedIn' ? authState.session.user.id : null;
 
-  useEffect(() => {
-    if (supabase) {
-      return;
+    if (
+      authenticatedUserIdRef.current !== undefined &&
+      authenticatedUserIdRef.current !== authenticatedUserId
+    ) {
+      clearFlowboardQueryCache();
     }
 
-    let active = true;
-
-    setAuthenticatedBoardLoading(true);
-    setPersistenceMessage(persistenceMessagesRef.current.loadingLocalBoard);
-    void hydrateStorageFromDatabase().then((state) => {
-      if (!active) {
-        return;
-      }
-
-      setAuthenticatedBoardLoading(false);
-
-      if (!state) {
-        setPersistenceMessage(
-          persistenceMessagesRef.current.localDatabaseUnavailable
-        );
-        return;
-      }
-
-      setPersistenceMessage(null);
-      dispatch({
-        state,
-        type: 'storageHydrated',
-      });
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [setAuthenticatedBoardLoading, setPersistenceMessage]);
+    authenticatedUserIdRef.current = authenticatedUserId;
+  }, [authState]);
 
   const openTagManager = () => {
     dispatch({ open: true, type: 'tagManagerOpenChanged' });
@@ -234,6 +208,7 @@ const useAppController = () => {
     currentView,
     deleteTag,
     languagePreference,
+    loadCompleteBoardState,
     manageColumnsOpen,
     mobileSidebarOpen,
     openBoard,

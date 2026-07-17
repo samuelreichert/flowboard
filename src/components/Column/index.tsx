@@ -25,6 +25,7 @@ import '../IconButton/IconButton.css';
 
 type ColumnProps = {
   activeCardId: string | null;
+  cardDetailAccessToken?: string;
   column: BoardColumn;
   columns: BoardColumn[];
   deleteCard: (columnId: string, cardId: string) => void;
@@ -64,6 +65,7 @@ const columnReducer = (
 
 const Column = ({
   activeCardId,
+  cardDetailAccessToken,
   column,
   columns,
   deleteCard,
@@ -172,6 +174,7 @@ const Column = ({
           {column.cards.map((card) => (
             <Card
               activeCardId={activeCardId}
+              cardDetailAccessToken={cardDetailAccessToken}
               card={card}
               columnId={column.id}
               columns={columns}

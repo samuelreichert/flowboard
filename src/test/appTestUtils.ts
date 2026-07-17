@@ -3,14 +3,116 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
 import { fetchStorage, updateBoardStateStorage } from '../storage';
+import { clearFlowboardQueryCache } from '../app/queryClient';
 import type { BoardColumn, BoardState } from '../types';
 
 export const CREATED_AT = '2026-06-03T12:34:56.000Z';
 
+let mockServerBoardState: BoardState;
+
+const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
+  new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
+
+const createBootstrapResponse = () => {
+  const state = mockServerBoardState;
+
+  return {
+    board: {
+      background: state.background,
+      id: 'test-board',
+      title: 'Flowboard',
+      version: 1,
+    },
+    cards: state.columns.flatMap((column) =>
+      column.cards.map((card) => ({
+        columnId: column.id,
+        id: card.id,
+        priority: card.priority,
+        tagIds: card.tagIds,
+        title: card.title,
+      }))
+    ),
+    columns: state.columns.map((column) => ({
+      id: column.id,
+      title: column.title,
+    })),
+    tags: state.tags,
+    workCycle: state.activeWorkCycle,
+  };
+};
+
+const findCardDetail = (cardId: string) =>
+  mockServerBoardState
+    .columns.flatMap((column) => column.cards)
+    .find((card) => card.id === cardId);
+
+const mockFlowboardApi = () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/api/board/bootstrap')) {
+        return jsonResponse(createBootstrapResponse());
+      }
+
+      if (url.includes('/api/board/cards/')) {
+        const cardId = decodeURIComponent(url.split('/api/board/cards/')[1]);
+        const card = findCardDetail(cardId);
+
+        return card
+          ? jsonResponse({
+              content: card.content,
+              createdAt: card.createdAt,
+              id: card.id,
+              priority: card.priority,
+              tagIds: card.tagIds,
+              title: card.title,
+            })
+          : jsonResponse({ error: 'Card not found.' }, { status: 404 });
+      }
+
+      if (url.endsWith('/api/boards/default')) {
+        return jsonResponse({
+          board: {
+            id: 'test-board',
+            title: 'Flowboard',
+            updatedAt: CREATED_AT,
+          },
+          state: mockServerBoardState,
+        });
+      }
+
+      if (url.includes('/api/boards/') && init?.method === 'PUT') {
+        const state = JSON.parse(String(init.body)) as BoardState;
+
+        mockServerBoardState = state;
+        updateBoardStateStorage(state);
+
+        return jsonResponse({
+          board: {
+            id: 'test-board',
+            title: 'Flowboard',
+            updatedAt: CREATED_AT,
+          },
+          state,
+        });
+      }
+
+      return jsonResponse({ error: 'Not found.' }, { status: 404 });
+    })
+  );
+};
+
 export const resetAppTestEnvironment = () => {
   window.history.replaceState(null, '', '/');
   localStorage.clear();
+  clearFlowboardQueryCache();
   seedBoardState();
+  mockFlowboardApi();
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {
@@ -193,7 +295,10 @@ export const createTestBoardState = (
 });
 
 export const seedBoardState = (overrides: Partial<BoardState> = {}) => {
-  updateBoardStateStorage(createTestBoardState(overrides));
+  const state = createTestBoardState(overrides);
+
+  mockServerBoardState = state;
+  updateBoardStateStorage(state);
 };
 
 export const createBoardColumns = (): BoardColumn[] => [
