@@ -6,6 +6,7 @@ import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
 import type { BoardColumn, BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
+import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import type { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
 import './AppWorkspace.css';
@@ -17,6 +18,7 @@ type AppWorkspaceProps = {
   archivedCardRoute: { cardId: string; cycleId: string } | null;
   cardDetailAccessToken?: string;
   boardLoading: boolean;
+  boardMutations: ReturnType<typeof useFlowboardBoardMutations>;
   canCompleteWork: boolean;
   cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
@@ -42,6 +44,7 @@ const AppWorkspace = ({
   archivedCardRoute,
   cardDetailAccessToken,
   boardLoading,
+  boardMutations,
   canCompleteWork,
   cardMutations,
   columns,
@@ -125,6 +128,7 @@ const AppWorkspace = ({
           <Columns
             activeCardId={activeCardId}
             boardLoading={boardLoading}
+            boardMutations={boardMutations}
             cardDetailAccessToken={cardDetailAccessToken}
             cardMutations={cardMutations}
             columns={columns}

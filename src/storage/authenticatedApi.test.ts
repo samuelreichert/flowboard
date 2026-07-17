@@ -35,7 +35,7 @@ test('fetchBoardBootstrap requests the lean bootstrap endpoint', async () => {
       startDate: '2026-07-17T10:00:00.000Z',
     },
   };
-  const fetchMock = vi.fn().mockResolvedValue(createJsonResponse(payload));
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -59,7 +59,7 @@ test('fetchActiveCardDetail requests encoded active card detail endpoint', async
     tagIds: [],
     title: 'Card title',
   };
-  const fetchMock = vi.fn().mockResolvedValue(createJsonResponse(payload));
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -99,7 +99,7 @@ test('createActiveCard posts to the card collection endpoint', async () => {
       title: 'Card title',
     },
   };
-  const fetchMock = vi.fn().mockResolvedValue(createJsonResponse(payload));
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -148,7 +148,7 @@ test('updateActiveCard patches encoded card endpoint with partial payload', asyn
       title: 'Updated title',
     },
   };
-  const fetchMock = vi.fn().mockResolvedValue(createJsonResponse(payload));
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -227,6 +227,185 @@ test('deleteActiveCard deletes encoded card endpoint', async () => {
     },
     method: 'DELETE',
   });
+});
+
+test('column mutations call resource endpoints', async () => {
+  const payload = {
+    boardVersion: 2,
+    column: { id: 'doing', title: 'Doing' },
+    columns: [{ id: 'doing', title: 'Doing' }],
+  };
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+
+  vi.stubGlobal('fetch', fetchMock);
+
+  const {
+    createActiveColumn,
+    deleteActiveColumn,
+    moveActiveColumn,
+    updateActiveColumn,
+  } = await import('./authenticatedApi');
+
+  await createActiveColumn({ id: 'doing', title: 'Doing' }, 'token-1');
+  await updateActiveColumn('doing/1', { title: 'Doing now' }, 'token-1');
+  await moveActiveColumn(
+    'doing/1',
+    { afterColumnId: null, beforeColumnId: 'todo' },
+    'token-1'
+  );
+  await deleteActiveColumn('doing/1', 'token-1');
+
+  expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/board/columns', {
+    body: JSON.stringify({ id: 'doing', title: 'Doing' }),
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    2,
+    '/api/board/columns/doing%2F1',
+    {
+      body: JSON.stringify({ title: 'Doing now' }),
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'PATCH',
+    }
+  );
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    3,
+    '/api/board/columns/doing%2F1/move',
+    {
+      body: JSON.stringify({ afterColumnId: null, beforeColumnId: 'todo' }),
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'PATCH',
+    }
+  );
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    4,
+    '/api/board/columns/doing%2F1',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'DELETE',
+    }
+  );
+});
+
+test('tag and card-tag mutations call resource endpoints', async () => {
+  const payload = {
+    boardVersion: 2,
+    tag: { id: 'tag/1', name: 'Design' },
+    tags: [{ id: 'tag/1', name: 'Design' }],
+  };
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+
+  vi.stubGlobal('fetch', fetchMock);
+
+  const {
+    assignActiveCardTag,
+    createBoardTag,
+    deleteBoardTag,
+    unassignActiveCardTag,
+    updateBoardTag,
+  } = await import('./authenticatedApi');
+
+  await createBoardTag({ id: 'tag/1', name: 'Design' }, 'token-1');
+  await updateBoardTag('tag/1', { name: 'Product' }, 'token-1');
+  await deleteBoardTag('tag/1', 'token-1');
+  await assignActiveCardTag('card/1', 'tag/1', 'token-1');
+  await unassignActiveCardTag('card/1', 'tag/1', 'token-1');
+
+  expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/board/tags', {
+    body: JSON.stringify({ id: 'tag/1', name: 'Design' }),
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/board/tags/tag%2F1', {
+    body: JSON.stringify({ name: 'Product' }),
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'PATCH',
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/board/tags/tag%2F1', {
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'DELETE',
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    4,
+    '/api/board/cards/card%2F1/tags/tag%2F1',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'PUT',
+    }
+  );
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    5,
+    '/api/board/cards/card%2F1/tags/tag%2F1',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'DELETE',
+    }
+  );
+});
+
+test('settings mutations call resource endpoints', async () => {
+  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse({}));
+
+  vi.stubGlobal('fetch', fetchMock);
+
+  const { updateBoardSettings, updateWorkCycleSettings } = await import(
+    './authenticatedApi'
+  );
+
+  await updateBoardSettings(
+    { background: { type: 'color', value: '#ffffff' } },
+    'token-1'
+  );
+  await updateWorkCycleSettings({ completedColumnId: null }, 'token-1');
+
+  expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/board/settings', {
+    body: JSON.stringify({ background: { type: 'color', value: '#ffffff' } }),
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'PATCH',
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    2,
+    '/api/board/work-cycle/settings',
+    {
+      body: JSON.stringify({ completedColumnId: null }),
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'PATCH',
+    }
+  );
 });
 
 test('card mutations reject unsuccessful responses', async () => {

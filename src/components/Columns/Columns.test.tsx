@@ -66,9 +66,21 @@ test('rejects blank and duplicate column titles', async () => {
 test('renames and deletes a column with confirmation', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
+  fetchMock.mockClear();
   await addColumn(user, 'Todo');
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith('/api/board/columns') &&
+          init?.method === 'POST'
+      )
+    ).toBe(true)
+  );
   await addCard(user, 'Todo', 'Ship it');
+  fetchMock.mockClear();
 
   await openColumnActions(user, 'Todo');
   await user.click(
@@ -85,6 +97,15 @@ test('renames and deletes a column with confirmation', async () => {
     screen.queryByRole('button', { name: /cancel/i })
   ).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /close dialog/i }));
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/columns/') &&
+          init?.method === 'PATCH'
+      )
+    ).toBe(true)
+  );
 
   await openColumnActions(user, 'Ready');
   await user.click(
@@ -94,8 +115,22 @@ test('renames and deletes a column with confirmation', async () => {
     screen.getByText(/permanently delete 1 card in Ready/i)
   ).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /^delete column$/i }));
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/columns/') &&
+          init?.method === 'DELETE'
+      )
+    ).toBe(true)
+  );
 
   expect(readColumns()).toEqual([]);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });
 
 test('keeps rename column dialog open when the title is blank', async () => {

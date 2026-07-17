@@ -4,6 +4,8 @@ import { CARD_PRIORITIES } from '../../src/board/cardPriority.js';
 import { DEFAULT_BACKGROUND } from '../../src/board/constants.js';
 import type {
   ArchivedBoardCard,
+  BoardActiveWorkCycle,
+  BoardBackground,
   BoardCard,
   BoardColumn,
   BoardState,
@@ -120,6 +122,83 @@ export type ActiveCardMoveInput = {
   columnId: string;
 };
 
+export type ActiveColumnMutationColumn = BoardBootstrapColumn;
+
+export type ActiveColumnMutationResult = {
+  boardVersion: number;
+  column: ActiveColumnMutationColumn;
+  columns: ActiveColumnMutationColumn[];
+};
+
+export type ActiveColumnDeleteResult = {
+  boardVersion: number;
+  cardIds: string[];
+  columnId: string;
+  columns: ActiveColumnMutationColumn[];
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type ActiveColumnCreateInput = {
+  id: string;
+  title: string;
+};
+
+export type ActiveColumnUpdateInput = {
+  title: string;
+};
+
+export type ActiveColumnMoveInput = {
+  afterColumnId?: string | null;
+  beforeColumnId?: string | null;
+};
+
+export type BoardTagMutationResult = {
+  boardVersion: number;
+  tag: BoardTag;
+  tags: BoardTag[];
+};
+
+export type BoardTagDeleteResult = {
+  affectedCardIds: string[];
+  boardVersion: number;
+  tagId: string;
+  tags: BoardTag[];
+};
+
+export type BoardTagCreateInput = {
+  id: string;
+  name: string;
+};
+
+export type BoardTagUpdateInput = {
+  name: string;
+};
+
+export type ActiveCardTagMutationResult = {
+  boardVersion: number;
+  card: BoardBootstrapCard;
+};
+
+export type BoardSettingsMutationResult = {
+  board: {
+    background: BoardBackground;
+    version: number;
+  };
+};
+
+export type BoardSettingsUpdateInput = {
+  background: BoardBackground;
+};
+
+export type WorkCycleSettingsMutationResult = {
+  boardVersion: number;
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type WorkCycleSettingsUpdateInput = {
+  completedColumnId: string | null;
+};
+
 const createId = () => randomUUID();
 
 const toDate = (value: string) => new Date(value);
@@ -128,6 +207,14 @@ const toIso = (value: Date) => value.toISOString();
 
 const isCardPriority = (value: string): value is BoardCard['priority'] =>
   CARD_PRIORITIES.includes(value as BoardCard['priority']);
+
+const toBoardBackground = (board: {
+  backgroundType: string;
+  backgroundValue: string;
+}): BoardBackground => ({
+  type: board.backgroundType as BoardBackground['type'],
+  value: board.backgroundValue,
+});
 
 const createEmptyBoardState = (now = new Date()): BoardState => ({
   activeWorkCycle: {
@@ -290,6 +377,48 @@ const getBoardScopedColumn = async (
     },
   });
 
+const getBoardScopedTag = async (
+  prisma: FlowboardPrismaClient,
+  boardId: string,
+  tagId: string
+) =>
+  prisma.tag.findFirst({
+    select: { id: true },
+    where: {
+      boardId,
+      id: tagId,
+    },
+  });
+
+const toBootstrapColumn = (column: {
+  id: string;
+  title: string;
+}): BoardBootstrapColumn => ({
+  id: column.id,
+  title: column.title,
+});
+
+const toBootstrapTag = (tag: { id: string; name: string }): BoardTag => ({
+  id: tag.id,
+  name: tag.name,
+});
+
+const toBootstrapCard = (
+  card: {
+    columnId: string;
+    id: string;
+    priority: string;
+    title: string;
+  },
+  tagIds: string[]
+): BoardBootstrapCard => ({
+  columnId: card.columnId,
+  id: card.id,
+  priority: isCardPriority(card.priority) ? card.priority : 'medium',
+  tagIds,
+  title: card.title,
+});
+
 const toActiveCardMutationCard = (
   card: {
     columnId: string;
@@ -334,6 +463,46 @@ const getColumnCards = async (
     where: { columnId },
   });
 
+const getBoardColumns = async (
+  transaction: FlowboardPrismaClient,
+  boardId: string
+) =>
+  transaction.boardColumn.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true, title: true },
+    where: { boardId },
+  });
+
+const getBoardTags = async (
+  transaction: FlowboardPrismaClient,
+  boardId: string
+) =>
+  transaction.tag.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true, name: true },
+    where: { boardId },
+  });
+
+const hasDuplicateTitle = (
+  items: Array<{ id: string; title: string }>,
+  title: string,
+  excludedId?: string
+) =>
+  items.some(
+    (item) =>
+      item.id !== excludedId && item.title.toLowerCase() === title.toLowerCase()
+  );
+
+const hasDuplicateTagName = (
+  items: Array<{ id: string; name: string }>,
+  name: string,
+  excludedId?: string
+) =>
+  items.some(
+    (item) =>
+      item.id !== excludedId && item.name.toLowerCase() === name.toLowerCase()
+  );
+
 const getColumnCardIdsExcept = async (
   transaction: FlowboardPrismaClient,
   columnId: string,
@@ -361,6 +530,20 @@ const updateColumnCardOrder = async (
       transaction.card.update({
         data: { sortOrder },
         where: { id: cardId },
+      })
+    )
+  );
+};
+
+const updateBoardColumnOrder = async (
+  transaction: FlowboardPrismaClient,
+  columnIds: string[]
+) => {
+  await Promise.all(
+    columnIds.map((columnId, sortOrder) =>
+      transaction.boardColumn.update({
+        data: { sortOrder },
+        where: { id: columnId },
       })
     )
   );
@@ -781,6 +964,526 @@ export const deleteActiveCard = async (
     boardVersion: saved,
     cardId: card.id,
     columnId: card.columnId,
+  };
+};
+
+export const createActiveColumn = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: ActiveColumnCreateInput
+): Promise<ActiveColumnMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const columns = await getBoardColumns(prisma, board.id);
+
+  if (
+    columns.some((column) => column.id === input.id) ||
+    hasDuplicateTitle(columns, input.title)
+  ) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [column, updatedBoard] = await Promise.all([
+      transaction.boardColumn.create({
+        data: {
+          boardId: board.id,
+          id: input.id,
+          sortOrder: columns.length,
+          title: input.title,
+        },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return {
+      boardVersion: updatedBoard.version,
+      column,
+      columns: await getBoardColumns(transaction, board.id),
+    };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    column: toBootstrapColumn(saved.column),
+    columns: saved.columns.map(toBootstrapColumn),
+  };
+};
+
+export const renameActiveColumn = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  columnId: string,
+  input: ActiveColumnUpdateInput
+): Promise<ActiveColumnMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const columns = await getBoardColumns(prisma, board.id);
+  const column = columns.find((item) => item.id === columnId);
+
+  if (!column || hasDuplicateTitle(columns, input.title, columnId)) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [updatedColumn, updatedBoard] = await Promise.all([
+      transaction.boardColumn.update({
+        data: { title: input.title },
+        where: { id: columnId },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return {
+      boardVersion: updatedBoard.version,
+      column: updatedColumn,
+      columns: await getBoardColumns(transaction, board.id),
+    };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    column: toBootstrapColumn(saved.column),
+    columns: saved.columns.map(toBootstrapColumn),
+  };
+};
+
+export const moveActiveColumn = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  columnId: string,
+  input: ActiveColumnMoveInput
+): Promise<ActiveColumnMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const columns = await getBoardColumns(prisma, board.id);
+  const column = columns.find((item) => item.id === columnId);
+
+  if (!column) {
+    return null;
+  }
+
+  const placementColumnId = input.beforeColumnId ?? input.afterColumnId ?? null;
+  const remainingColumnIds = columns.reduce<string[]>((ids, item) => {
+    if (item.id !== columnId) {
+      ids.push(item.id);
+    }
+
+    return ids;
+  }, []);
+  const targetIndex = placementColumnId
+    ? remainingColumnIds.findIndex((id) => id === placementColumnId)
+    : remainingColumnIds.length;
+
+  if (targetIndex === -1) {
+    return null;
+  }
+
+  const insertAt = input.afterColumnId ? targetIndex + 1 : targetIndex;
+  const nextColumnIds = [...remainingColumnIds];
+
+  nextColumnIds.splice(insertAt, 0, columnId);
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [, updatedBoard] = await Promise.all([
+      updateBoardColumnOrder(transaction, nextColumnIds),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return {
+      boardVersion: updatedBoard.version,
+      columns: await getBoardColumns(transaction, board.id),
+    };
+  });
+  const movedColumn =
+    saved.columns.find((item) => item.id === columnId) ?? column;
+
+  return {
+    boardVersion: saved.boardVersion,
+    column: toBootstrapColumn(movedColumn),
+    columns: saved.columns.map(toBootstrapColumn),
+  };
+};
+
+export const deleteActiveColumn = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  columnId: string
+): Promise<ActiveColumnDeleteResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const [columns, cards, workCycle] = await Promise.all([
+    getBoardColumns(prisma, board.id),
+    prisma.card.findMany({
+      select: { id: true },
+      where: { boardId: board.id, columnId },
+    }),
+    prisma.boardWorkCycle.findUnique({
+      where: { boardId: board.id },
+    }),
+  ]);
+  const column = columns.find((item) => item.id === columnId);
+
+  if (!column) {
+    return null;
+  }
+
+  const remainingColumnIds = columns.reduce<string[]>((ids, item) => {
+    if (item.id !== columnId) {
+      ids.push(item.id);
+    }
+
+    return ids;
+  }, []);
+  const deletedCardIds = cards.map((card) => card.id);
+  const shouldClearCompletedColumn = workCycle?.completedColumnId === columnId;
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    await transaction.cardTag.deleteMany({
+      where: {
+        card: {
+          boardId: board.id,
+          columnId,
+        },
+      },
+    });
+    await transaction.card.deleteMany({ where: { boardId: board.id, columnId } });
+    await transaction.boardColumn.delete({ where: { id: columnId } });
+    await updateBoardColumnOrder(transaction, remainingColumnIds);
+
+    const nextWorkCycle = shouldClearCompletedColumn
+      ? await transaction.boardWorkCycle.update({
+          data: { completedColumnId: null },
+          where: { boardId: board.id },
+        })
+      : await transaction.boardWorkCycle.findUniqueOrThrow({
+          where: { boardId: board.id },
+        });
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return {
+      boardVersion: updatedBoard.version,
+      columns: await getBoardColumns(transaction, board.id),
+      workCycle: nextWorkCycle,
+    };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    cardIds: deletedCardIds,
+    columnId,
+    columns: saved.columns.map(toBootstrapColumn),
+    workCycle: {
+      completedColumnId: saved.workCycle.completedColumnId,
+      startDate: toIso(saved.workCycle.startDate),
+    },
+  };
+};
+
+export const createBoardTag = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: BoardTagCreateInput
+): Promise<BoardTagMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const tags = await getBoardTags(prisma, board.id);
+
+  if (
+    tags.some((tag) => tag.id === input.id) ||
+    hasDuplicateTagName(tags, input.name)
+  ) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [tag, updatedBoard] = await Promise.all([
+      transaction.tag.create({
+        data: {
+          boardId: board.id,
+          id: input.id,
+          name: input.name,
+          sortOrder: tags.length,
+        },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return {
+      boardVersion: updatedBoard.version,
+      tag,
+      tags: await getBoardTags(transaction, board.id),
+    };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    tag: toBootstrapTag(saved.tag),
+    tags: saved.tags.map(toBootstrapTag),
+  };
+};
+
+export const renameBoardTag = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  tagId: string,
+  input: BoardTagUpdateInput
+): Promise<BoardTagMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const tags = await getBoardTags(prisma, board.id);
+  const tag = tags.find((item) => item.id === tagId);
+
+  if (!tag || hasDuplicateTagName(tags, input.name, tagId)) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [updatedTag, updatedBoard] = await Promise.all([
+      transaction.tag.update({
+        data: { name: input.name },
+        where: { id: tagId },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return {
+      boardVersion: updatedBoard.version,
+      tag: updatedTag,
+      tags: await getBoardTags(transaction, board.id),
+    };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    tag: toBootstrapTag(saved.tag),
+    tags: saved.tags.map(toBootstrapTag),
+  };
+};
+
+export const deleteBoardTag = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  tagId: string
+): Promise<BoardTagDeleteResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const tag = await getBoardScopedTag(prisma, board.id, tagId);
+
+  if (!tag) {
+    return null;
+  }
+
+  const affectedCardTags = await prisma.cardTag.findMany({
+    select: { cardId: true },
+    where: {
+      tagId,
+      card: {
+        boardId: board.id,
+      },
+    },
+  });
+  const affectedCardIds = affectedCardTags.map((cardTag) => cardTag.cardId);
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    await transaction.cardTag.deleteMany({ where: { tagId } });
+    await transaction.tag.delete({ where: { id: tagId } });
+
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return {
+      boardVersion: updatedBoard.version,
+      tags: await getBoardTags(transaction, board.id),
+    };
+  });
+
+  return {
+    affectedCardIds,
+    boardVersion: saved.boardVersion,
+    tagId,
+    tags: saved.tags.map(toBootstrapTag),
+  };
+};
+
+const mutateActiveCardTag = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string,
+  tagId: string,
+  assigned: boolean
+): Promise<ActiveCardTagMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const [card, tag] = await Promise.all([
+    prisma.card.findFirst({
+      select: {
+        columnId: true,
+        id: true,
+        priority: true,
+        title: true,
+      },
+      where: {
+        boardId: board.id,
+        id: cardId,
+      },
+    }),
+    getBoardScopedTag(prisma, board.id, tagId),
+  ]);
+
+  if (!card || !tag) {
+    return null;
+  }
+
+  const existing = await prisma.cardTag.findUnique({
+    where: {
+      cardId_tagId: {
+        cardId,
+        tagId,
+      },
+    },
+  });
+
+  if ((assigned && existing) || (!assigned && !existing)) {
+    const tagIds = (
+      await prisma.cardTag.findMany({
+        select: { tagId: true },
+        where: { cardId },
+      })
+    ).map((cardTag) => cardTag.tagId);
+
+    return {
+      boardVersion: board.version,
+      card: toBootstrapCard(card, tagIds),
+    };
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    if (assigned) {
+      await transaction.cardTag.create({ data: { cardId, tagId } });
+    } else {
+      await transaction.cardTag.delete({
+        where: {
+          cardId_tagId: {
+            cardId,
+            tagId,
+          },
+        },
+      });
+    }
+
+    const tagIds = (
+      await transaction.cardTag.findMany({
+        select: { tagId: true },
+        where: { cardId },
+      })
+    ).map((cardTag) => cardTag.tagId);
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return { boardVersion: updatedBoard.version, tagIds };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    card: toBootstrapCard(card, saved.tagIds),
+  };
+};
+
+export const assignActiveCardTag = (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string,
+  tagId: string
+) => mutateActiveCardTag(prisma, ownerId, cardId, tagId, true);
+
+export const unassignActiveCardTag = (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string,
+  tagId: string
+) => mutateActiveCardTag(prisma, ownerId, cardId, tagId, false);
+
+export const updateBoardSettings = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: BoardSettingsUpdateInput
+): Promise<BoardSettingsMutationResult> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const updatedBoard = await prisma.board.update({
+    data: {
+      backgroundType: input.background.type,
+      backgroundValue: input.background.value,
+      version: { increment: 1 },
+    },
+    where: { id: board.id },
+  });
+
+  return {
+    board: {
+      background: toBoardBackground(updatedBoard),
+      version: updatedBoard.version,
+    },
+  };
+};
+
+export const updateWorkCycleSettings = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: WorkCycleSettingsUpdateInput
+): Promise<WorkCycleSettingsMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+
+  if (
+    input.completedColumnId &&
+    !(await getBoardScopedColumn(prisma, board.id, input.completedColumnId))
+  ) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const [workCycle, updatedBoard] = await Promise.all([
+      transaction.boardWorkCycle.upsert({
+        create: {
+          boardId: board.id,
+          completedColumnId: input.completedColumnId,
+          id: createId(),
+          startDate: board.createdAt,
+        },
+        update: {
+          completedColumnId: input.completedColumnId,
+        },
+        where: { boardId: board.id },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
+
+    return { boardVersion: updatedBoard.version, workCycle };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    workCycle: {
+      completedColumnId: saved.workCycle.completedColumnId,
+      startDate: toIso(saved.workCycle.startDate),
+    },
   };
 };
 

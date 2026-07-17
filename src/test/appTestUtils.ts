@@ -135,6 +135,54 @@ const moveMockCard = (
   });
 };
 
+const moveMockColumn = (
+  columnId: string,
+  placement: {
+    afterColumnId?: string | null;
+    beforeColumnId?: string | null;
+  }
+) => {
+  const column = mockServerBoardState.columns.find(
+    (item) => item.id === columnId
+  );
+
+  if (!column) {
+    return;
+  }
+
+  const remainingColumns = mockServerBoardState.columns.filter(
+    (item) => item.id !== columnId
+  );
+  const placementColumnId = placement.beforeColumnId ?? placement.afterColumnId;
+  const targetIndex = placementColumnId
+    ? remainingColumns.findIndex((item) => item.id === placementColumnId)
+    : remainingColumns.length;
+  const insertAt =
+    targetIndex === -1
+      ? remainingColumns.length
+      : placement.afterColumnId
+        ? targetIndex + 1
+        : targetIndex;
+  const nextColumns = [...remainingColumns];
+
+  nextColumns.splice(insertAt, 0, column);
+  updateMockServerBoardState({
+    ...mockServerBoardState,
+    columns: nextColumns.map((item, index) => ({
+      ...item,
+      position: index * 10,
+    })),
+  });
+};
+
+const toColumnSummaries = () =>
+  mockServerBoardState.columns.map((column) => ({
+    id: column.id,
+    title: column.title,
+  }));
+
+const toTagSummaries = () => mockServerBoardState.tags;
+
 const mockFlowboardApi = () => {
   vi.stubGlobal(
     'fetch',
@@ -180,6 +228,165 @@ const mockFlowboardApi = () => {
         );
       }
 
+      if (url.endsWith('/api/board/columns') && init?.method === 'POST') {
+        const column = JSON.parse(String(init.body));
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          columns: [
+            ...mockServerBoardState.columns,
+            {
+              cards: [],
+              id: column.id,
+              position: mockServerBoardState.columns.length * 10,
+              title: column.title,
+            },
+          ],
+        });
+
+        return jsonResponse(
+          {
+            boardVersion: 2,
+            column,
+            columns: toColumnSummaries(),
+          },
+          { status: 201 }
+        );
+      }
+
+      if (url.includes('/api/board/columns/') && url.endsWith('/move')) {
+        const columnId = decodeURIComponent(
+          url.split('/api/board/columns/')[1].replace('/move', '')
+        );
+        const placement = JSON.parse(String(init?.body));
+
+        moveMockColumn(columnId, placement);
+
+        return jsonResponse({
+          boardVersion: 2,
+          column: toColumnSummaries().find((column) => column.id === columnId),
+          columns: toColumnSummaries(),
+        });
+      }
+
+      if (url.includes('/api/board/columns/')) {
+        const columnId = decodeURIComponent(url.split('/api/board/columns/')[1]);
+
+        if (init?.method === 'PATCH') {
+          const patch = JSON.parse(String(init.body));
+
+          updateMockServerBoardState({
+            ...mockServerBoardState,
+            columns: mockServerBoardState.columns.map((column) =>
+              column.id === columnId ? { ...column, title: patch.title } : column
+            ),
+          });
+
+          return jsonResponse({
+            boardVersion: 2,
+            column: toColumnSummaries().find((column) => column.id === columnId),
+            columns: toColumnSummaries(),
+          });
+        }
+
+        if (init?.method === 'DELETE') {
+          const deletedColumn = mockServerBoardState.columns.find(
+            (column) => column.id === columnId
+          );
+          const cardIds = deletedColumn?.cards.map((card) => card.id) ?? [];
+          const activeWorkCycle =
+            mockServerBoardState.activeWorkCycle.completedColumnId === columnId
+              ? {
+                  ...mockServerBoardState.activeWorkCycle,
+                  completedColumnId: null,
+                }
+              : mockServerBoardState.activeWorkCycle;
+
+          updateMockServerBoardState({
+            ...mockServerBoardState,
+            activeWorkCycle,
+            columns: mockServerBoardState.columns.filter(
+              (column) => column.id !== columnId
+            ),
+          });
+
+          return jsonResponse({
+            boardVersion: 2,
+            cardIds,
+            columnId,
+            columns: toColumnSummaries(),
+            workCycle: activeWorkCycle,
+          });
+        }
+      }
+
+      if (url.endsWith('/api/board/tags') && init?.method === 'POST') {
+        const tag = JSON.parse(String(init.body));
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          tags: [...mockServerBoardState.tags, tag],
+        });
+
+        return jsonResponse(
+          {
+            boardVersion: 2,
+            tag,
+            tags: toTagSummaries(),
+          },
+          { status: 201 }
+        );
+      }
+
+      if (url.includes('/api/board/tags/')) {
+        const tagId = decodeURIComponent(url.split('/api/board/tags/')[1]);
+
+        if (init?.method === 'PATCH') {
+          const patch = JSON.parse(String(init.body));
+
+          updateMockServerBoardState({
+            ...mockServerBoardState,
+            tags: mockServerBoardState.tags.map((tag) =>
+              tag.id === tagId ? { ...tag, name: patch.name } : tag
+            ),
+          });
+
+          return jsonResponse({
+            boardVersion: 2,
+            tag: toTagSummaries().find((tag) => tag.id === tagId),
+            tags: toTagSummaries(),
+          });
+        }
+
+        if (init?.method === 'DELETE') {
+          const affectedCardIds = mockServerBoardState.columns.flatMap(
+            (column) =>
+              column.cards
+                .filter((card) => card.tagIds.includes(tagId))
+                .map((card) => card.id)
+          );
+
+          updateMockServerBoardState({
+            ...mockServerBoardState,
+            columns: mockServerBoardState.columns.map((column) => ({
+              ...column,
+              cards: column.cards.map((card) => ({
+                ...card,
+                tagIds: card.tagIds.filter((item) => item !== tagId),
+              })),
+            })),
+            tags: mockServerBoardState.tags.filter((tag) => tag.id !== tagId),
+          });
+
+          return jsonResponse({
+            affectedCardIds,
+            boardVersion: 2,
+            tagId,
+            tags: toTagSummaries(),
+          });
+        }
+      }
+
       if (url.includes('/api/board/cards/') && url.endsWith('/move')) {
         const cardId = decodeURIComponent(
           url.split('/api/board/cards/')[1].replace('/move', '')
@@ -197,6 +404,49 @@ const mockFlowboardApi = () => {
                 columnId: placement.columnId,
                 content: card.content,
                 createdAt: card.createdAt,
+                id: card.id,
+                priority: card.priority,
+                tagIds: card.tagIds,
+                title: card.title,
+              },
+            })
+          : jsonResponse({ error: 'Card not found.' }, { status: 404 });
+      }
+
+      if (url.includes('/api/board/cards/') && url.includes('/tags/')) {
+        const [cardIdPart, tagIdPart] = url
+          .split('/api/board/cards/')[1]
+          .split('/tags/');
+        const cardId = decodeURIComponent(cardIdPart);
+        const tagId = decodeURIComponent(tagIdPart);
+        const assigned = init?.method === 'PUT';
+
+        mapMockColumns((column) => ({
+          ...column,
+          cards: column.cards.map((card) => {
+            if (card.id !== cardId) {
+              return card;
+            }
+
+            return {
+              ...card,
+              tagIds: assigned
+                ? [...new Set([...card.tagIds, tagId])]
+                : card.tagIds.filter((item) => item !== tagId),
+            };
+          }),
+        }));
+
+        const card = findCardDetail(cardId);
+
+        return card
+          ? jsonResponse({
+              boardVersion: 2,
+              card: {
+                columnId:
+                  mockServerBoardState.columns.find((column) =>
+                    column.cards.some((item) => item.id === card.id)
+                  )?.id ?? '',
                 id: card.id,
                 priority: card.priority,
                 tagIds: card.tagIds,
@@ -270,6 +520,43 @@ const mockFlowboardApi = () => {
               title: card.title,
             })
           : jsonResponse({ error: 'Card not found.' }, { status: 404 });
+      }
+
+      if (url.endsWith('/api/board/settings') && init?.method === 'PATCH') {
+        const settings = JSON.parse(String(init.body));
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          background: settings.background,
+        });
+
+        return jsonResponse({
+          board: {
+            background: settings.background,
+            version: 2,
+          },
+        });
+      }
+
+      if (
+        url.endsWith('/api/board/work-cycle/settings') &&
+        init?.method === 'PATCH'
+      ) {
+        const settings = JSON.parse(String(init.body));
+        const activeWorkCycle = {
+          ...mockServerBoardState.activeWorkCycle,
+          completedColumnId: settings.completedColumnId,
+        };
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          activeWorkCycle,
+        });
+
+        return jsonResponse({
+          boardVersion: 2,
+          workCycle: activeWorkCycle,
+        });
       }
 
       if (url.endsWith('/api/boards/default')) {

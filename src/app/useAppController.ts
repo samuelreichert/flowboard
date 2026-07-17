@@ -10,6 +10,7 @@ import useAuthenticatedProfile from './useAuthenticatedProfile';
 import useAppThemeEffects from './useAppThemeEffects';
 import useAuthSession from './useAuthSession';
 import { clearFlowboardQueryCache } from './queryClient';
+import { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
 const useAppController = () => {
@@ -45,6 +46,15 @@ const useAppController = () => {
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
   const cardMutations = useFlowboardCardMutations({
+    accessToken:
+      authState.status === 'signedIn'
+        ? authState.session.access_token
+        : undefined,
+    onMutationError: () =>
+      setCardPersistenceMessage(messages.app.persistence.unsaved),
+    onMutationSuccess: () => setCardPersistenceMessage(null),
+  });
+  const boardMutations = useFlowboardBoardMutations({
     accessToken:
       authState.status === 'signedIn'
         ? authState.session.access_token
@@ -93,6 +103,7 @@ const useAppController = () => {
   } = useBoardActions({
     activeWorkCycle,
     dispatch,
+    boardMutations,
     openSettings,
     persistAuthenticatedBoard,
     tags,
@@ -204,6 +215,7 @@ const useAppController = () => {
     authenticatedBoardLoading,
     authenticatedProfile,
     canCompleteWork,
+    boardMutations,
     cardMutations,
     chooseLanguagePreference,
     completeWorkDisabledReason,

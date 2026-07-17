@@ -103,6 +103,83 @@ export type MoveCardMutationInput = {
   columnId: string;
 };
 
+export type ColumnMutationColumn = BoardBootstrapResponse['columns'][number];
+
+export type ColumnMutationResponse = {
+  boardVersion: number;
+  column: ColumnMutationColumn;
+  columns: ColumnMutationColumn[];
+};
+
+export type DeleteColumnMutationResponse = {
+  boardVersion: number;
+  cardIds: string[];
+  columnId: string;
+  columns: ColumnMutationColumn[];
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type CreateColumnMutationInput = {
+  id: string;
+  title: string;
+};
+
+export type UpdateColumnMutationInput = {
+  title: string;
+};
+
+export type MoveColumnMutationInput = {
+  afterColumnId?: string | null;
+  beforeColumnId?: string | null;
+};
+
+export type TagMutationResponse = {
+  boardVersion: number;
+  tag: BoardTag;
+  tags: BoardTag[];
+};
+
+export type DeleteTagMutationResponse = {
+  affectedCardIds: string[];
+  boardVersion: number;
+  tagId: string;
+  tags: BoardTag[];
+};
+
+export type CreateTagMutationInput = {
+  id: string;
+  name: string;
+};
+
+export type UpdateTagMutationInput = {
+  name: string;
+};
+
+export type CardTagMutationResponse = {
+  boardVersion: number;
+  card: BoardBootstrapResponse['cards'][number];
+};
+
+export type BoardSettingsMutationInput = {
+  background: BoardBackground;
+};
+
+export type BoardSettingsMutationResponse = {
+  board: {
+    background: BoardBackground;
+    version: number;
+  };
+};
+
+export type WorkCycleSettingsMutationInput = {
+  completedColumnId: string | null;
+};
+
+export type WorkCycleSettingsMutationResponse = {
+  boardVersion: number;
+  workCycle: BoardActiveWorkCycle;
+};
+
 const createHeaders = (accessToken?: string) => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
@@ -157,6 +234,62 @@ const parseDeleteCardMutationResponse = async (response: Response) => {
   }
 
   return (await response.json()) as DeleteCardMutationResponse;
+};
+
+const parseColumnMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save column data.');
+  }
+
+  return (await response.json()) as ColumnMutationResponse;
+};
+
+const parseDeleteColumnMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to delete column data.');
+  }
+
+  return (await response.json()) as DeleteColumnMutationResponse;
+};
+
+const parseTagMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save tag data.');
+  }
+
+  return (await response.json()) as TagMutationResponse;
+};
+
+const parseDeleteTagMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to delete tag data.');
+  }
+
+  return (await response.json()) as DeleteTagMutationResponse;
+};
+
+const parseCardTagMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save card tag data.');
+  }
+
+  return (await response.json()) as CardTagMutationResponse;
+};
+
+const parseBoardSettingsMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save board settings.');
+  }
+
+  return (await response.json()) as BoardSettingsMutationResponse;
+};
+
+const parseWorkCycleSettingsMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save work-cycle settings.');
+  }
+
+  return (await response.json()) as WorkCycleSettingsMutationResponse;
 };
 
 export const fetchAuthenticatedProfile = async (accessToken: string) => {
@@ -262,6 +395,171 @@ export const deleteActiveCard = async (
   );
 
   return parseDeleteCardMutationResponse(response);
+};
+
+export const createActiveColumn = async (
+  column: CreateColumnMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/columns`, {
+    body: JSON.stringify(column),
+    headers: createHeaders(accessToken),
+    method: 'POST',
+  });
+
+  return parseColumnMutationResponse(response);
+};
+
+export const updateActiveColumn = async (
+  columnId: string,
+  column: UpdateColumnMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/columns/${encodeURIComponent(columnId)}`,
+    {
+      body: JSON.stringify(column),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseColumnMutationResponse(response);
+};
+
+export const moveActiveColumn = async (
+  columnId: string,
+  placement: MoveColumnMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/columns/${encodeURIComponent(columnId)}/move`,
+    {
+      body: JSON.stringify(placement),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseColumnMutationResponse(response);
+};
+
+export const deleteActiveColumn = async (
+  columnId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/columns/${encodeURIComponent(columnId)}`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'DELETE',
+    }
+  );
+
+  return parseDeleteColumnMutationResponse(response);
+};
+
+export const createBoardTag = async (
+  tag: CreateTagMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/tags`, {
+    body: JSON.stringify(tag),
+    headers: createHeaders(accessToken),
+    method: 'POST',
+  });
+
+  return parseTagMutationResponse(response);
+};
+
+export const updateBoardTag = async (
+  tagId: string,
+  tag: UpdateTagMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/tags/${encodeURIComponent(tagId)}`,
+    {
+      body: JSON.stringify(tag),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseTagMutationResponse(response);
+};
+
+export const deleteBoardTag = async (tagId: string, accessToken?: string) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/tags/${encodeURIComponent(tagId)}`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'DELETE',
+    }
+  );
+
+  return parseDeleteTagMutationResponse(response);
+};
+
+export const assignActiveCardTag = async (
+  cardId: string,
+  tagId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}/tags/${encodeURIComponent(tagId)}`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'PUT',
+    }
+  );
+
+  return parseCardTagMutationResponse(response);
+};
+
+export const unassignActiveCardTag = async (
+  cardId: string,
+  tagId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}/tags/${encodeURIComponent(tagId)}`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'DELETE',
+    }
+  );
+
+  return parseCardTagMutationResponse(response);
+};
+
+export const updateBoardSettings = async (
+  settings: BoardSettingsMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/settings`, {
+    body: JSON.stringify(settings),
+    headers: createHeaders(accessToken),
+    method: 'PATCH',
+  });
+
+  return parseBoardSettingsMutationResponse(response);
+};
+
+export const updateWorkCycleSettings = async (
+  settings: WorkCycleSettingsMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/work-cycle/settings`,
+    {
+      body: JSON.stringify(settings),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseWorkCycleSettingsMutationResponse(response);
 };
 
 export const fetchDefaultBoard = async (accessToken?: string) => {

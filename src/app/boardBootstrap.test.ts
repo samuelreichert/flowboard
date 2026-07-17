@@ -69,4 +69,49 @@ describe('createBoardStateFromBootstrap', () => {
       tags: bootstrap.tags,
     });
   });
+
+  test('preserves known local card details and history while applying lean bootstrap fields', () => {
+    const existingState = createBoardStateFromBootstrap(bootstrap);
+
+    existingState.columns[0].cards[0] = {
+      ...existingState.columns[0].cards[0],
+      content: 'Rich local content',
+      createdAt: '2026-07-17T11:00:00.000Z',
+      title: 'Older title',
+    };
+    existingState.completedWorkCycles = [
+      {
+        cards: [],
+        completedColumnId: 'todo',
+        completedColumnTitle: 'Todo',
+        endDate: '2026-07-17T12:00:00.000Z',
+        id: 'cycle-1',
+        startDate: '2026-07-17T10:00:00.000Z',
+      },
+    ];
+
+    expect(createBoardStateFromBootstrap(bootstrap, existingState)).toEqual({
+      activeWorkCycle: bootstrap.workCycle,
+      background: bootstrap.board.background,
+      columns: [
+        {
+          cards: [
+            {
+              content: 'Rich local content',
+              createdAt: '2026-07-17T11:00:00.000Z',
+              id: 'card-1',
+              priority: 'high',
+              tagIds: ['tag-1'],
+              title: 'Lean card',
+            },
+          ],
+          id: 'todo',
+          position: 0,
+          title: 'Todo',
+        },
+      ],
+      completedWorkCycles: existingState.completedWorkCycles,
+      tags: bootstrap.tags,
+    });
+  });
 });

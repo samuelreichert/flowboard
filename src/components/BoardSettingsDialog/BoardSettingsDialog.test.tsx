@@ -73,11 +73,22 @@ test('clear board lives in settings only when the board can be cleared', async (
 test('configures completed column and preserves it through rename and delete', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
   await addColumn(user, 'Todo');
   await addColumn(user, 'Done');
+  fetchMock.mockClear();
   await openBoardSettings(user);
   await chooseSelectOption(user, 'Completed column', 'Done');
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith('/api/board/work-cycle/settings') &&
+          init?.method === 'PATCH'
+      )
+    ).toBe(true)
+  );
   await user.click(screen.getByRole('button', { name: /^done$/i }));
   const doneColumnId = fetchBoardState().columns.find(
     (column) => column.title === 'Done'
@@ -109,6 +120,11 @@ test('configures completed column and preserves it through rename and delete', a
   await user.click(screen.getByRole('button', { name: /^delete column$/i }));
 
   expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });
 
 test('disables completing work when no completed column exists', async () => {
