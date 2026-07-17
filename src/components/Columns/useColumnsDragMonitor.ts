@@ -9,13 +9,16 @@ import {
   isColumnDropTargetData,
 } from '../../dnd';
 import type { BoardColumn } from '../../types';
+import type { MoveCardMutationVariables } from '../../app/useFlowboardCardMutations';
 
 export const useColumnsDragMonitor = ({
   columns,
-  onColumnsChange,
+  onCardMove,
 }: {
   columns: BoardColumn[];
-  onColumnsChange: (columns: BoardColumn[]) => void;
+  onCardMove: (
+    move: MoveCardMutationVariables & { nextColumns: BoardColumn[] }
+  ) => void;
 }) => {
   useEffect(
     () =>
@@ -33,29 +36,48 @@ export const useColumnsDragMonitor = ({
           }
 
           if (isCardDropTargetData(target.data)) {
-            onColumnsChange(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: extractClosestEdge(target.data),
-                fromColumnId: source.data.columnId,
-                targetCardId: target.data.cardId,
-                toColumnId: target.data.columnId,
-              })
-            );
+            const closestEdge = extractClosestEdge(target.data);
+            const nextColumns = reorderCard(columns, {
+              cardId: source.data.cardId,
+              closestEdge,
+              fromColumnId: source.data.columnId,
+              targetCardId: target.data.cardId,
+              toColumnId: target.data.columnId,
+            });
+
+            onCardMove({
+              cardId: source.data.cardId,
+              nextColumns,
+              placement: {
+                afterCardId:
+                  closestEdge === 'bottom' ? target.data.cardId : null,
+                beforeCardId:
+                  closestEdge === 'bottom' ? null : target.data.cardId,
+                columnId: target.data.columnId,
+              },
+            });
           }
 
           if (isColumnDropTargetData(target.data)) {
-            onColumnsChange(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: null,
-                fromColumnId: source.data.columnId,
-                toColumnId: target.data.columnId,
-              })
-            );
+            const nextColumns = reorderCard(columns, {
+              cardId: source.data.cardId,
+              closestEdge: null,
+              fromColumnId: source.data.columnId,
+              toColumnId: target.data.columnId,
+            });
+
+            onCardMove({
+              cardId: source.data.cardId,
+              nextColumns,
+              placement: {
+                afterCardId: null,
+                beforeCardId: null,
+                columnId: target.data.columnId,
+              },
+            });
           }
         },
       }),
-    [columns, onColumnsChange]
+    [columns, onCardMove]
   );
 };

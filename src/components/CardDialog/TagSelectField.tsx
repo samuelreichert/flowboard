@@ -95,7 +95,9 @@ const TagSelectField = ({
                       aria-label={messages.composer.newTagName}
                       autoFocus
                       maxLength={60}
-                      onValueChange={onNewTagNameChange}
+                      onChange={(event) =>
+                        onNewTagNameChange(event.currentTarget.value)
+                      }
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
                           event.preventDefault();

@@ -39,7 +39,7 @@ const CardTitleField = ({
             className="card-title-field__input"
             maxLength={120}
             onBlur={onTitleBlur}
-            onValueChange={onTitleChange}
+            onChange={(event) => onTitleChange(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();

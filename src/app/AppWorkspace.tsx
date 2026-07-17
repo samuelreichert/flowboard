@@ -6,6 +6,7 @@ import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
 import type { BoardColumn, BoardTag, CompletedWorkCycle } from '../types';
 import type { AppView } from './appTypes';
+import type { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
 import './AppWorkspace.css';
 
@@ -17,6 +18,7 @@ type AppWorkspaceProps = {
   cardDetailAccessToken?: string;
   boardLoading: boolean;
   canCompleteWork: boolean;
+  cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
   completeWorkDisabledReason: string;
   completedWorkCycles: CompletedWorkCycle[];
@@ -25,6 +27,7 @@ type AppWorkspaceProps = {
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
   onArchivedCardClose: () => void;
+  onCardColumnsChange: (columns: BoardColumn[]) => void;
   onColumnsChange: (columns: BoardColumn[]) => void;
   onCompleteWorkClick: () => void;
   onManageColumnsOpenChange: (open: boolean) => void;
@@ -40,6 +43,7 @@ const AppWorkspace = ({
   cardDetailAccessToken,
   boardLoading,
   canCompleteWork,
+  cardMutations,
   columns,
   completeWorkDisabledReason,
   completedWorkCycles,
@@ -48,6 +52,7 @@ const AppWorkspace = ({
   manageColumnsOpen,
   onActiveCardClose,
   onArchivedCardClose,
+  onCardColumnsChange,
   onColumnsChange,
   onCompleteWorkClick,
   onManageColumnsOpenChange,
@@ -121,10 +126,12 @@ const AppWorkspace = ({
             activeCardId={activeCardId}
             boardLoading={boardLoading}
             cardDetailAccessToken={cardDetailAccessToken}
+            cardMutations={cardMutations}
             columns={columns}
             key={storageVersion}
             manageColumnsOpen={manageColumnsOpen}
             onActiveCardClose={onActiveCardClose}
+            onCardColumnsChange={onCardColumnsChange}
             onManageColumnsOpenChange={onManageColumnsOpenChange}
             onColumnsChange={onColumnsChange}
             onTagsChange={onTagsChange}

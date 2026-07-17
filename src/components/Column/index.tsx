@@ -16,7 +16,7 @@ import { useColumnDropTarget } from './useColumnDropTarget';
 import Card from '../Card';
 import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
-import type { CardDialogValues } from '../CardDialog';
+import type { CardDialogSaveValues } from '../CardDialog';
 import type { ColumnMoveDirection } from '../../board/columns';
 import type { BoardColumn, BoardTag } from '../../types';
 
@@ -33,7 +33,7 @@ type ColumnProps = {
   editCard: (
     columnId: string,
     cardId: string,
-    values: CardDialogValues
+    values: CardDialogSaveValues
   ) => string | void;
   moveColumn: (columnId: string, direction: ColumnMoveDirection) => void;
   onTagsChange: (tags: BoardTag[]) => void;

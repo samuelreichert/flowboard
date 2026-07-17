@@ -13,13 +13,17 @@ export type CardDialogValues = {
   title: string;
 };
 
+export type CardDialogSaveValues = CardDialogValues & {
+  changedFields?: Partial<CardDialogValues>;
+};
+
 export type CardDialogProps = {
   card: BoardCard;
   columnId: string;
   columns: BoardColumn[];
   onDelete: () => void;
   onOpenChange: (open: boolean) => void;
-  onSave: (values: CardDialogValues) => string | void;
+  onSave: (values: CardDialogSaveValues) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
   open: boolean;
   tags: BoardTag[];

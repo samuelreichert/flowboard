@@ -204,7 +204,7 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   expect(readColumns()[0].cards[0].tagIds).toEqual([fetchTagStorage()[0].id]);
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: 'Design' }));
+  await user.click(await screen.findByRole('button', { name: 'Design' }));
   await user.click(screen.getByRole('option', { name: 'Design' }));
   expect(readColumns()[0].cards[0].tagIds).toEqual([]);
 });
@@ -241,4 +241,41 @@ test('keeps the last valid title when an existing card title is cleared', async 
 
   expect(readColumns()[0].cards[0].title).toBe('Ship it');
   expect(readColumns()[0].cards[0].content).toContain('updated');
+});
+
+test('updates card title without sending rich content or legacy board saves', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Ship it', 'Rich body');
+  await user.click(screen.getByText('Ship it'));
+
+  const fetchMock = vi.mocked(fetch);
+
+  fetchMock.mockClear();
+  await user.click(screen.getByRole('button', { name: /edit card title/i }));
+  await user.clear(screen.getByLabelText('Card title'));
+  await user.type(screen.getByLabelText('Card title'), 'Renamed');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
+      )
+    ).toBe(true)
+  );
+  const titlePatch = fetchMock.mock.calls.find(
+    ([url, init]) =>
+      String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
+  )?.[1];
+
+  expect(JSON.parse(String(titlePatch?.body))).toEqual({ title: 'Renamed' });
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });

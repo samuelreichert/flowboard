@@ -12,6 +12,11 @@ The system SHALL expose board-level actions from sidebar commands rather than a 
 - **THEN** the board header does not show a top-right board actions trigger
 - **AND** sidebar commands remain available for board-level tools
 
+#### Scenario: Sidebar manage columns command is available
+- **WHEN** the board is displayed
+- **THEN** the sidebar exposes a Manage columns command with an accessible name
+- **AND** activating it opens the Manage columns dialog
+
 #### Scenario: Sidebar clear board command is available
 - **WHEN** the board has one or more columns
 - **THEN** the sidebar exposes a clear board command with an accessible name

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 import { useCardDragAndDrop } from './useCardDragAndDrop';
 import CardMetadata from '../CardMetadata';
 import CardDialog from '../CardDialog';
-import type { CardDialogValues } from '../CardDialog';
+import type { CardDialogSaveValues } from '../CardDialog';
 import { useLocalization } from '../../LocalizationProvider';
 import { createActiveCardPath } from '../../app/routes';
 import { useActiveCardDetailQuery } from '../../app/useFlowboardQueries';
@@ -24,7 +24,7 @@ type CardProps = {
   editCard: (
     columnId: string,
     cardId: string,
-    values: CardDialogValues
+    values: CardDialogSaveValues
   ) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
   onActiveCardClose: () => void;
@@ -77,7 +77,7 @@ const Card = ({
     cardDetailAccessToken
   );
   const dialogCard = cardDetailQuery.data
-    ? { ...card, ...cardDetailQuery.data }
+    ? { ...cardDetailQuery.data, ...card, content: cardDetailQuery.data.content }
     : card;
 
   const openCard = () => navigate(createActiveCardPath(card.id));

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import { moveColumn } from '../../board/columns';
@@ -11,9 +11,14 @@ import {
   renameColumn,
 } from '../../board/commands';
 import { findActiveCardRouteTarget } from '../../board/routeLookup';
-import type { CardDialogValues } from '../CardDialog';
+import type { CardDialogSaveValues, CardDialogValues } from '../CardDialog';
 import CardComposer from '../CardComposer';
 import ManageColumnsDialog from '../ManageColumnsDialog';
+import type {
+  MoveCardMutationVariables,
+  useFlowboardCardMutations,
+} from '../../app/useFlowboardCardMutations';
+import { fetchStorage } from '../../storage';
 import type { BoardColumn, BoardTag } from '../../types';
 import ActiveCardMissingState from './ActiveCardMissingState';
 import AddColumnDialog from './AddColumnDialog';
@@ -28,9 +33,11 @@ type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
   cardDetailAccessToken?: string;
+  cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
+  onCardColumnsChange: (columns: BoardColumn[]) => void;
   onColumnsChange: (columns: BoardColumn[]) => void;
   onManageColumnsOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
@@ -41,9 +48,11 @@ const Columns = ({
   activeCardId,
   boardLoading,
   cardDetailAccessToken,
+  cardMutations,
   columns,
   manageColumnsOpen,
   onActiveCardClose,
+  onCardColumnsChange,
   onColumnsChange,
   onManageColumnsOpenChange,
   onTagsChange,
@@ -52,7 +61,19 @@ const Columns = ({
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
-  useColumnsDragMonitor({ columns, onColumnsChange });
+  const moveCard = useCallback(
+    ({
+      cardId,
+      nextColumns,
+      placement,
+    }: MoveCardMutationVariables & { nextColumns: BoardColumn[] }) => {
+      onCardColumnsChange(nextColumns);
+      cardMutations.moveCard({ cardId, placement });
+    },
+    [cardMutations, onCardColumnsChange]
+  );
+
+  useColumnsDragMonitor({ columns, onCardMove: moveCard });
 
   const onSaveColumn = (title: string) => {
     if (!title) {
@@ -104,29 +125,63 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    onColumnsChange(
-      createCard(columns, {
+    const createdAt = new Date().toISOString();
+    const id = createId();
+    const latestColumns = fetchStorage();
+
+    onCardColumnsChange(
+      createCard(latestColumns, {
         ...values,
-        createdAt: new Date().toISOString(),
-        id: createId(),
+        createdAt,
+        id,
       })
     );
+    cardMutations.createCard({
+      ...values,
+      createdAt,
+      id,
+    });
   };
 
   const onEditCard = (
     sourceColumnId: string,
     cardId: string,
-    values: CardDialogValues
+    values: CardDialogSaveValues
   ) => {
     if (!values.title) {
       return messages.card.titleRequired;
     }
 
-    onColumnsChange(editCard(columns, sourceColumnId, cardId, values));
+    onCardColumnsChange(
+      editCard(fetchStorage(), sourceColumnId, cardId, values)
+    );
+
+    if (values.changedFields) {
+      const { columnId: _columnId, ...cardFields } = values.changedFields;
+
+      if (Object.keys(cardFields).length > 0) {
+        cardMutations.updateCard({
+          card: cardFields,
+          cardId,
+        });
+      }
+    }
+
+    if (sourceColumnId !== values.columnId) {
+      cardMutations.moveCard({
+        cardId,
+        placement: {
+          afterCardId: null,
+          beforeCardId: null,
+          columnId: values.columnId,
+        },
+      });
+    }
   };
 
   const onDeleteCard = (columnId: string, cardId: string) => {
-    onColumnsChange(deleteCard(columns, columnId, cardId));
+    onCardColumnsChange(deleteCard(fetchStorage(), columnId, cardId));
+    cardMutations.deleteCard({ cardId });
   };
 
   const sortedColumns = columns.toSorted(

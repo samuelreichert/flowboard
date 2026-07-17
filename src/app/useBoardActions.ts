@@ -13,6 +13,7 @@ import {
   updateBoardStateStorage,
   updateTagStorage,
   updateStorage,
+  updateStorageLocal,
 } from '../storage';
 import type {
   BoardActiveWorkCycle,
@@ -58,6 +59,11 @@ const useBoardActions = ({
 
     dispatch({ state: nextState, type: 'boardStateSynced' });
     persistAuthenticatedBoard(nextState);
+  };
+
+  const updateCardColumns = (newColumns: BoardColumn[]) => {
+    updateStorageLocal(newColumns);
+    dispatch({ state: fetchBoardState(), type: 'boardStateChanged' });
   };
 
   const deleteTag = (tagId: string) => {
@@ -153,6 +159,7 @@ const useBoardActions = ({
     confirmCompleteWork,
     deleteTag,
     openCompleteWorkConfirmation,
+    updateCardColumns,
     updateColumns,
     updateTags,
   };

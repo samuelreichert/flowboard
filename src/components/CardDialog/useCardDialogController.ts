@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import {
@@ -25,12 +25,14 @@ const useCardDialogController = ({
   tags,
 }: CardDialogProps) => {
   const { language, messages } = useLocalization();
+  const [localTags, setLocalTags] = useState(tags);
   const [state, dispatch] = useReducer(
     cardDialogReducer,
     createCardDialogState(card, columnId)
   );
   const contentEditedRef = useRef(false);
   const hydratedContentRef = useRef(card.content);
+  const titleDirtyRef = useRef(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const {
     content,
@@ -46,19 +48,52 @@ const useCardDialogController = ({
     title,
     titleEditing,
   } = state;
+  const [localSelectedTagIds, setLocalSelectedTagIds] =
+    useState(selectedTagIds);
+  const currentValuesRef = useRef({
+    content,
+    priority,
+    selectedColumnId,
+    selectedTagIds: localSelectedTagIds,
+    title,
+  });
+  const currentNewTagNameRef = useRef(newTagName);
+
   const { lastValidTitle, saveExistingCard } = useCardDialogAutosave({
     dispatch,
     initialTitle: card.title,
     onSave,
-    state: {
+    state: currentValuesRef,
+    titleRequiredMessage: messages.card.titleRequired,
+  });
+
+  useEffect(() => {
+    currentValuesRef.current = {
       content,
       priority,
       selectedColumnId,
-      selectedTagIds,
+      selectedTagIds: localSelectedTagIds,
       title,
-    },
-    titleRequiredMessage: messages.card.titleRequired,
-  });
+    };
+  }, [content, localSelectedTagIds, priority, selectedColumnId, title]);
+
+  useEffect(() => {
+    currentNewTagNameRef.current = newTagName;
+  }, [newTagName]);
+
+  useEffect(() => {
+    setLocalTags((currentTags) => {
+      const currentTagById = new Map(
+        currentTags.map((tag) => [tag.id, tag])
+      );
+
+      for (const tag of tags) {
+        currentTagById.set(tag.id, tag);
+      }
+
+      return Array.from(currentTagById.values());
+    });
+  }, [tags]);
 
   useEffect(() => {
     if (!open || !titleEditing) {
@@ -86,6 +121,11 @@ const useCardDialogController = ({
   }, [card.content]);
 
   const closeCardDialog = () => {
+    if (titleDirtyRef.current) {
+      saveExistingCard({ title: currentValuesRef.current.title });
+      titleDirtyRef.current = false;
+    }
+
     onOpenChange(false);
   };
 
@@ -104,35 +144,52 @@ const useCardDialogController = ({
   };
 
   const onTitleChange = (value: string) => {
+    currentValuesRef.current.title = value;
+    titleDirtyRef.current = true;
     dispatch({ type: 'fieldsChanged', values: { title: value } });
-    saveExistingCard({ title: value });
   };
 
   const onContentChange = (value: string) => {
     contentEditedRef.current = true;
+    currentValuesRef.current.content = value;
+    const pendingTitle = currentValuesRef.current.title;
+    const nextValues =
+      titleDirtyRef.current && pendingTitle.trim()
+        ? { content: value, title: pendingTitle }
+        : { content: value };
+
+    if ('title' in nextValues) {
+      titleDirtyRef.current = false;
+    }
+
     dispatch({ type: 'fieldsChanged', values: { content: value } });
-    saveExistingCard({ content: value });
+    saveExistingCard(nextValues);
   };
 
   const onColumnChange = (value: string) => {
+    currentValuesRef.current.selectedColumnId = value;
     dispatch({ type: 'fieldsChanged', values: { selectedColumnId: value } });
     saveExistingCard({ columnId: value });
   };
 
   const onPriorityChange = (value: CardPriority) => {
+    currentValuesRef.current.priority = value;
     dispatch({ type: 'fieldsChanged', values: { priority: value } });
     saveExistingCard({ priority: value });
   };
 
   const toggleTag = (tagId: string) => {
-    const nextTagIds = toggleSelectedTagId(selectedTagIds, tagId);
+    const nextTagIds = toggleSelectedTagId(localSelectedTagIds, tagId);
 
+    setLocalSelectedTagIds(nextTagIds);
+    currentValuesRef.current.selectedTagIds = nextTagIds;
     dispatch({ type: 'fieldsChanged', values: { selectedTagIds: nextTagIds } });
     saveExistingCard({ tagIds: nextTagIds });
   };
 
   const createTag = () => {
-    const error = getTagNameError(tags, newTagName);
+    const nextTagName = currentNewTagNameRef.current;
+    const error = getTagNameError(localTags, nextTagName);
 
     if (error) {
       dispatch({
@@ -148,15 +205,18 @@ const useCardDialogController = ({
     }
 
     const { tag, tags: nextTags } = createBoardTag(
-      tags,
-      newTagName,
+      localTags,
+      nextTagName,
       crypto.randomUUID()
     );
-    const nextTagIds = [...selectedTagIds, tag.id];
+    const nextTagIds = [...localSelectedTagIds, tag.id];
 
+    setLocalTags(nextTags);
+    setLocalSelectedTagIds(nextTagIds);
+    currentValuesRef.current.selectedTagIds = nextTagIds;
+    dispatch({ selectedTagIds: nextTagIds, type: 'tagCreated' });
     onTagsChange(nextTags);
     saveExistingCard({ tagIds: nextTagIds });
-    dispatch({ selectedTagIds: nextTagIds, type: 'tagCreated' });
   };
 
   const onTagsOpenChange = (nextOpen: boolean) => {
@@ -172,6 +232,8 @@ const useCardDialogController = ({
       return;
     }
 
+    saveExistingCard({ title: currentValuesRef.current.title });
+    titleDirtyRef.current = false;
     dispatch({ type: 'fieldsChanged', values: { titleEditing: false } });
   };
 
@@ -193,7 +255,8 @@ const useCardDialogController = ({
       values: { deleteOpen: nextOpen },
     });
 
-  const onNewTagNameChange = (value: string) =>
+  const onNewTagNameChange = (value: string) => {
+    currentNewTagNameRef.current = value;
     dispatch({
       type: 'fieldsChanged',
       values: {
@@ -201,6 +264,7 @@ const useCardDialogController = ({
         tagError: '',
       },
     });
+  };
 
   const startCreatingTag = () =>
     dispatch({
@@ -212,7 +276,11 @@ const useCardDialogController = ({
     });
 
   const createdAtLabel = formatCreatedAt(card.createdAt, language);
-  const tagSummary = getTagSummary(tags, selectedTagIds, messages.card.noTags);
+  const tagSummary = getTagSummary(
+    localTags,
+    localSelectedTagIds,
+    messages.card.noTags
+  );
 
   return {
     card,
@@ -240,11 +308,11 @@ const useCardDialogController = ({
     openDeleteConfirmation,
     priority,
     selectedColumnId,
-    selectedTagIds,
+    selectedTagIds: localSelectedTagIds,
     startCreatingTag,
     tagError,
     tagSummary,
-    tags,
+    tags: localTags,
     tagsOpen,
     title,
     titleEditing,

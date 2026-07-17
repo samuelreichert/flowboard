@@ -9,10 +9,14 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { ensureProfile } from '../auth/profileService.js';
 import { PrismaClient } from '../generated/prisma/sqlite/client.js';
 import {
+  createActiveCard,
+  deleteActiveCard,
   ensureDefaultBoard,
   loadActiveCardDetail,
   loadBoard,
   loadMainBoardBootstrap,
+  moveActiveCard,
+  updateActiveCard,
   writeBoardState,
 } from './structuredBoardRepository.js';
 import type { BoardState } from '../../src/board/types.js';
@@ -296,5 +300,201 @@ describe('structured board repository', () => {
     await expect(
       loadActiveCardDetail(prisma, 'user-1', 'missing-card')
     ).resolves.toBeNull();
+  });
+
+  test('creates an active card without rewriting unrelated board data', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
+    const previousBoard = await prisma.board.findUniqueOrThrow({
+      where: { id: board.id },
+    });
+
+    const result = await createActiveCard(prisma, 'user-1', {
+      columnId: 'done',
+      content: 'A focused insert',
+      id: 'card-2',
+      priority: 'medium',
+      tagIds: ['tag-1'],
+      title: 'Create via resource route',
+    });
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result).toEqual({
+      boardVersion: previousBoard.version + 1,
+      card: {
+        columnId: 'done',
+        content: 'A focused insert',
+        createdAt: expect.any(String),
+        id: 'card-2',
+        priority: 'medium',
+        tagIds: ['tag-1'],
+        title: 'Create via resource route',
+      },
+    });
+    expect(loaded?.state.columns[0].cards[0]).toEqual(
+      sampleState.columns[0].cards[0]
+    );
+    expect(loaded?.state.completedWorkCycles).toEqual(
+      sampleState.completedWorkCycles
+    );
+    await expect(prisma.tag.count()).resolves.toBe(1);
+    await expect(prisma.card.count()).resolves.toBe(2);
+    await expect(prisma.cardTag.count()).resolves.toBe(2);
+  });
+
+  test('updates active card fields and tags without rewriting unrelated board data', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
+    const previousBoard = await prisma.board.findUniqueOrThrow({
+      where: { id: board.id },
+    });
+
+    const result = await updateActiveCard(prisma, 'user-1', 'card-1', {
+      content: 'Updated rich content',
+      priority: 'low',
+      tagIds: [],
+      title: 'Updated title',
+    });
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result).toEqual({
+      boardVersion: previousBoard.version + 1,
+      card: {
+        columnId: 'todo',
+        content: 'Updated rich content',
+        createdAt: '2026-07-02T00:00:00.000Z',
+        id: 'card-1',
+        priority: 'low',
+        tagIds: [],
+        title: 'Updated title',
+      },
+    });
+    expect(loaded?.state.columns[0].cards[0]).toMatchObject({
+      content: 'Updated rich content',
+      priority: 'low',
+      tagIds: [],
+      title: 'Updated title',
+    });
+    expect(loaded?.state.tags).toEqual(sampleState.tags);
+    expect(loaded?.state.completedWorkCycles).toEqual(
+      sampleState.completedWorkCycles
+    );
+  });
+
+  test('moves active cards within and across columns while preserving unrelated data', async () => {
+    const prisma = createTestPrisma();
+    const state: BoardState = {
+      ...sampleState,
+      columns: [
+        {
+          ...sampleState.columns[0],
+          cards: [
+            sampleState.columns[0].cards[0],
+            {
+              content: 'Second content',
+              createdAt: '2026-07-02T01:00:00.000Z',
+              id: 'card-2',
+              priority: 'medium',
+              tagIds: [],
+              title: 'Second card',
+            },
+          ],
+        },
+        {
+          ...sampleState.columns[1],
+          cards: [
+            {
+              content: 'Done content',
+              createdAt: '2026-07-02T02:00:00.000Z',
+              id: 'card-3',
+              priority: 'low',
+              tagIds: [],
+              title: 'Done card',
+            },
+          ],
+        },
+      ],
+    };
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', state);
+
+    await moveActiveCard(prisma, 'user-1', 'card-2', {
+      afterCardId: null,
+      beforeCardId: 'card-1',
+      columnId: 'todo',
+    });
+    await moveActiveCard(prisma, 'user-1', 'card-2', {
+      afterCardId: 'card-3',
+      beforeCardId: null,
+      columnId: 'done',
+    });
+
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(loaded?.state.columns[0].cards.map((card) => card.id)).toEqual([
+      'card-1',
+    ]);
+    expect(loaded?.state.columns[1].cards.map((card) => card.id)).toEqual([
+      'card-3',
+      'card-2',
+    ]);
+    expect(
+      loaded?.state.columns[1].cards.find((card) => card.id === 'card-2')
+    ).toMatchObject({
+      content: 'Second content',
+      title: 'Second card',
+    });
+    expect(loaded?.state.completedWorkCycles).toEqual(
+      sampleState.completedWorkCycles
+    );
+  });
+
+  test('deletes active card without deleting archived snapshots', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
+    const previousBoard = await prisma.board.findUniqueOrThrow({
+      where: { id: board.id },
+    });
+
+    const result = await deleteActiveCard(prisma, 'user-1', 'card-1');
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result).toEqual({
+      boardVersion: previousBoard.version + 1,
+      cardId: 'card-1',
+      columnId: 'todo',
+    });
+    expect(loaded?.state.columns[0].cards).toEqual([]);
+    expect(loaded?.state.completedWorkCycles).toEqual(
+      sampleState.completedWorkCycles
+    );
+    await expect(prisma.completedWorkCycleCard.count()).resolves.toBe(1);
   });
 });
