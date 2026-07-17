@@ -10,7 +10,9 @@ import { ensureProfile } from '../auth/profileService.js';
 import { PrismaClient } from '../generated/prisma/sqlite/client.js';
 import {
   ensureDefaultBoard,
+  loadActiveCardDetail,
   loadBoard,
+  loadMainBoardBootstrap,
   writeBoardState,
 } from './structuredBoardRepository.js';
 import type { BoardState } from '../../src/board/types.js';
@@ -188,5 +190,111 @@ describe('structured board repository', () => {
 
     const loaded = await loadBoard(prisma, 'user-1', board.id);
     expect(loaded?.state.columns).toHaveLength(2);
+  });
+
+  test('loads lean bootstrap without rich content or completed history', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    await ensureDefaultBoard(prisma, 'user-1', sampleState);
+
+    const bootstrap = await loadMainBoardBootstrap(prisma, 'user-1');
+
+    expect(bootstrap.board).toEqual({
+      background: sampleState.background,
+      id: expect.any(String),
+      title: 'Flowboard',
+      version: expect.any(Number),
+    });
+    expect(bootstrap.columns).toEqual([
+      { id: 'todo', title: 'Todo' },
+      { id: 'done', title: 'Done' },
+    ]);
+    expect(bootstrap.cards).toEqual([
+      {
+        columnId: 'todo',
+        id: 'card-1',
+        priority: 'high',
+        tagIds: ['tag-1'],
+        title: 'Explore database strategy',
+      },
+    ]);
+    expect(bootstrap.tags).toEqual([{ id: 'tag-1', name: 'Architecture' }]);
+    expect(bootstrap.workCycle).toEqual(sampleState.activeWorkCycle);
+    expect(bootstrap.cards[0]).not.toHaveProperty('content');
+    expect(bootstrap).not.toHaveProperty('completedWorkCycles');
+  });
+
+  test('loads lean bootstrap for a new user with an empty board', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+
+    const bootstrap = await loadMainBoardBootstrap(prisma, 'user-1');
+
+    expect(bootstrap.board.id).toEqual(expect.any(String));
+    expect(bootstrap.columns).toEqual([]);
+    expect(bootstrap.cards).toEqual([]);
+    expect(bootstrap.tags).toEqual([]);
+    expect(bootstrap.workCycle.completedColumnId).toBeNull();
+    expect(bootstrap.workCycle.startDate).toEqual(expect.any(String));
+  });
+
+  test('loads rich active card detail for an owned card', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    await ensureDefaultBoard(prisma, 'user-1', sampleState);
+
+    const card = await loadActiveCardDetail(prisma, 'user-1', 'card-1');
+
+    expect(card).toEqual({
+      content: 'Think deeply',
+      createdAt: '2026-07-02T00:00:00.000Z',
+      id: 'card-1',
+      priority: 'high',
+      tagIds: ['tag-1'],
+      title: 'Explore database strategy',
+    });
+  });
+
+  test('does not load active card detail across owners', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'one@example.com',
+      id: 'user-1',
+    });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'two@example.com',
+      id: 'user-2',
+    });
+    await ensureDefaultBoard(prisma, 'user-1', sampleState);
+
+    await expect(
+      loadActiveCardDetail(prisma, 'user-2', 'card-1')
+    ).resolves.toBeNull();
+    await expect(
+      loadActiveCardDetail(prisma, 'user-1', 'missing-card')
+    ).resolves.toBeNull();
   });
 });

@@ -9,7 +9,9 @@ import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import {
   listProjects,
+  loadActiveCardDetail,
   loadBoard,
+  loadMainBoardBootstrap,
   writeBoardState,
 } from '../db/structuredBoardRepository.js';
 import {
@@ -20,6 +22,7 @@ import {
 import { readRequestBody, sendJson } from '../http/json.js';
 
 const BOARD_PATH_PATTERN = /^\/api\/boards\/([^/]+)$/;
+const ACTIVE_CARD_DETAIL_PATH_PATTERN = /^\/api\/board\/cards\/([^/]+)$/;
 
 export const handleAuthenticatedBoardApiRequest = async (
   request: IncomingMessage,
@@ -30,8 +33,10 @@ export const handleAuthenticatedBoardApiRequest = async (
   const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
 
   if (
+    pathname !== '/api/board/bootstrap' &&
     pathname !== '/api/projects' &&
     pathname !== '/api/boards/default' &&
+    !ACTIVE_CARD_DETAIL_PATH_PATTERN.test(pathname) &&
     !BOARD_PATH_PATTERN.test(pathname)
   ) {
     return false;
@@ -45,6 +50,35 @@ export const handleAuthenticatedBoardApiRequest = async (
   }
 
   await ensureProfile(prisma, user);
+
+  if (pathname === '/api/board/bootstrap') {
+    if (request.method !== 'GET') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    sendJson(response, 200, await loadMainBoardBootstrap(prisma, user.id));
+    return true;
+  }
+
+  const activeCardId = pathname.match(ACTIVE_CARD_DETAIL_PATH_PATTERN)?.[1];
+
+  if (activeCardId) {
+    if (request.method !== 'GET') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    const card = await loadActiveCardDetail(prisma, user.id, activeCardId);
+
+    if (!card) {
+      sendNotFound(response);
+      return true;
+    }
+
+    sendJson(response, 200, card);
+    return true;
+  }
 
   if (pathname === '/api/projects') {
     if (request.method !== 'GET') {
