@@ -18,6 +18,9 @@ import { InlineEmptyState } from '../EmptyState';
 import SegmentedControl from '../SegmentedControl';
 import type { SegmentedControlOption } from '../SegmentedControl';
 
+import '../SettingsDialog/SettingsDialog.css';
+import './AppSettingsDialog.css';
+
 type AppSettingsDialogProps = {
   canClearBoard: boolean;
   completedColumnId: string | null;

@@ -1,10 +1,17 @@
 import { useEffect, useReducer, useRef } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import {
+  createTag as createBoardTag,
+  getTagNameError,
+  TAG_NAME_REQUIRED_MESSAGE,
+} from '../../board/tags';
 import type { BoardTag, CardPriority } from '../../types';
 import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
 import { formatCreatedAt } from './formatters';
-import type { CardDialogProps, CardDialogValues } from './types';
+import { getTagSummary, toggleSelectedTagId } from './tagSelection';
+import type { CardDialogProps } from './types';
+import { useCardDialogAutosave } from './useCardDialogAutosave';
 
 const useCardDialogController = ({
   card,
@@ -22,7 +29,6 @@ const useCardDialogController = ({
     cardDialogReducer,
     createCardDialogState(card, columnId)
   );
-  const lastValidTitleRef = useRef(card.title);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const {
     content,
@@ -38,6 +44,19 @@ const useCardDialogController = ({
     title,
     titleEditing,
   } = state;
+  const { lastValidTitle, saveExistingCard } = useCardDialogAutosave({
+    dispatch,
+    initialTitle: card.title,
+    onSave,
+    state: {
+      content,
+      priority,
+      selectedColumnId,
+      selectedTagIds,
+      title,
+    },
+    titleRequiredMessage: messages.card.titleRequired,
+  });
 
   useEffect(() => {
     if (!open || !titleEditing) {
@@ -63,42 +82,6 @@ const useCardDialogController = ({
     }
 
     closeCardDialog();
-  };
-
-  const saveExistingCard = (
-    nextValues: Partial<Omit<CardDialogValues, 'title'>> & {
-      title?: string;
-    }
-  ) => {
-    const nextTitle = nextValues.title ?? title;
-    const trimmedTitle = nextTitle.trim();
-    const titleToSave = trimmedTitle || lastValidTitleRef.current;
-
-    if (!trimmedTitle) {
-      dispatch({
-        type: 'fieldsChanged',
-        values: { error: messages.card.titleRequired },
-      });
-    } else {
-      lastValidTitleRef.current = trimmedTitle;
-      dispatch({ type: 'fieldsChanged', values: { error: '' } });
-    }
-
-    if (!titleToSave) {
-      return;
-    }
-
-    const message = onSave({
-      columnId: nextValues.columnId ?? selectedColumnId,
-      content: nextValues.content ?? content,
-      priority: nextValues.priority ?? priority,
-      tagIds: nextValues.tagIds ?? selectedTagIds,
-      title: titleToSave,
-    });
-
-    if (message) {
-      dispatch({ type: 'fieldsChanged', values: { error: message } });
-    }
   };
 
   const onConfirmDeleteCard = () => {
@@ -127,35 +110,33 @@ const useCardDialogController = ({
   };
 
   const toggleTag = (tagId: string) => {
-    const nextTagIds = selectedTagIds.includes(tagId)
-      ? selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId)
-      : [...selectedTagIds, tagId];
+    const nextTagIds = toggleSelectedTagId(selectedTagIds, tagId);
 
     dispatch({ type: 'fieldsChanged', values: { selectedTagIds: nextTagIds } });
     saveExistingCard({ tagIds: nextTagIds });
   };
 
   const createTag = () => {
-    const name = newTagName.trim();
+    const error = getTagNameError(tags, newTagName);
 
-    if (!name) {
+    if (error) {
       dispatch({
         type: 'fieldsChanged',
-        values: { tagError: messages.card.tagNameRequired },
+        values: {
+          tagError:
+            error === TAG_NAME_REQUIRED_MESSAGE
+              ? messages.card.tagNameRequired
+              : messages.card.tagNamesUnique,
+        },
       });
       return;
     }
 
-    if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
-      dispatch({
-        type: 'fieldsChanged',
-        values: { tagError: messages.card.tagNamesUnique },
-      });
-      return;
-    }
-
-    const tag = { id: crypto.randomUUID(), name };
-    const nextTags = [...tags, tag];
+    const { tag, tags: nextTags } = createBoardTag(
+      tags,
+      newTagName,
+      crypto.randomUUID()
+    );
     const nextTagIds = [...selectedTagIds, tag.id];
 
     onTagsChange(nextTags);
@@ -172,7 +153,7 @@ const useCardDialogController = ({
   };
 
   const onTitleBlur = () => {
-    if (!title.trim() && !lastValidTitleRef.current) {
+    if (!title.trim() && !lastValidTitle) {
       return;
     }
 
@@ -216,14 +197,7 @@ const useCardDialogController = ({
     });
 
   const createdAtLabel = formatCreatedAt(card.createdAt, language);
-  const tagNameById = new Map(tags.map((tag) => [tag.id, tag.name]));
-  const selectedTagNames = selectedTagIds
-    .map((tagId) => tagNameById.get(tagId))
-    .filter((tagName): tagName is string => Boolean(tagName));
-  const tagSummary =
-    selectedTagNames.length > 0
-      ? selectedTagNames.join(', ')
-      : messages.card.noTags;
+  const tagSummary = getTagSummary(tags, selectedTagIds, messages.card.noTags);
 
   return {
     card,
@@ -235,7 +209,7 @@ const useCardDialogController = ({
     deleteOpen,
     editTitle,
     error,
-    lastValidTitle: lastValidTitleRef.current,
+    lastValidTitle,
     newTagName,
     onCardOpenChange,
     onColumnChange,

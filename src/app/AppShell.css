@@ -1,0 +1,84 @@
+.app {
+  background-color: var(--color-app-bg);
+  color: var(--color-text);
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    grid-template-columns 180ms ease;
+}
+
+.app--sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+}
+
+.app__mobile-backdrop {
+  display: none;
+}
+
+.app__persistence-status {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  bottom: 18px;
+  box-shadow: 0 10px 28px var(--color-shadow);
+  color: var(--color-text);
+  font-size: 13px;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 10px 12px;
+  position: fixed;
+  right: 18px;
+  z-index: 20;
+}
+
+.app__title,
+.dialog-title {
+  color: var(--color-text);
+  font-size: 22px;
+  font-weight: 680;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.app__eyebrow {
+  color: var(--color-text-soft);
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0;
+  margin: 0 0 3px;
+}
+
+@media (max-width: 760px) {
+  .app,
+  .app--sidebar-collapsed,
+  .app--sidebar-expanded {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app__mobile-backdrop {
+    background-color: var(--color-backdrop);
+    border: 0;
+    bottom: 0;
+    cursor: pointer;
+    display: block;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    right: 0;
+    top: 0;
+    transition: opacity 180ms ease;
+    z-index: 7;
+  }
+
+  .app--mobile-sidebar-open .app__mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

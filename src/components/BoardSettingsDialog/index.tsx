@@ -6,6 +6,8 @@ import DialogSelect from '../DialogSelect';
 import DialogShell from '../DialogShell';
 import { InlineEmptyState } from '../EmptyState';
 
+import '../SettingsDialog/SettingsDialog.css';
+
 type BoardSettingsDialogProps = {
   canClearBoard: boolean;
   completedColumnId: string | null;

@@ -1,0 +1,21 @@
+.app-settings__content {
+  display: grid;
+  gap: 22px;
+}
+
+.app-settings__section {
+  display: grid;
+  gap: 10px;
+}
+
+.app-settings__section-title {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.app-settings__theme-control {
+  width: 100%;
+}

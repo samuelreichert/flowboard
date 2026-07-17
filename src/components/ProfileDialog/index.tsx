@@ -8,6 +8,8 @@ import type { AuthenticatedProfile } from '../../storage/authenticatedApi';
 import ProfileAvatar from '../ProfileAvatar';
 import DialogShell from '../DialogShell';
 
+import './ProfileDialog.css';
+
 type ProfileDialogValues = {
   avatarFile: File | null;
   displayName: string;

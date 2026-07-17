@@ -26,6 +26,8 @@ import type { ResolvedTheme } from '../theme';
 import { getThemeIconSrc } from './appTheme';
 import type { AppView } from './appTypes';
 
+import './AppSidebar.css';
+
 type AppSidebarProps = {
   currentView: AppView;
   onBoardClick: () => void;

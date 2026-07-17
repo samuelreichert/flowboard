@@ -1,26 +1,24 @@
-import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import { extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-import { Button } from '@base-ui/react/button';
-import { Columns3, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
-import CardComposer from '../CardComposer';
-import Column from '../Column';
-import ContentDialog from '../ContentDialog';
-import { InlineEmptyState } from '../EmptyState';
-import ManageColumnsDialog from '../ManageColumnsDialog';
+import { moveColumn } from '../../board/columns';
 import {
-  isCardDragData,
-  isCardDropTargetData,
-  isColumnDropTargetData,
-  reorderCard,
-} from '../../dnd';
-import { moveColumn, normalizeColumnOrder } from '../../board/columns';
+  createCard,
+  createColumn,
+  deleteCard,
+  deleteColumn,
+  editCard,
+  renameColumn,
+} from '../../board/commands';
 import { findActiveCardRouteTarget } from '../../board/routeLookup';
-import { fetchStorage, updateStorage } from '../../storage';
 import type { CardDialogValues } from '../CardDialog';
+import CardComposer from '../CardComposer';
+import ManageColumnsDialog from '../ManageColumnsDialog';
 import type { BoardColumn, BoardTag } from '../../types';
+import ActiveCardMissingState from './ActiveCardMissingState';
+import AddColumnDialog from './AddColumnDialog';
+import ColumnList from './ColumnList';
+import { useColumnsDragMonitor } from './useColumnsDragMonitor';
 
 import './Columns.css';
 
@@ -29,10 +27,10 @@ const createId = () => crypto.randomUUID();
 type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
+  columns: BoardColumn[];
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
-  onBoardStateChange: () => void;
-  onColumnCountChange: (count: number) => void;
+  onColumnsChange: (columns: BoardColumn[]) => void;
   onManageColumnsOpenChange: (open: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   tags: BoardTag[];
@@ -41,31 +39,18 @@ type ColumnsProps = {
 const Columns = ({
   activeCardId,
   boardLoading,
+  columns,
   manageColumnsOpen,
   onActiveCardClose,
-  onBoardStateChange,
-  onColumnCountChange,
+  onColumnsChange,
   onManageColumnsOpenChange,
   onTagsChange,
   tags,
 }: ColumnsProps) => {
   const { messages } = useLocalization();
-  const [columns, setColumns] = useState<BoardColumn[]>(() =>
-    normalizeColumnOrder(fetchStorage())
-  );
   const [addColumnOpen, setAddColumnOpen] = useState(false);
 
-  const updateColumns = useCallback(
-    (newColumns: BoardColumn[]) => {
-      const normalizedColumns = normalizeColumnOrder(newColumns);
-
-      setColumns(normalizedColumns);
-      updateStorage(normalizedColumns);
-      onColumnCountChange(normalizedColumns.length);
-      onBoardStateChange();
-    },
-    [onBoardStateChange, onColumnCountChange]
-  );
+  useColumnsDragMonitor({ columns, onColumnsChange });
 
   const onSaveColumn = (title: string) => {
     if (!title) {
@@ -80,10 +65,7 @@ const Columns = ({
       return messages.board.columnTitlesUnique;
     }
 
-    updateColumns([
-      ...columns,
-      { id: createId(), title, cards: [], position: columns.length * 10 },
-    ]);
+    onColumnsChange(createColumn(columns, { id: createId(), title }));
   };
 
   const onRenameColumn = (columnId: string, title: string) => {
@@ -101,22 +83,18 @@ const Columns = ({
       return messages.board.columnTitlesUnique;
     }
 
-    updateColumns(
-      columns.map((column) =>
-        column.id === columnId ? { ...column, title } : column
-      )
-    );
+    onColumnsChange(renameColumn(columns, columnId, title));
   };
 
   const onDeleteColumn = (columnId: string) => {
-    updateColumns(columns.filter((column) => column.id !== columnId));
+    onColumnsChange(deleteColumn(columns, columnId));
   };
 
   const onMoveColumn = (
     columnId: string,
     direction: Parameters<typeof moveColumn>[2]
   ) => {
-    updateColumns(moveColumn(columns, columnId, direction));
+    onColumnsChange(moveColumn(columns, columnId, direction));
   };
 
   const onSaveCard = (values: CardDialogValues) => {
@@ -124,25 +102,12 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    updateColumns(
-      columns.map((column) =>
-        column.id === values.columnId
-          ? {
-              ...column,
-              cards: [
-                ...column.cards,
-                {
-                  content: values.content,
-                  createdAt: new Date().toISOString(),
-                  id: createId(),
-                  priority: values.priority,
-                  tagIds: values.tagIds,
-                  title: values.title,
-                },
-              ],
-            }
-          : column
-      )
+    onColumnsChange(
+      createCard(columns, {
+        ...values,
+        createdAt: new Date().toISOString(),
+        id: createId(),
+      })
     );
   };
 
@@ -155,108 +120,12 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    const sourceColumn = columns.find((column) => column.id === sourceColumnId);
-    const existingCard = sourceColumn?.cards.find((card) => card.id === cardId);
-
-    if (!existingCard) {
-      return;
-    }
-
-    const updatedCard = {
-      ...existingCard,
-      content: values.content,
-      priority: values.priority,
-      tagIds: values.tagIds,
-      title: values.title,
-    };
-
-    updateColumns(
-      columns.map((column) => {
-        if (
-          sourceColumnId === values.columnId &&
-          column.id === sourceColumnId
-        ) {
-          return {
-            ...column,
-            cards: column.cards.map((card) =>
-              card.id === cardId ? updatedCard : card
-            ),
-          };
-        }
-
-        if (column.id === sourceColumnId) {
-          return {
-            ...column,
-            cards: column.cards.filter((card) => card.id !== cardId),
-          };
-        }
-
-        if (column.id === values.columnId) {
-          return {
-            ...column,
-            cards: [...column.cards, updatedCard],
-          };
-        }
-
-        return column;
-      })
-    );
+    onColumnsChange(editCard(columns, sourceColumnId, cardId, values));
   };
 
   const onDeleteCard = (columnId: string, cardId: string) => {
-    updateColumns(
-      columns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              cards: column.cards.filter((card) => card.id !== cardId),
-            }
-          : column
-      )
-    );
+    onColumnsChange(deleteCard(columns, columnId, cardId));
   };
-
-  useEffect(
-    () =>
-      monitorForElements({
-        canMonitor: ({ source }) => isCardDragData(source.data),
-        onDrop: ({ location, source }) => {
-          if (!isCardDragData(source.data)) {
-            return;
-          }
-
-          const target = location.current.dropTargets[0];
-
-          if (!target) {
-            return;
-          }
-
-          if (isCardDropTargetData(target.data)) {
-            updateColumns(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: extractClosestEdge(target.data),
-                fromColumnId: source.data.columnId,
-                targetCardId: target.data.cardId,
-                toColumnId: target.data.columnId,
-              })
-            );
-          }
-
-          if (isColumnDropTargetData(target.data)) {
-            updateColumns(
-              reorderCard(columns, {
-                cardId: source.data.cardId,
-                closestEdge: null,
-                fromColumnId: source.data.columnId,
-                toColumnId: target.data.columnId,
-              })
-            );
-          }
-        },
-      }),
-    [columns, updateColumns]
-  );
 
   const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
@@ -268,39 +137,24 @@ const Columns = ({
   return (
     <>
       <div className="columns-board">
-        {activeCardId && !activeCardTarget && !boardLoading && (
-          <InlineEmptyState
-            className="columns-board__route-missing"
-            variant="surface"
-          >
-            {messages.board.cardNotFound}
-          </InlineEmptyState>
-        )}
-        <div className="columns-list">
-          {sortedColumns.map((column) => (
-            <Column
-              activeCardId={activeCardId}
-              column={column}
-              columns={sortedColumns}
-              deleteCard={onDeleteCard}
-              deleteColumn={onDeleteColumn}
-              editCard={onEditCard}
-              key={column.id}
-              moveColumn={onMoveColumn}
-              onActiveCardClose={onActiveCardClose}
-              onTagsChange={onTagsChange}
-              renameColumn={onRenameColumn}
-              tags={tags}
-            />
-          ))}
-          <Button
-            className="add-column-placeholder"
-            onClick={() => setAddColumnOpen(true)}
-          >
-            <Plus size={16} />
-            {messages.board.addAnotherColumn}
-          </Button>
-        </div>
+        <ActiveCardMissingState
+          activeCardId={activeCardId}
+          boardLoading={boardLoading}
+          hasActiveCardTarget={Boolean(activeCardTarget)}
+        />
+        <ColumnList
+          activeCardId={activeCardId}
+          columns={sortedColumns}
+          deleteCard={onDeleteCard}
+          deleteColumn={onDeleteColumn}
+          editCard={onEditCard}
+          moveColumn={onMoveColumn}
+          onActiveCardClose={onActiveCardClose}
+          onAddColumnClick={() => setAddColumnOpen(true)}
+          onTagsChange={onTagsChange}
+          renameColumn={onRenameColumn}
+          tags={tags}
+        />
         <div className="card-composer-dock">
           <CardComposer
             columns={sortedColumns}
@@ -320,17 +174,10 @@ const Columns = ({
         open={manageColumnsOpen}
         renameColumn={onRenameColumn}
       />
-      <ContentDialog
-        description={messages.board.addColumnDescription}
-        hideCancel
-        label={messages.board.columnTitle}
-        leadingIcon={<Columns3 size={15} />}
+      <AddColumnDialog
         onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
-        placeholder={messages.board.readyForReview}
-        submitLabel={messages.board.addColumn}
-        title={messages.board.addColumn}
       />
     </>
   );

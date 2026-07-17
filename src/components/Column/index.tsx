@@ -1,4 +1,3 @@
-import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { Button } from '@base-ui/react/button';
 import { Menu } from '@base-ui/react/menu';
 import {
@@ -10,14 +9,14 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useReducer, useRef } from 'react';
+import { useReducer, useRef } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import { useColumnDropTarget } from './useColumnDropTarget';
 import Card from '../Card';
 import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import type { CardDialogValues } from '../CardDialog';
-import { isCardDragData } from '../../dnd';
 import type { ColumnMoveDirection } from '../../board/columns';
 import type { BoardColumn, BoardTag } from '../../types';
 
@@ -44,13 +43,11 @@ type ColumnProps = {
 
 type ColumnState = {
   deleteOpen: boolean;
-  isDragOver: boolean;
   renameOpen: boolean;
 };
 
 type ColumnAction =
   | { type: 'deleteOpenChanged'; open: boolean }
-  | { type: 'dragOverChanged'; isDragOver: boolean }
   | { type: 'renameOpenChanged'; open: boolean };
 
 const columnReducer = (
@@ -60,8 +57,6 @@ const columnReducer = (
   switch (action.type) {
     case 'deleteOpenChanged':
       return { ...state, deleteOpen: action.open };
-    case 'dragOverChanged':
-      return { ...state, isDragOver: action.isDragOver };
     case 'renameOpenChanged':
       return { ...state, renameOpen: action.open };
   }
@@ -84,32 +79,16 @@ const Column = ({
   const columnRef = useRef<HTMLElement | null>(null);
   const [state, dispatch] = useReducer(columnReducer, {
     deleteOpen: false,
-    isDragOver: false,
     renameOpen: false,
   });
-  const { deleteOpen, isDragOver, renameOpen } = state;
+  const { deleteOpen, renameOpen } = state;
   const columnIndex = columns.findIndex((item) => item.id === column.id);
   const isFirstColumn = columnIndex <= 0;
   const isLastColumn = columnIndex === columns.length - 1;
-
-  useEffect(() => {
-    const columnElement = columnRef.current;
-
-    if (!columnElement) {
-      return;
-    }
-
-    return dropTargetForElements({
-      element: columnElement,
-      canDrop: ({ source }) => isCardDragData(source.data),
-      getData: () => ({ columnId: column.id, type: 'column' }),
-      onDragEnter: () =>
-        dispatch({ isDragOver: true, type: 'dragOverChanged' }),
-      onDragLeave: () =>
-        dispatch({ isDragOver: false, type: 'dragOverChanged' }),
-      onDrop: () => dispatch({ isDragOver: false, type: 'dragOverChanged' }),
-    });
-  }, [column.id]);
+  const isDragOver = useColumnDropTarget({
+    columnId: column.id,
+    columnRef,
+  });
 
   return (
     <>
@@ -140,7 +119,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'first')}
                   >
                     <ChevronsLeft size={15} />
-                    Move to first
+                    {messages.board.moveColumnToTop(column.title)}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -148,7 +127,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'previous')}
                   >
                     <ChevronLeft size={15} />
-                    Move left
+                    {messages.board.moveColumnUp(column.title)}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -156,7 +135,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'next')}
                   >
                     <ChevronRight size={15} />
-                    Move right
+                    {messages.board.moveColumnDown(column.title)}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -164,7 +143,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'last')}
                   >
                     <ChevronsRight size={15} />
-                    Move to last
+                    {messages.board.moveColumnToBottom(column.title)}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"

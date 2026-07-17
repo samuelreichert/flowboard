@@ -7,6 +7,11 @@ import { useLocalization } from '../../LocalizationProvider';
 import ComposerInput from './ComposerInput';
 import ComposerMetaControls from './ComposerMetaControls';
 import {
+  createTag as createBoardTag,
+  getTagNameError,
+  TAG_NAME_REQUIRED_MESSAGE,
+} from '../../board/tags';
+import {
   cardComposerReducer,
   createCardComposerState,
 } from './cardComposerState';
@@ -105,27 +110,26 @@ const CardComposer = ({
   };
 
   const createTag = () => {
-    const name = newTagName.trim();
+    const error = getTagNameError(tags, newTagName);
 
-    if (!name) {
+    if (error) {
       dispatch({
-        error: messages.card.tagNameRequired,
+        error:
+          error === TAG_NAME_REQUIRED_MESSAGE
+            ? messages.card.tagNameRequired
+            : messages.card.tagNamesUnique,
         type: 'tagErrorChanged',
       });
       return;
     }
 
-    if (tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())) {
-      dispatch({
-        error: messages.card.tagNamesUnique,
-        type: 'tagErrorChanged',
-      });
-      return;
-    }
+    const { tag, tags: nextTags } = createBoardTag(
+      tags,
+      newTagName,
+      crypto.randomUUID()
+    );
 
-    const tag = { id: crypto.randomUUID(), name };
-
-    onTagsChange([...tags, tag]);
+    onTagsChange(nextTags);
     dispatch({
       tagIds: [...selectedAvailableTagIds, tag.id],
       type: 'tagCreated',

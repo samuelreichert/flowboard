@@ -1,0 +1,161 @@
+import { useEffect, useRef } from 'react';
+import type { Dispatch } from 'react';
+
+import { completeWorkCycle } from '../board/completedWork';
+import {
+  deleteTag as deleteBoardTag,
+  removeTagFromColumns,
+} from '../board/tags';
+import {
+  fetchBoardState,
+  fetchStorage,
+  updateActiveWorkCycleStorage,
+  updateBoardStateStorage,
+  updateTagStorage,
+  updateStorage,
+} from '../storage';
+import type {
+  BoardActiveWorkCycle,
+  BoardColumn,
+  BoardState,
+  BoardTag,
+} from '../types';
+import type { AppAction } from './appTypes';
+
+const useBoardActions = ({
+  activeWorkCycle,
+  dispatch,
+  openSettings,
+  persistAuthenticatedBoard,
+  tags,
+}: {
+  activeWorkCycle: BoardActiveWorkCycle;
+  dispatch: Dispatch<AppAction>;
+  openSettings: () => void;
+  persistAuthenticatedBoard: (nextState: BoardState) => void;
+  tags: BoardTag[];
+}) => {
+  const completionPulseTimeoutRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (completionPulseTimeoutRef.current !== null) {
+        window.clearTimeout(completionPulseTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  const updateTags = (newTags: BoardTag[]) => {
+    dispatch({ tags: newTags, type: 'tagsChanged' });
+    updateTagStorage(newTags);
+    persistAuthenticatedBoard(fetchBoardState());
+  };
+
+  const updateColumns = (newColumns: BoardColumn[]) => {
+    updateStorage(newColumns);
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateSynced' });
+    persistAuthenticatedBoard(nextState);
+  };
+
+  const deleteTag = (tagId: string) => {
+    updateTags(deleteBoardTag(tags, tagId));
+    updateStorage(removeTagFromColumns(fetchStorage(), tagId));
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
+  };
+
+  const clearBoard = () => {
+    updateStorage([]);
+    const nextState = fetchBoardState();
+
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
+  };
+
+  const chooseCompletedColumn = (completedColumnId: string | null) => {
+    const nextActiveWorkCycle = {
+      ...activeWorkCycle,
+      completedColumnId,
+    };
+
+    dispatch({
+      activeWorkCycle: nextActiveWorkCycle,
+      type: 'activeWorkCycleChanged',
+    });
+    updateActiveWorkCycleStorage(nextActiveWorkCycle);
+    persistAuthenticatedBoard(fetchBoardState());
+  };
+
+  const openCompleteWorkConfirmation = () => {
+    const latestState = fetchBoardState();
+    const completedColumn = latestState.columns.find(
+      (column) => column.id === latestState.activeWorkCycle.completedColumnId
+    );
+
+    if (!completedColumn) {
+      openSettings();
+      return;
+    }
+
+    dispatch({ state: latestState, type: 'boardStateChanged' });
+
+    if (completedColumn.cards.length === 0) {
+      return;
+    }
+
+    dispatch({ open: true, type: 'completeWorkOpenChanged' });
+    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
+  };
+
+  const confirmCompleteWork = () => {
+    const completedAt = new Date().toISOString();
+    const latestState = fetchBoardState();
+    const completedColumn = latestState.columns.find(
+      (column) => column.id === latestState.activeWorkCycle.completedColumnId
+    );
+
+    if (!completedColumn || completedColumn.cards.length === 0) {
+      if (!completedColumn) {
+        openSettings();
+      }
+
+      return;
+    }
+
+    const nextState = completeWorkCycle(latestState, completedAt);
+
+    if (!nextState) {
+      openSettings();
+      return;
+    }
+
+    updateBoardStateStorage(nextState);
+    dispatch({ state: nextState, type: 'boardStateChanged' });
+    persistAuthenticatedBoard(nextState);
+    dispatch({ active: true, type: 'completionPulseChanged' });
+    if (completionPulseTimeoutRef.current !== null) {
+      window.clearTimeout(completionPulseTimeoutRef.current);
+    }
+    completionPulseTimeoutRef.current = window.setTimeout(
+      () => dispatch({ active: false, type: 'completionPulseChanged' }),
+      900
+    );
+  };
+
+  return {
+    chooseCompletedColumn,
+    clearBoard,
+    confirmCompleteWork,
+    deleteTag,
+    openCompleteWorkConfirmation,
+    updateColumns,
+    updateTags,
+  };
+};
+
+export default useBoardActions;

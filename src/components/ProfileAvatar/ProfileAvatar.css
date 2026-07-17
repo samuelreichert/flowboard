@@ -1,0 +1,35 @@
+.profile-avatar {
+  align-items: center;
+  background-color: oklch(0.58 0.01 190);
+  border-radius: var(--radius-round);
+  color: var(--color-on-solid);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: 650;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profile-avatar--sm {
+  font-size: 12px;
+  height: 32px;
+  width: 32px;
+}
+
+.profile-avatar--md {
+  font-size: 15px;
+  height: 40px;
+  width: 40px;
+}
+
+.profile-avatar--lg {
+  font-size: 44px;
+  height: 128px;
+  width: 128px;
+}
