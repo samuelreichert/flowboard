@@ -280,9 +280,13 @@ export const useFlowboardBoardMutations = ({
       await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
       const previousBootstrap = getBootstrap();
       const affectedCardIds =
-        previousBootstrap?.cards
-          .filter((card) => card.columnId === variables.columnId)
-          .map((card) => card.id) ?? [];
+        previousBootstrap?.cards.reduce<string[]>((cardIds, card) => {
+          if (card.columnId === variables.columnId) {
+            cardIds.push(card.id);
+          }
+
+          return cardIds;
+        }, []) ?? [];
       const previousCardDetails = affectedCardIds.map((cardId) => ({
         cardId,
         detail: queryClient.getQueryData<ActiveCardDetailResponse>(
@@ -433,9 +437,13 @@ export const useFlowboardBoardMutations = ({
       await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
       const previousBootstrap = getBootstrap();
       const affectedCardIds =
-        previousBootstrap?.cards
-          .filter((card) => card.tagIds.includes(variables.tagId))
-          .map((card) => card.id) ?? [];
+        previousBootstrap?.cards.reduce<string[]>((cardIds, card) => {
+          if (card.tagIds.includes(variables.tagId)) {
+            cardIds.push(card.id);
+          }
+
+          return cardIds;
+        }, []) ?? [];
       const previousCardDetails = affectedCardIds.map((cardId) => ({
         cardId,
         detail: queryClient.getQueryData<ActiveCardDetailResponse>(
