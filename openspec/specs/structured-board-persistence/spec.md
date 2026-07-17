@@ -93,13 +93,18 @@ The system SHALL NOT depend on browser localStorage import as part of normal boa
 
 ### Requirement: Persisted board records support route target resolution
 
-The system SHALL resolve route-addressed active cards and archived card snapshots from the authenticated user's persisted board state.
+The system SHALL resolve route-addressed active cards and archived card
+snapshots from the authenticated user's persisted board data, including
+summary-first active card routes whose rich content is loaded separately.
 
 #### Scenario: Authenticated user opens an active card route
 
-- **WHEN** an authenticated user opens an active card route for a card in their loaded board
-- **THEN** the system resolves the card from that user's persisted board data
-- **AND** the system opens the matching active card details
+- **WHEN** an authenticated user opens an active card route for a card in their
+  loaded board bootstrap
+- **THEN** the system resolves the card summary from that user's persisted board
+  data
+- **AND** the system opens the matching active card details after hydrating rich
+  content from the active-card detail read model
 
 #### Scenario: Authenticated user opens an archived card route
 

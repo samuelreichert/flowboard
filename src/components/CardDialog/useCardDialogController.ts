@@ -29,6 +29,8 @@ const useCardDialogController = ({
     cardDialogReducer,
     createCardDialogState(card, columnId)
   );
+  const contentEditedRef = useRef(false);
+  const hydratedContentRef = useRef(card.content);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const {
     content,
@@ -71,6 +73,18 @@ const useCardDialogController = ({
     return () => window.clearTimeout(focusTitle);
   }, [open, titleEditing]);
 
+  useEffect(() => {
+    if (card.content === hydratedContentRef.current) {
+      return;
+    }
+
+    hydratedContentRef.current = card.content;
+
+    if (!contentEditedRef.current) {
+      dispatch({ type: 'fieldsChanged', values: { content: card.content } });
+    }
+  }, [card.content]);
+
   const closeCardDialog = () => {
     onOpenChange(false);
   };
@@ -95,6 +109,7 @@ const useCardDialogController = ({
   };
 
   const onContentChange = (value: string) => {
+    contentEditedRef.current = true;
     dispatch({ type: 'fieldsChanged', values: { content: value } });
     saveExistingCard({ content: value });
   };

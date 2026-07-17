@@ -9,6 +9,7 @@ import {
   type SupabaseSession,
 } from '../auth/supabase';
 import type { Messages } from '../localization';
+import { clearFlowboardQueryCache } from './queryClient';
 
 type AuthState =
   | {
@@ -25,6 +26,8 @@ type AuthState =
 type AuthMessages = Messages['app']['auth'];
 
 const signOut = () => {
+  clearFlowboardQueryCache();
+
   if (!supabase) {
     return;
   }

@@ -9,6 +9,7 @@ import type { BoardColumn, BoardTag } from '../../types';
 
 type ColumnListProps = {
   activeCardId: string | null;
+  cardDetailAccessToken?: string;
   columns: BoardColumn[];
   deleteCard: (columnId: string, cardId: string) => void;
   deleteColumn: (columnId: string) => void;
@@ -27,6 +28,7 @@ type ColumnListProps = {
 
 const ColumnList = ({
   activeCardId,
+  cardDetailAccessToken,
   columns,
   deleteCard,
   deleteColumn,
@@ -45,6 +47,7 @@ const ColumnList = ({
       {columns.map((column) => (
         <Column
           activeCardId={activeCardId}
+          cardDetailAccessToken={cardDetailAccessToken}
           column={column}
           columns={columns}
           deleteCard={deleteCard}

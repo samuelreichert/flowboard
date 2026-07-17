@@ -14,6 +14,7 @@ const HistoryView = lazy(() => import('../components/HistoryView'));
 type AppWorkspaceProps = {
   activeCardId: string | null;
   archivedCardRoute: { cardId: string; cycleId: string } | null;
+  cardDetailAccessToken?: string;
   boardLoading: boolean;
   canCompleteWork: boolean;
   columns: BoardColumn[];
@@ -36,6 +37,7 @@ type AppWorkspaceProps = {
 const AppWorkspace = ({
   activeCardId,
   archivedCardRoute,
+  cardDetailAccessToken,
   boardLoading,
   canCompleteWork,
   columns,
@@ -118,6 +120,7 @@ const AppWorkspace = ({
           <Columns
             activeCardId={activeCardId}
             boardLoading={boardLoading}
+            cardDetailAccessToken={cardDetailAccessToken}
             columns={columns}
             key={storageVersion}
             manageColumnsOpen={manageColumnsOpen}
