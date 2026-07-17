@@ -66,6 +66,43 @@ export type ActiveCardDetailResponse = {
   title: string;
 };
 
+export type CardMutationCard = ActiveCardDetailResponse & {
+  columnId: string;
+};
+
+export type CardMutationResponse = {
+  boardVersion: number;
+  card: CardMutationCard;
+};
+
+export type DeleteCardMutationResponse = {
+  boardVersion: number;
+  cardId: string;
+  columnId: string;
+};
+
+export type CreateCardMutationInput = {
+  columnId: string;
+  content: string;
+  id: string;
+  priority: CardPriority;
+  tagIds: string[];
+  title: string;
+};
+
+export type UpdateCardMutationInput = {
+  content?: string;
+  priority?: CardPriority;
+  tagIds?: string[];
+  title?: string;
+};
+
+export type MoveCardMutationInput = {
+  afterCardId?: string | null;
+  beforeCardId?: string | null;
+  columnId: string;
+};
+
 const createHeaders = (accessToken?: string) => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
@@ -104,6 +141,22 @@ const parseActiveCardDetailResponse = async (response: Response) => {
   }
 
   return (await response.json()) as ActiveCardDetailResponse;
+};
+
+const parseCardMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to save card data.');
+  }
+
+  return (await response.json()) as CardMutationResponse;
+};
+
+const parseDeleteCardMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to delete card data.');
+  }
+
+  return (await response.json()) as DeleteCardMutationResponse;
 };
 
 export const fetchAuthenticatedProfile = async (accessToken: string) => {
@@ -147,6 +200,68 @@ export const fetchActiveCardDetail = async (
   );
 
   return parseActiveCardDetailResponse(response);
+};
+
+export const createActiveCard = async (
+  card: CreateCardMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/cards`, {
+    body: JSON.stringify(card),
+    headers: createHeaders(accessToken),
+    method: 'POST',
+  });
+
+  return parseCardMutationResponse(response);
+};
+
+export const updateActiveCard = async (
+  cardId: string,
+  card: UpdateCardMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}`,
+    {
+      body: JSON.stringify(card),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseCardMutationResponse(response);
+};
+
+export const moveActiveCard = async (
+  cardId: string,
+  placement: MoveCardMutationInput,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}/move`,
+    {
+      body: JSON.stringify(placement),
+      headers: createHeaders(accessToken),
+      method: 'PATCH',
+    }
+  );
+
+  return parseCardMutationResponse(response);
+};
+
+export const deleteActiveCard = async (
+  cardId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'DELETE',
+    }
+  );
+
+  return parseDeleteCardMutationResponse(response);
 };
 
 export const fetchDefaultBoard = async (accessToken?: string) => {

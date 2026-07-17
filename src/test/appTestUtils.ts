@@ -2,7 +2,14 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
-import { fetchStorage, updateBoardStateStorage } from '../storage';
+import {
+  fetchActiveWorkCycleStorage,
+  fetchBackgroundStorage,
+  fetchCompletedWorkCyclesStorage,
+  fetchStorage,
+  fetchTagStorage,
+  updateBoardStateStorage,
+} from '../storage';
 import { clearFlowboardQueryCache } from '../app/queryClient';
 import type { BoardColumn, BoardState } from '../types';
 
@@ -49,6 +56,85 @@ const findCardDetail = (cardId: string) =>
     .columns.flatMap((column) => column.cards)
     .find((card) => card.id === cardId);
 
+const updateMockServerBoardState = (state: BoardState) => {
+  mockServerBoardState = state;
+  updateBoardStateStorage(state);
+};
+
+const mapMockColumns = (
+  mapper: (column: BoardColumn) => BoardColumn
+) => {
+  updateMockServerBoardState({
+    ...mockServerBoardState,
+    activeWorkCycle: fetchActiveWorkCycleStorage(),
+    background: fetchBackgroundStorage(),
+    columns: mockServerBoardState.columns.map(mapper),
+    completedWorkCycles: fetchCompletedWorkCyclesStorage(),
+    tags: fetchTagStorage(),
+  });
+};
+
+const moveMockCard = (
+  cardId: string,
+  placement: {
+    afterCardId?: string | null;
+    beforeCardId?: string | null;
+    columnId: string;
+  }
+) => {
+  const sourceColumn = mockServerBoardState.columns.find((column) =>
+    column.cards.some((card) => card.id === cardId)
+  );
+  const card = sourceColumn?.cards.find((item) => item.id === cardId);
+
+  if (!sourceColumn || !card) {
+    return;
+  }
+
+  const destinationColumn = mockServerBoardState.columns.find(
+    (column) => column.id === placement.columnId
+  );
+
+  if (!destinationColumn) {
+    return;
+  }
+
+  const destinationCards = destinationColumn.cards.filter(
+    (item) => item.id !== cardId
+  );
+  const placementCardId = placement.beforeCardId ?? placement.afterCardId;
+  const targetIndex = placementCardId
+    ? destinationCards.findIndex((item) => item.id === placementCardId)
+    : destinationCards.length;
+  const insertAt =
+    targetIndex === -1
+      ? destinationCards.length
+      : placement.afterCardId
+        ? targetIndex + 1
+        : targetIndex;
+  const nextDestinationCards = [...destinationCards];
+
+  nextDestinationCards.splice(insertAt, 0, card);
+  mapMockColumns((column) => {
+    if (column.id === sourceColumn.id && column.id === destinationColumn.id) {
+      return { ...column, cards: nextDestinationCards };
+    }
+
+    if (column.id === sourceColumn.id) {
+      return {
+        ...column,
+        cards: column.cards.filter((item) => item.id !== cardId),
+      };
+    }
+
+    if (column.id === destinationColumn.id) {
+      return { ...column, cards: nextDestinationCards };
+    }
+
+    return column;
+  });
+};
+
 const mockFlowboardApi = () => {
   vi.stubGlobal(
     'fetch',
@@ -59,8 +145,119 @@ const mockFlowboardApi = () => {
         return jsonResponse(createBootstrapResponse());
       }
 
+      if (url.endsWith('/api/board/cards') && init?.method === 'POST') {
+        const card = JSON.parse(String(init.body));
+        const createdAt = CREATED_AT;
+
+        mapMockColumns((column) =>
+          column.id === card.columnId
+            ? {
+                ...column,
+                cards: [
+                  ...column.cards,
+                  {
+                    content: card.content,
+                    createdAt,
+                    id: card.id,
+                    priority: card.priority,
+                    tagIds: card.tagIds,
+                    title: card.title,
+                  },
+                ],
+              }
+            : column
+        );
+
+        return jsonResponse(
+          {
+            boardVersion: 2,
+            card: {
+              ...card,
+              createdAt,
+            },
+          },
+          { status: 201 }
+        );
+      }
+
+      if (url.includes('/api/board/cards/') && url.endsWith('/move')) {
+        const cardId = decodeURIComponent(
+          url.split('/api/board/cards/')[1].replace('/move', '')
+        );
+        const placement = JSON.parse(String(init?.body));
+
+        moveMockCard(cardId, placement);
+
+        const card = findCardDetail(cardId);
+
+        return card
+          ? jsonResponse({
+              boardVersion: 2,
+              card: {
+                columnId: placement.columnId,
+                content: card.content,
+                createdAt: card.createdAt,
+                id: card.id,
+                priority: card.priority,
+                tagIds: card.tagIds,
+                title: card.title,
+              },
+            })
+          : jsonResponse({ error: 'Card not found.' }, { status: 404 });
+      }
+
       if (url.includes('/api/board/cards/')) {
         const cardId = decodeURIComponent(url.split('/api/board/cards/')[1]);
+
+        if (init?.method === 'PATCH') {
+          const patch = JSON.parse(String(init.body));
+
+          mapMockColumns((column) => ({
+            ...column,
+            cards: column.cards.map((card) =>
+              card.id === cardId ? { ...card, ...patch } : card
+            ),
+          }));
+
+          const card = findCardDetail(cardId);
+
+          return card
+            ? jsonResponse({
+                boardVersion: 2,
+                card: {
+                  columnId:
+                    mockServerBoardState.columns.find((column) =>
+                      column.cards.some((item) => item.id === card.id)
+                    )?.id ?? '',
+                  content: card.content,
+                  createdAt: card.createdAt,
+                  id: card.id,
+                  priority: card.priority,
+                  tagIds: card.tagIds,
+                  title: card.title,
+                },
+              })
+            : jsonResponse({ error: 'Card not found.' }, { status: 404 });
+        }
+
+        if (init?.method === 'DELETE') {
+          const columnId =
+            mockServerBoardState.columns.find((column) =>
+              column.cards.some((card) => card.id === cardId)
+            )?.id ?? '';
+
+          mapMockColumns((column) => ({
+            ...column,
+            cards: column.cards.filter((card) => card.id !== cardId),
+          }));
+
+          return jsonResponse({
+            boardVersion: 2,
+            cardId,
+            columnId,
+          });
+        }
+
         const card = findCardDetail(cardId);
 
         return card
@@ -89,8 +286,7 @@ const mockFlowboardApi = () => {
       if (url.includes('/api/boards/') && init?.method === 'PUT') {
         const state = JSON.parse(String(init.body)) as BoardState;
 
-        mockServerBoardState = state;
-        updateBoardStateStorage(state);
+        updateMockServerBoardState(state);
 
         return jsonResponse({
           board: {

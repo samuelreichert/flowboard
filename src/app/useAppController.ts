@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { isSupabaseConfigured } from '../auth/supabase';
 import { LOCAL_PROFILE_IDENTITY } from '../auth/profileDisplay';
@@ -10,6 +10,7 @@ import useAuthenticatedProfile from './useAuthenticatedProfile';
 import useAppThemeEffects from './useAppThemeEffects';
 import useAuthSession from './useAuthSession';
 import { clearFlowboardQueryCache } from './queryClient';
+import { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
 const useAppController = () => {
   const [state, dispatch] = useReducer(appReducer, undefined, initAppState);
@@ -38,8 +39,20 @@ const useAppController = () => {
   } = state;
   const messages = getMessages(resolvedLanguage);
   const authenticatedUserIdRef = useRef<string | null | undefined>(undefined);
+  const [cardPersistenceMessage, setCardPersistenceMessage] = useState<
+    string | null
+  >(null);
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
+  const cardMutations = useFlowboardCardMutations({
+    accessToken:
+      authState.status === 'signedIn'
+        ? authState.session.access_token
+        : undefined,
+    onMutationError: () =>
+      setCardPersistenceMessage(messages.app.persistence.unsaved),
+    onMutationSuccess: () => setCardPersistenceMessage(null),
+  });
   const {
     authenticatedBoardLoading,
     loadCompleteBoardState,
@@ -74,6 +87,7 @@ const useAppController = () => {
     confirmCompleteWork,
     deleteTag,
     openCompleteWorkConfirmation,
+    updateCardColumns,
     updateColumns,
     updateTags,
   } = useBoardActions({
@@ -190,6 +204,7 @@ const useAppController = () => {
     authenticatedBoardLoading,
     authenticatedProfile,
     canCompleteWork,
+    cardMutations,
     chooseLanguagePreference,
     completeWorkDisabledReason,
     chooseCompletedColumn,
@@ -220,7 +235,7 @@ const useAppController = () => {
     openProfileDialog,
     openSettings,
     openTagManager,
-    persistenceMessage,
+    persistenceMessage: cardPersistenceMessage ?? persistenceMessage,
     profileDialogOpen,
     profileError,
     profileIdentity,
@@ -245,6 +260,7 @@ const useAppController = () => {
     tags,
     themePreference,
     toggleSidebar,
+    updateCardColumns,
     updateColumns,
     updateTags,
   };

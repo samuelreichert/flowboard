@@ -1,8 +1,9 @@
 import { useRef } from 'react';
-import type { Dispatch } from 'react';
+import type { Dispatch, MutableRefObject } from 'react';
 
 import type {
   CardDialogAction,
+  CardDialogSaveValues,
   CardDialogState,
   CardDialogValues,
 } from './types';
@@ -20,17 +21,20 @@ export const useCardDialogAutosave = ({
 }: {
   dispatch: Dispatch<CardDialogAction>;
   initialTitle: string;
-  onSave: (values: CardDialogValues) => string | void;
-  state: Pick<
-    CardDialogState,
-    'content' | 'priority' | 'selectedColumnId' | 'selectedTagIds' | 'title'
+  onSave: (values: CardDialogSaveValues) => string | void;
+  state: MutableRefObject<
+    Pick<
+      CardDialogState,
+      'content' | 'priority' | 'selectedColumnId' | 'selectedTagIds' | 'title'
+    >
   >;
   titleRequiredMessage: string;
 }) => {
   const lastValidTitleRef = useRef(initialTitle);
 
   const saveExistingCard = (nextValues: SaveExistingCardInput) => {
-    const nextTitle = nextValues.title ?? state.title;
+    const currentState = state.current;
+    const nextTitle = nextValues.title ?? currentState.title;
     const trimmedTitle = nextTitle.trim();
     const titleToSave = trimmedTitle || lastValidTitleRef.current;
 
@@ -39,6 +43,10 @@ export const useCardDialogAutosave = ({
         type: 'fieldsChanged',
         values: { error: titleRequiredMessage },
       });
+
+      if (nextValues.title !== undefined) {
+        return;
+      }
     } else {
       lastValidTitleRef.current = trimmedTitle;
       dispatch({ type: 'fieldsChanged', values: { error: '' } });
@@ -48,11 +56,19 @@ export const useCardDialogAutosave = ({
       return;
     }
 
+    const changedFields =
+      nextValues.title === undefined
+        ? nextValues
+        : {
+            ...nextValues,
+            title: titleToSave,
+          };
     const message = onSave({
-      columnId: nextValues.columnId ?? state.selectedColumnId,
-      content: nextValues.content ?? state.content,
-      priority: nextValues.priority ?? state.priority,
-      tagIds: nextValues.tagIds ?? state.selectedTagIds,
+      columnId: nextValues.columnId ?? currentState.selectedColumnId,
+      content: nextValues.content ?? currentState.content,
+      changedFields,
+      priority: nextValues.priority ?? currentState.priority,
+      tagIds: nextValues.tagIds ?? currentState.selectedTagIds,
       title: titleToSave,
     });
 

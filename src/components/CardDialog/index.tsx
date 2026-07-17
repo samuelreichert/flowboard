@@ -10,7 +10,11 @@ import CardContentField from './CardContentField';
 import CardDialogFooter from './CardDialogFooter';
 import CardTitleField from './CardTitleField';
 import TagSelectField from './TagSelectField';
-import type { CardDialogProps, CardDialogValues } from './types';
+import type {
+  CardDialogProps,
+  CardDialogSaveValues,
+  CardDialogValues,
+} from './types';
 import useCardDialogController from './useCardDialogController';
 import '../IconButton/IconButton.css';
 
@@ -167,4 +171,4 @@ const CardDialogContent = (props: CardDialogProps) => {
 };
 
 export default CardDialog;
-export type { CardDialogValues };
+export type { CardDialogSaveValues, CardDialogValues };

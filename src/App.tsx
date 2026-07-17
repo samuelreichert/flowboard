@@ -174,6 +174,7 @@ const RoutedApp = () => {
           archivedCardRoute={archivedCardRoute}
           boardLoading={controller.authenticatedBoardLoading}
           cardDetailAccessToken={cardDetailAccessToken}
+          cardMutations={controller.cardMutations}
           canCompleteWork={controller.canCompleteWork}
           columns={controller.columns}
           completeWorkDisabledReason={controller.completeWorkDisabledReason}
@@ -183,6 +184,7 @@ const RoutedApp = () => {
           manageColumnsOpen={controller.manageColumnsOpen}
           onActiveCardClose={() => navigate(APP_ROUTES.board)}
           onArchivedCardClose={() => navigate(APP_ROUTES.history)}
+          onCardColumnsChange={controller.updateCardColumns}
           onColumnsChange={controller.updateColumns}
           onCompleteWorkClick={controller.openCompleteWorkConfirmation}
           onManageColumnsOpenChange={controller.setManageColumnsOpen}

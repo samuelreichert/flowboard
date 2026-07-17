@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useLocalization } from '../../LocalizationProvider';
 import type { ColumnMoveDirection } from '../../board/columns';
 import Column from '../Column';
-import type { CardDialogValues } from '../CardDialog';
+import type { CardDialogSaveValues } from '../CardDialog';
 import type { BoardColumn, BoardTag } from '../../types';
 
 type ColumnListProps = {
@@ -16,7 +16,7 @@ type ColumnListProps = {
   editCard: (
     columnId: string,
     cardId: string,
-    values: CardDialogValues
+    values: CardDialogSaveValues
   ) => string | void;
   moveColumn: (columnId: string, direction: ColumnMoveDirection) => void;
   onActiveCardClose: () => void;
