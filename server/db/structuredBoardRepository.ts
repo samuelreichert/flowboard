@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { CARD_PRIORITIES } from '../../src/board/cardPriority.js';
 import { DEFAULT_BACKGROUND } from '../../src/board/constants.js';
 import type {
   ArchivedBoardCard,
@@ -82,11 +83,51 @@ export type ActiveCardDetail = {
   title: string;
 };
 
+export type ActiveCardMutationCard = ActiveCardDetail & {
+  columnId: string;
+};
+
+export type ActiveCardMutationResult = {
+  boardVersion: number;
+  card: ActiveCardMutationCard;
+};
+
+export type ActiveCardDeleteResult = {
+  boardVersion: number;
+  cardId: string;
+  columnId: string;
+};
+
+export type ActiveCardCreateInput = {
+  columnId: string;
+  content: string;
+  id: string;
+  priority: BoardCard['priority'];
+  tagIds: string[];
+  title: string;
+};
+
+export type ActiveCardUpdateInput = {
+  content?: string;
+  priority?: BoardCard['priority'];
+  tagIds?: string[];
+  title?: string;
+};
+
+export type ActiveCardMoveInput = {
+  afterCardId?: string | null;
+  beforeCardId?: string | null;
+  columnId: string;
+};
+
 const createId = () => randomUUID();
 
 const toDate = (value: string) => new Date(value);
 
 const toIso = (value: Date) => value.toISOString();
+
+const isCardPriority = (value: string): value is BoardCard['priority'] =>
+  CARD_PRIORITIES.includes(value as BoardCard['priority']);
 
 const createEmptyBoardState = (now = new Date()): BoardState => ({
   activeWorkCycle: {
@@ -214,6 +255,117 @@ const getTagIdsByCard = (cardTags: Array<{ cardId: string; tagId: string }>) => 
   return tagIdsByCard;
 };
 
+const getBoardScopedTags = async (
+  prisma: FlowboardPrismaClient,
+  boardId: string,
+  tagIds: string[]
+) => {
+  const uniqueTagIds = [...new Set(tagIds)];
+
+  if (uniqueTagIds.length === 0) {
+    return [];
+  }
+
+  const tags = await prisma.tag.findMany({
+    select: { id: true },
+    where: {
+      boardId,
+      id: { in: uniqueTagIds },
+    },
+  });
+
+  return tags.length === uniqueTagIds.length ? uniqueTagIds : null;
+};
+
+const getBoardScopedColumn = async (
+  prisma: FlowboardPrismaClient,
+  boardId: string,
+  columnId: string
+) =>
+  prisma.boardColumn.findFirst({
+    select: { id: true },
+    where: {
+      boardId,
+      id: columnId,
+    },
+  });
+
+const toActiveCardMutationCard = (
+  card: {
+    columnId: string;
+    content: string;
+    createdAt: Date;
+    id: string;
+    priority: string;
+    title: string;
+  },
+  tagIds: string[]
+): ActiveCardMutationCard => ({
+  columnId: card.columnId,
+  content: card.content,
+  createdAt: toIso(card.createdAt),
+  id: card.id,
+  priority: isCardPriority(card.priority) ? card.priority : 'medium',
+  tagIds,
+  title: card.title,
+});
+
+const replaceCardTags = async (
+  transaction: FlowboardPrismaClient,
+  cardId: string,
+  tagIds: string[]
+) => {
+  await transaction.cardTag.deleteMany({ where: { cardId } });
+
+  if (tagIds.length > 0) {
+    await transaction.cardTag.createMany({
+      data: tagIds.map((tagId) => ({ cardId, tagId })),
+    });
+  }
+};
+
+const getColumnCards = async (
+  transaction: FlowboardPrismaClient,
+  columnId: string
+) =>
+  transaction.card.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true },
+    where: { columnId },
+  });
+
+const getColumnCardIdsExcept = async (
+  transaction: FlowboardPrismaClient,
+  columnId: string,
+  excludedCardId: string
+) => {
+  const cards = await getColumnCards(transaction, columnId);
+  const cardIds: string[] = [];
+
+  for (const card of cards) {
+    if (card.id !== excludedCardId) {
+      cardIds.push(card.id);
+    }
+  }
+
+  return cardIds;
+};
+
+const updateColumnCardOrder = async (
+  transaction: FlowboardPrismaClient,
+  columnId: string,
+  cardIds: string[]
+) => {
+  await Promise.all(
+    cardIds.map((cardId, sortOrder) =>
+      transaction.card.update({
+        data: { sortOrder },
+        where: { id: cardId },
+      })
+    )
+  );
+};
+
 export const loadMainBoardBootstrap = async (
   prisma: FlowboardPrismaClient,
   ownerId: string
@@ -337,6 +489,298 @@ export const loadActiveCardDetail = async (
     priority: card.priority as BoardCard['priority'],
     tagIds: cardTags.map((cardTag) => cardTag.tagId),
     title: card.title,
+  };
+};
+
+export const createActiveCard = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: ActiveCardCreateInput
+): Promise<ActiveCardMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const [column, validTagIds] = await Promise.all([
+    getBoardScopedColumn(prisma, board.id, input.columnId),
+    getBoardScopedTags(prisma, board.id, input.tagIds),
+  ]);
+
+  if (!column || !validTagIds) {
+    return null;
+  }
+
+  const existingCard = await prisma.card.findFirst({
+    select: { id: true },
+    where: {
+      boardId: board.id,
+      id: input.id,
+    },
+  });
+
+  if (existingCard) {
+    const card = await loadActiveCardDetail(prisma, ownerId, input.id);
+
+    if (!card) {
+      return null;
+    }
+
+    return {
+      boardVersion: board.version,
+      card: {
+        ...card,
+        columnId: input.columnId,
+      },
+    };
+  }
+
+  const lastCard = await prisma.card.findFirst({
+    orderBy: [{ sortOrder: 'desc' }, { createdAt: 'desc' }],
+    select: { sortOrder: true },
+    where: { columnId: input.columnId },
+  });
+  const saved = await prisma.$transaction(async (transaction) => {
+    const card = await transaction.card.create({
+      data: {
+        boardId: board.id,
+        columnId: input.columnId,
+        content: input.content,
+        id: input.id,
+        priority: input.priority,
+        sortOrder: (lastCard?.sortOrder ?? -1) + 1,
+        title: input.title,
+      },
+    });
+
+    if (validTagIds.length > 0) {
+      await transaction.cardTag.createMany({
+        data: validTagIds.map((tagId) => ({ cardId: card.id, tagId })),
+      });
+    }
+
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return { boardVersion: updatedBoard.version, card };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    card: toActiveCardMutationCard(saved.card, validTagIds),
+  };
+};
+
+export const updateActiveCard = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string,
+  input: ActiveCardUpdateInput
+): Promise<ActiveCardMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const [card, validTagIds, existingCardTags] = await Promise.all([
+    prisma.card.findFirst({
+      where: {
+        boardId: board.id,
+        id: cardId,
+      },
+    }),
+    input.tagIds
+      ? getBoardScopedTags(prisma, board.id, input.tagIds)
+      : Promise.resolve(undefined),
+    prisma.cardTag.findMany({
+      select: { tagId: true },
+      where: { cardId },
+    }),
+  ]);
+
+  if (!card || validTagIds === null) {
+    return null;
+  }
+
+  const nextTagIds =
+    validTagIds ?? existingCardTags.map((cardTag) => cardTag.tagId);
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const updatedCard = await transaction.card.update({
+      data: {
+        ...(input.content !== undefined ? { content: input.content } : {}),
+        ...(input.priority !== undefined ? { priority: input.priority } : {}),
+        ...(input.title !== undefined ? { title: input.title } : {}),
+      },
+      where: { id: card.id },
+    });
+
+    if (validTagIds !== undefined) {
+      await replaceCardTags(transaction, card.id, validTagIds);
+    }
+
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return { boardVersion: updatedBoard.version, card: updatedCard };
+  });
+
+  return {
+    boardVersion: saved.boardVersion,
+    card: toActiveCardMutationCard(saved.card, nextTagIds),
+  };
+};
+
+export const moveActiveCard = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string,
+  input: ActiveCardMoveInput
+): Promise<ActiveCardMutationResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const [card, targetColumn] = await Promise.all([
+    prisma.card.findFirst({
+      where: {
+        boardId: board.id,
+        id: cardId,
+      },
+    }),
+    getBoardScopedColumn(prisma, board.id, input.columnId),
+  ]);
+
+  if (!card || !targetColumn) {
+    return null;
+  }
+
+  const placementCardId = input.beforeCardId ?? input.afterCardId ?? null;
+
+  if (placementCardId) {
+    const placementCard = await prisma.card.findFirst({
+      select: { id: true },
+      where: {
+        boardId: board.id,
+        columnId: input.columnId,
+        id: placementCardId,
+      },
+    });
+
+    if (!placementCard) {
+      return null;
+    }
+  }
+
+  const tagIds = (
+    await prisma.cardTag.findMany({
+      select: { tagId: true },
+      where: { cardId: card.id },
+    })
+  ).map((cardTag) => cardTag.tagId);
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    const sourceColumnId = card.columnId;
+    const sourceCardIds = await getColumnCardIdsExcept(
+      transaction,
+      sourceColumnId,
+      card.id
+    );
+    const destinationCardIds = (
+      sourceColumnId === input.columnId
+        ? sourceCardIds
+        : await getColumnCardIdsExcept(transaction, input.columnId, card.id)
+    );
+    const targetIndex = placementCardId
+      ? destinationCardIds.findIndex((id) => id === placementCardId)
+      : destinationCardIds.length;
+
+    if (targetIndex === -1) {
+      return null;
+    }
+
+    const insertAt = input.afterCardId ? targetIndex + 1 : targetIndex;
+    const nextDestinationCardIds = [...destinationCardIds];
+
+    nextDestinationCardIds.splice(insertAt, 0, card.id);
+
+    const movedCard = await transaction.card.update({
+      data: {
+        columnId: input.columnId,
+        sortOrder: insertAt,
+      },
+      where: { id: card.id },
+    });
+
+    if (sourceColumnId !== input.columnId) {
+      await updateColumnCardOrder(transaction, sourceColumnId, sourceCardIds);
+    }
+
+    await updateColumnCardOrder(
+      transaction,
+      input.columnId,
+      nextDestinationCardIds
+    );
+
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return { boardVersion: updatedBoard.version, card: movedCard };
+  });
+
+  if (!saved) {
+    return null;
+  }
+
+  return {
+    boardVersion: saved.boardVersion,
+    card: toActiveCardMutationCard(
+      { ...saved.card, columnId: input.columnId },
+      tagIds
+    ),
+  };
+};
+
+export const deleteActiveCard = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cardId: string
+): Promise<ActiveCardDeleteResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const card = await prisma.card.findFirst({
+    select: {
+      columnId: true,
+      id: true,
+    },
+    where: {
+      boardId: board.id,
+      id: cardId,
+    },
+  });
+
+  if (!card) {
+    return null;
+  }
+
+  const saved = await prisma.$transaction(async (transaction) => {
+    await transaction.cardTag.deleteMany({ where: { cardId: card.id } });
+    await transaction.card.delete({ where: { id: card.id } });
+
+    const remainingCardIds = await getColumnCardIdsExcept(
+      transaction,
+      card.columnId,
+      card.id
+    );
+
+    await updateColumnCardOrder(transaction, card.columnId, remainingCardIds);
+
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
+
+    return updatedBoard.version;
+  });
+
+  return {
+    boardVersion: saved,
+    cardId: card.id,
+    columnId: card.columnId,
   };
 };
 
