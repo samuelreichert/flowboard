@@ -1,4 +1,10 @@
-import type { BoardState } from '../types';
+import type {
+  BoardActiveWorkCycle,
+  BoardBackground,
+  BoardState,
+  BoardTag,
+  CardPriority,
+} from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_FLOWBOARD_API_URL?.trim() ?? '';
 
@@ -29,6 +35,37 @@ export type AuthenticatedProfileUpdate = {
   displayName?: string | null;
 };
 
+export type BoardBootstrapResponse = {
+  board: {
+    background: BoardBackground;
+    id: string;
+    title: string;
+    version: number;
+  };
+  cards: Array<{
+    columnId: string;
+    id: string;
+    priority: CardPriority;
+    tagIds: string[];
+    title: string;
+  }>;
+  columns: Array<{
+    id: string;
+    title: string;
+  }>;
+  tags: BoardTag[];
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type ActiveCardDetailResponse = {
+  content: string;
+  createdAt: string;
+  id: string;
+  priority: CardPriority;
+  tagIds: string[];
+  title: string;
+};
+
 const createHeaders = (accessToken?: string) => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
@@ -53,6 +90,22 @@ const parseProfileResponse = async (response: Response) => {
   return (await response.json()) as AuthenticatedProfileResponse;
 };
 
+const parseBoardBootstrapResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to load board bootstrap data.');
+  }
+
+  return (await response.json()) as BoardBootstrapResponse;
+};
+
+const parseActiveCardDetailResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to load card detail data.');
+  }
+
+  return (await response.json()) as ActiveCardDetailResponse;
+};
+
 export const fetchAuthenticatedProfile = async (accessToken: string) => {
   const response = await fetch(`${API_BASE_URL}/api/profile`, {
     headers: createHeaders(accessToken),
@@ -72,6 +125,28 @@ export const saveAuthenticatedProfile = async (
   });
 
   return parseProfileResponse(response);
+};
+
+export const fetchBoardBootstrap = async (accessToken?: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/bootstrap`, {
+    headers: createHeaders(accessToken),
+  });
+
+  return parseBoardBootstrapResponse(response);
+};
+
+export const fetchActiveCardDetail = async (
+  cardId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/cards/${encodeURIComponent(cardId)}`,
+    {
+      headers: createHeaders(accessToken),
+    }
+  );
+
+  return parseActiveCardDetailResponse(response);
 };
 
 export const fetchDefaultBoard = async (accessToken?: string) => {
