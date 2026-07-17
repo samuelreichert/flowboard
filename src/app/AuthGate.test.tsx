@@ -8,10 +8,28 @@ import {
 import userEvent from '@testing-library/user-event';
 import { beforeEach, vi } from 'vitest';
 
-import { AuthGate } from './AuthGate';
+import AuthGate from './AuthGate';
 import { shouldRenderAuthGate } from './routeGuards';
 import { parseAppRoute } from './routes';
 import { resetAppTestEnvironment } from '../test/appTestUtils';
+
+vi.mock('@base-ui/react/button', () => ({
+  Button: 'button',
+}));
+
+vi.mock('../LocalizationProvider', async () => {
+  const localization =
+    await vi.importActual<typeof import('../localization')>('../localization');
+
+  return {
+    useLocalization: () => ({
+      formatDate: (value: string, options?: Intl.DateTimeFormatOptions) =>
+        localization.formatDate('en', value, options),
+      language: 'en',
+      messages: localization.getMessages('en'),
+    }),
+  };
+});
 
 beforeEach(resetAppTestEnvironment);
 

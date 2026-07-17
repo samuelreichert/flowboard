@@ -27,6 +27,7 @@ import {
   pasteText,
   readColumns,
   resetAppTestEnvironment,
+  seedBoardState,
   selectEditorContents,
   selectEditorNode,
   selectText,
@@ -95,7 +96,7 @@ test('directly loads tags, settings, history, and unknown routes', async () => {
 
 test('directly opens and closes an active card route', async () => {
   const user = userEvent.setup();
-  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+  seedBoardState({ columns: createBoardColumns() });
   window.history.replaceState(null, '', '/board/cards/first');
 
   render(<App />);
@@ -105,13 +106,13 @@ test('directly opens and closes an active card route', async () => {
   expect(window.location.pathname).toBe('/board');
 });
 
-test('shows missing state for an unresolved active card route', () => {
-  localStorage.setItem('columnsList', JSON.stringify(createBoardColumns()));
+test('shows missing state for an unresolved active card route', async () => {
+  seedBoardState({ columns: createBoardColumns() });
   window.history.replaceState(null, '', '/board/cards/missing-card');
 
   render(<App />);
 
-  expect(screen.getByText('Card not found.')).toBeInTheDocument();
+  expect(await screen.findByText('Card not found.')).toBeInTheDocument();
   expect(
     screen.queryByRole('dialog', { name: /card/i })
   ).not.toBeInTheDocument();

@@ -27,6 +27,7 @@ import {
   pasteText,
   readColumns,
   resetAppTestEnvironment,
+  seedBoardState,
   selectEditorContents,
   selectEditorNode,
   selectText,
@@ -74,9 +75,12 @@ test('completes work after confirmation and moves done cards to history', async 
 
 test('history follows tag renames and falls back to archived tag snapshots after delete', async () => {
   const user = userEvent.setup();
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
+  seedBoardState({
+    activeWorkCycle: {
+      completedColumnId: 'done',
+      startDate: CREATED_AT,
+    },
+    columns: [
       {
         cards: [
           {
@@ -92,16 +96,9 @@ test('history follows tag renames and falls back to archived tag snapshots after
         position: 0,
         title: 'Done',
       },
-    ])
-  );
-  localStorage.setItem(
-    'boardTags',
-    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
-  );
-  localStorage.setItem(
-    'activeWorkCycle',
-    JSON.stringify({ completedColumnId: 'done', startDate: CREATED_AT })
-  );
+    ],
+    tags: [{ id: 'tag-1', name: 'Launch' }],
+  });
 
   render(<App />);
 
@@ -137,13 +134,8 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
     .spyOn(navigator.clipboard, 'writeText')
     .mockResolvedValue(undefined);
   const markdown = '# Release Notes\n\n- `Ship` the update';
-  localStorage.setItem(
-    'boardTags',
-    JSON.stringify([{ id: 'tag-1', name: 'Launch' }])
-  );
-  localStorage.setItem(
-    'completedWorkCycles',
-    JSON.stringify([
+  seedBoardState({
+    completedWorkCycles: [
       {
         cards: [
           {
@@ -163,8 +155,9 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
         id: 'cycle-1',
         startDate: CREATED_AT,
       },
-    ])
-  );
+    ],
+    tags: [{ id: 'tag-1', name: 'Launch' }],
+  });
 
   render(<App />);
 
@@ -196,9 +189,8 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
 
 test('switches completed work history between grid and list layouts', async () => {
   const user = userEvent.setup();
-  localStorage.setItem(
-    'completedWorkCycles',
-    JSON.stringify([
+  seedBoardState({
+    completedWorkCycles: [
       {
         cards: [
           {
@@ -218,8 +210,8 @@ test('switches completed work history between grid and list layouts', async () =
         id: 'cycle-1',
         startDate: CREATED_AT,
       },
-    ])
-  );
+    ],
+  });
 
   render(<App />);
 

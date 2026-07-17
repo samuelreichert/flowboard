@@ -26,6 +26,7 @@ import {
   pasteText,
   readColumns,
   resetAppTestEnvironment,
+  seedBoardState,
   selectEditorContents,
   selectEditorNode,
   selectText,
@@ -59,15 +60,16 @@ test('preserves link, code, and list Markdown through the editor', async () => {
   const writeText = vi
     .spyOn(navigator.clipboard, 'writeText')
     .mockResolvedValue(undefined);
-  localStorage.setItem(
-    'columnsList',
-    JSON.stringify([
+  seedBoardState({
+    columns: [
       {
         cards: [
           {
             content: '[Docs](https://tiptap.dev)\n\n- `code`',
             createdAt: CREATED_AT,
             id: 'prompt',
+            priority: 'medium',
+            tagIds: [],
             title: 'Prompt',
           },
         ],
@@ -75,8 +77,8 @@ test('preserves link, code, and list Markdown through the editor', async () => {
         position: 0,
         title: 'Todo',
       },
-    ])
-  );
+    ],
+  });
   render(<App />);
 
   await user.click(screen.getByText('Prompt'));

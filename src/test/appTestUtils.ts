@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
+import { fetchStorage, updateBoardStateStorage } from '../storage';
 import type { BoardColumn, BoardState } from '../types';
 
 export const CREATED_AT = '2026-06-03T12:34:56.000Z';
@@ -9,6 +10,7 @@ export const CREATED_AT = '2026-06-03T12:34:56.000Z';
 export const resetAppTestEnvironment = () => {
   window.history.replaceState(null, '', '/');
   localStorage.clear();
+  seedBoardState();
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {
@@ -171,8 +173,28 @@ export const openBoardSettings = async (
   await screen.findByRole('dialog', { name: /^settings$|^configurações$/i });
 };
 
-export const readColumns = () =>
-  JSON.parse(localStorage.getItem('columnsList') ?? '[]') as BoardColumn[];
+export const readColumns = () => fetchStorage();
+
+export const createTestBoardState = (
+  overrides: Partial<BoardState> = {}
+): BoardState => ({
+  activeWorkCycle: {
+    completedColumnId: null,
+    startDate: CREATED_AT,
+  },
+  background: {
+    type: 'color',
+    value: '#ffffff',
+  },
+  columns: [],
+  completedWorkCycles: [],
+  tags: [],
+  ...overrides,
+});
+
+export const seedBoardState = (overrides: Partial<BoardState> = {}) => {
+  updateBoardStateStorage(createTestBoardState(overrides));
+};
 
 export const createBoardColumns = (): BoardColumn[] => [
   {
