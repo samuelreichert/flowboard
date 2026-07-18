@@ -22,15 +22,18 @@ import type {
   BoardTag,
 } from '../types';
 import type { AppAction } from './appTypes';
+import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 
 const useBoardActions = ({
   activeWorkCycle,
+  boardMutations,
   dispatch,
   openSettings,
   persistAuthenticatedBoard,
   tags,
 }: {
   activeWorkCycle: BoardActiveWorkCycle;
+  boardMutations: ReturnType<typeof useFlowboardBoardMutations>;
   dispatch: Dispatch<AppAction>;
   openSettings: () => void;
   persistAuthenticatedBoard: (nextState: BoardState) => void;
@@ -50,7 +53,24 @@ const useBoardActions = ({
   const updateTags = (newTags: BoardTag[]) => {
     dispatch({ tags: newTags, type: 'tagsChanged' });
     updateTagStorage(newTags);
-    persistAuthenticatedBoard(fetchBoardState());
+
+    const createdTag = newTags.find(
+      (tag) => !tags.some((currentTag) => currentTag.id === tag.id)
+    );
+    const renamedTag = newTags.find((tag) =>
+      tags.some(
+        (currentTag) => currentTag.id === tag.id && currentTag.name !== tag.name
+      )
+    );
+
+    if (createdTag) {
+      boardMutations.createTag(createdTag);
+    } else if (renamedTag) {
+      boardMutations.updateTag({
+        tag: { name: renamedTag.name },
+        tagId: renamedTag.id,
+      });
+    }
   };
 
   const updateColumns = (newColumns: BoardColumn[]) => {
@@ -58,7 +78,6 @@ const useBoardActions = ({
     const nextState = fetchBoardState();
 
     dispatch({ state: nextState, type: 'boardStateSynced' });
-    persistAuthenticatedBoard(nextState);
   };
 
   const updateCardColumns = (newColumns: BoardColumn[]) => {
@@ -72,7 +91,7 @@ const useBoardActions = ({
     const nextState = fetchBoardState();
 
     dispatch({ state: nextState, type: 'boardStateChanged' });
-    persistAuthenticatedBoard(nextState);
+    boardMutations.deleteTag({ tagId });
   };
 
   const clearBoard = () => {
@@ -94,7 +113,7 @@ const useBoardActions = ({
       type: 'activeWorkCycleChanged',
     });
     updateActiveWorkCycleStorage(nextActiveWorkCycle);
-    persistAuthenticatedBoard(fetchBoardState());
+    boardMutations.updateWorkCycleSettings({ completedColumnId });
   };
 
   const openCompleteWorkConfirmation = () => {

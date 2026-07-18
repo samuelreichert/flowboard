@@ -36,9 +36,19 @@ beforeEach(resetAppTestEnvironment);
 test('manages board tags from the sidebar', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
+  fetchMock.mockClear();
   await openTagManager(user);
   await user.type(screen.getByLabelText('New tag'), 'Bug{Enter}');
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith('/api/board/tags') && init?.method === 'POST'
+      )
+    ).toBe(true)
+  );
   expect(fetchTagStorage()[0].name).toBe('Bug');
 
   await user.click(screen.getByRole('button', { name: /rename bug tag/i }));
@@ -50,10 +60,31 @@ test('manages board tags from the sidebar', async () => {
       screen.getByRole('button', { name: /rename issue tag/i })
     ).toBeInTheDocument()
   );
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/tags/') && init?.method === 'PATCH'
+      )
+    ).toBe(true)
+  );
   expect(fetchTagStorage()[0].name).toBe('Issue');
 
   await user.click(screen.getByRole('button', { name: /remove issue tag/i }));
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/tags/') && init?.method === 'DELETE'
+      )
+    ).toBe(true)
+  );
   expect(fetchTagStorage()).toEqual([]);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });
 
 test('confirms removing tags that are assigned to cards', async () => {

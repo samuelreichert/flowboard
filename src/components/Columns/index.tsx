@@ -14,6 +14,7 @@ import { findActiveCardRouteTarget } from '../../board/routeLookup';
 import type { CardDialogSaveValues, CardDialogValues } from '../CardDialog';
 import CardComposer from '../CardComposer';
 import ManageColumnsDialog from '../ManageColumnsDialog';
+import type { useFlowboardBoardMutations } from '../../app/useFlowboardBoardMutations';
 import type {
   MoveCardMutationVariables,
   useFlowboardCardMutations,
@@ -32,6 +33,7 @@ const createId = () => crypto.randomUUID();
 type ColumnsProps = {
   activeCardId: string | null;
   boardLoading: boolean;
+  boardMutations: ReturnType<typeof useFlowboardBoardMutations>;
   cardDetailAccessToken?: string;
   cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
@@ -44,9 +46,26 @@ type ColumnsProps = {
   tags: BoardTag[];
 };
 
+const getColumnPlacement = (nextColumns: BoardColumn[], columnId: string) => {
+  const orderedColumns = nextColumns.toSorted(
+    (first, second) => first.position - second.position
+  );
+  const columnIndex = orderedColumns.findIndex(
+    (column) => column.id === columnId
+  );
+  const nextColumn = orderedColumns[columnIndex + 1];
+  const previousColumn = orderedColumns[columnIndex - 1];
+
+  return {
+    afterColumnId: nextColumn ? null : previousColumn?.id ?? null,
+    beforeColumnId: nextColumn?.id ?? null,
+  };
+};
+
 const Columns = ({
   activeCardId,
   boardLoading,
+  boardMutations,
   cardDetailAccessToken,
   cardMutations,
   columns,
@@ -88,7 +107,10 @@ const Columns = ({
       return messages.board.columnTitlesUnique;
     }
 
-    onColumnsChange(createColumn(columns, { id: createId(), title }));
+    const id = createId();
+
+    onColumnsChange(createColumn(columns, { id, title }));
+    boardMutations.createColumn({ id, title });
   };
 
   const onRenameColumn = (columnId: string, title: string) => {
@@ -107,17 +129,28 @@ const Columns = ({
     }
 
     onColumnsChange(renameColumn(columns, columnId, title));
+    boardMutations.updateColumn({
+      column: { title },
+      columnId,
+    });
   };
 
   const onDeleteColumn = (columnId: string) => {
     onColumnsChange(deleteColumn(columns, columnId));
+    boardMutations.deleteColumn({ columnId });
   };
 
   const onMoveColumn = (
     columnId: string,
     direction: Parameters<typeof moveColumn>[2]
   ) => {
-    onColumnsChange(moveColumn(columns, columnId, direction));
+    const nextColumns = moveColumn(columns, columnId, direction);
+
+    onColumnsChange(nextColumns);
+    boardMutations.moveColumn({
+      columnId,
+      placement: getColumnPlacement(nextColumns, columnId),
+    });
   };
 
   const onSaveCard = (values: CardDialogValues) => {
@@ -152,18 +185,42 @@ const Columns = ({
       return messages.card.titleRequired;
     }
 
-    onCardColumnsChange(
-      editCard(fetchStorage(), sourceColumnId, cardId, values)
-    );
+    const latestColumns = fetchStorage();
+    const existingCard = latestColumns
+      .find((column) => column.id === sourceColumnId)
+      ?.cards.find((card) => card.id === cardId);
+
+    onCardColumnsChange(editCard(latestColumns, sourceColumnId, cardId, values));
 
     if (values.changedFields) {
-      const { columnId: _columnId, ...cardFields } = values.changedFields;
+      const {
+        columnId: _columnId,
+        tagIds,
+        ...cardFields
+      } = values.changedFields;
 
       if (Object.keys(cardFields).length > 0) {
         cardMutations.updateCard({
           card: cardFields,
           cardId,
         });
+      }
+
+      if (tagIds) {
+        const previousTagIds = new Set(existingCard?.tagIds ?? []);
+        const nextTagIds = new Set(tagIds);
+
+        for (const tagId of tagIds) {
+          if (!previousTagIds.has(tagId)) {
+            boardMutations.assignCardTag({ cardId, tagId });
+          }
+        }
+
+        for (const tagId of previousTagIds) {
+          if (!nextTagIds.has(tagId)) {
+            boardMutations.unassignCardTag({ cardId, tagId });
+          }
+        }
       }
     }
 

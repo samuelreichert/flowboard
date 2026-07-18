@@ -173,6 +173,7 @@ const RoutedApp = () => {
           activeCardId={activeCardId}
           archivedCardRoute={archivedCardRoute}
           boardLoading={controller.authenticatedBoardLoading}
+          boardMutations={controller.boardMutations}
           cardDetailAccessToken={cardDetailAccessToken}
           cardMutations={controller.cardMutations}
           canCompleteWork={controller.canCompleteWork}

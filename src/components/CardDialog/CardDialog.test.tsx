@@ -189,14 +189,34 @@ test('edits card priority and displays it on the board', async () => {
 test('creates, assigns, and removes card tags from the card dropdown', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Tagged');
+  fetchMock.mockClear();
 
   await user.click(screen.getByText('Tagged'));
   await user.click(screen.getByRole('button', { name: /no tags/i }));
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith('/api/board/tags') && init?.method === 'POST'
+      )
+    ).toBe(true)
+  );
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/cards/') &&
+          String(url).includes('/tags/') &&
+          init?.method === 'PUT'
+      )
+    ).toBe(true)
+  );
 
   expect(fetchTagStorage()).toEqual([
     { id: expect.any(String), name: 'Design' },
@@ -206,7 +226,22 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
 
   await user.click(await screen.findByRole('button', { name: 'Design' }));
   await user.click(screen.getByRole('option', { name: 'Design' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).includes('/api/board/cards/') &&
+          String(url).includes('/tags/') &&
+          init?.method === 'DELETE'
+      )
+    ).toBe(true)
+  );
   expect(readColumns()[0].cards[0].tagIds).toEqual([]);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });
 
 test('closes the tag dropdown when clicking outside', async () => {

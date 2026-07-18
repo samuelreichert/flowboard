@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch } from 'react';
 
-import { updateBoardStateStorage } from '../storage';
+import { fetchBoardState, updateBoardStateStorage } from '../storage';
 import {
   fetchDefaultBoard,
   saveBoard,
@@ -58,7 +58,10 @@ const useAuthenticatedBoardSync = (
       return;
     }
 
-    const state = createBoardStateFromBootstrap(bootstrapQuery.data);
+    const state = createBoardStateFromBootstrap(
+      bootstrapQuery.data,
+      fetchBoardState()
+    );
 
     updateBoardStateStorage(state);
     dispatch({ state, type: 'boardStateSynced' });

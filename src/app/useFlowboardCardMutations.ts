@@ -9,12 +9,17 @@ import {
   updateActiveCard,
   type ActiveCardDetailResponse,
   type BoardBootstrapResponse,
-  type CardMutationCard,
   type CardMutationResponse,
   type CreateCardMutationInput,
   type MoveCardMutationInput,
   type UpdateCardMutationInput,
 } from '../storage/authenticatedApi';
+import {
+  moveBootstrapCard,
+  removeBootstrapCard,
+  toCardDetail,
+  upsertBootstrapCard,
+} from './flowboardMutationCache';
 import { queryKeys } from './queryKeys';
 
 export type CreateCardMutationVariables = CreateCardMutationInput & {
@@ -38,135 +43,6 @@ export type DeleteCardMutationVariables = {
 type MutationContext = {
   previousBootstrap?: BoardBootstrapResponse;
   previousCardDetail?: ActiveCardDetailResponse;
-};
-
-const toBootstrapCard = (card: CardMutationCard) => ({
-  columnId: card.columnId,
-  id: card.id,
-  priority: card.priority,
-  tagIds: card.tagIds,
-  title: card.title,
-});
-
-const toCardDetail = (card: CardMutationCard): ActiveCardDetailResponse => ({
-  content: card.content,
-  createdAt: card.createdAt,
-  id: card.id,
-  priority: card.priority,
-  tagIds: card.tagIds,
-  title: card.title,
-});
-
-const upsertBootstrapCard = (
-  bootstrap: BoardBootstrapResponse | undefined,
-  card: CardMutationCard,
-  boardVersion?: number
-) => {
-  if (!bootstrap) {
-    return bootstrap;
-  }
-
-  const nextCard = toBootstrapCard(card);
-  const existingIndex = bootstrap.cards.findIndex(
-    (item) => item.id === card.id
-  );
-  const cards =
-    existingIndex === -1
-      ? [...bootstrap.cards, nextCard]
-      : bootstrap.cards.map((item) =>
-          item.id === card.id ? { ...item, ...nextCard } : item
-        );
-
-  return {
-    ...bootstrap,
-    board: {
-      ...bootstrap.board,
-      version: boardVersion ?? bootstrap.board.version,
-    },
-    cards,
-  };
-};
-
-const moveBootstrapCard = (
-  bootstrap: BoardBootstrapResponse | undefined,
-  { cardId, placement }: MoveCardMutationVariables
-) => {
-  if (!bootstrap) {
-    return bootstrap;
-  }
-
-  const existingCard = bootstrap.cards.find((card) => card.id === cardId);
-
-  if (!existingCard) {
-    return bootstrap;
-  }
-
-  const movedCard = {
-    ...existingCard,
-    columnId: placement.columnId,
-  };
-  const destinationCards = bootstrap.cards.filter(
-    (card) => card.id !== cardId && card.columnId === placement.columnId
-  );
-  const placementCardId = placement.beforeCardId ?? placement.afterCardId;
-  const targetIndex = placementCardId
-    ? destinationCards.findIndex((card) => card.id === placementCardId)
-    : destinationCards.length;
-  const insertAt =
-    targetIndex === -1
-      ? destinationCards.length
-      : placement.afterCardId
-        ? targetIndex + 1
-        : targetIndex;
-  const cards: BoardBootstrapResponse['cards'] = [];
-  let inserted = false;
-
-  for (const card of bootstrap.cards) {
-    if (card.id === cardId) {
-      continue;
-    }
-
-    if (card.columnId === placement.columnId) {
-      const destinationIndex = cards.filter(
-        (item) => item.columnId === placement.columnId
-      ).length;
-
-      if (!inserted && destinationIndex === insertAt) {
-        cards.push(movedCard);
-        inserted = true;
-      }
-    }
-
-    cards.push(card);
-  }
-
-  if (!inserted) {
-    cards.push(movedCard);
-  }
-
-  return {
-    ...bootstrap,
-    cards,
-  };
-};
-
-const removeBootstrapCard = (
-  bootstrap: BoardBootstrapResponse | undefined,
-  cardId: string,
-  boardVersion?: number
-) => {
-  if (!bootstrap) {
-    return bootstrap;
-  }
-
-  return {
-    ...bootstrap,
-    board: {
-      ...bootstrap.board,
-      version: boardVersion ?? bootstrap.board.version,
-    },
-    cards: bootstrap.cards.filter((card) => card.id !== cardId),
-  };
 };
 
 export const useFlowboardCardMutations = ({

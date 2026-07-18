@@ -182,11 +182,11 @@ const mutationCard = {
 const createMutationPrisma = ({
   card = mutationCard,
   column = { id: 'todo' },
-  tags = [{ id: 'tag-1' }],
+  tags = [{ id: 'tag-1', name: 'Architecture' }],
 }: {
   card?: typeof mutationCard | null;
   column?: { id: string } | null;
-  tags?: Array<{ id: string }>;
+  tags?: Array<{ id: string; name: string }>;
 } = {}) => {
   const prisma = {
     $transaction: vi.fn(async (callback) => callback(prisma)),
@@ -199,16 +199,37 @@ const createMutationPrisma = ({
       }),
     },
     boardColumn: {
+      create: vi.fn().mockResolvedValue({
+        id: 'doing',
+        title: 'Doing',
+      }),
+      delete: vi.fn().mockResolvedValue({ id: 'done', title: 'Done' }),
       deleteMany: vi.fn(),
       findFirst: vi.fn().mockResolvedValue(column),
       findMany: vi.fn().mockResolvedValue([
         { id: 'todo', title: 'Todo' },
         { id: 'done', title: 'Done' },
       ]),
+      update: vi.fn().mockResolvedValue({
+        id: 'todo',
+        title: 'Updated',
+      }),
     },
     boardWorkCycle: {
       deleteMany: vi.fn(),
       findUnique: vi.fn().mockResolvedValue({
+        completedColumnId: 'done',
+        startDate: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+      findUniqueOrThrow: vi.fn().mockResolvedValue({
+        completedColumnId: 'done',
+        startDate: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+      update: vi.fn().mockResolvedValue({
+        completedColumnId: null,
+        startDate: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+      upsert: vi.fn().mockResolvedValue({
         completedColumnId: 'done',
         startDate: new Date('2026-07-01T00:00:00.000Z'),
       }),
@@ -222,8 +243,11 @@ const createMutationPrisma = ({
       update: vi.fn().mockResolvedValue(card ?? mutationCard),
     },
     cardTag: {
+      create: vi.fn(),
       createMany: vi.fn(),
+      delete: vi.fn(),
       deleteMany: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([
         {
           cardId: 'card-1',
@@ -257,8 +281,21 @@ const createMutationPrisma = ({
       findMany: vi.fn().mockResolvedValue([]),
     },
     tag: {
+      create: vi.fn().mockResolvedValue({
+        id: 'tag-2',
+        name: 'Focus',
+      }),
+      delete: vi.fn().mockResolvedValue({
+        id: 'tag-1',
+        name: 'Architecture',
+      }),
       deleteMany: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue({ id: 'tag-1' }),
       findMany: vi.fn().mockResolvedValue(tags),
+      update: vi.fn().mockResolvedValue({
+        id: 'tag-1',
+        name: 'Updated',
+      }),
     },
   } as unknown as FlowboardPrismaClient;
 
@@ -531,6 +568,108 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     });
   });
 
+  test('mutates columns, tags, settings, and card-tag assignments for authenticated users', async () => {
+    const successRequests = [
+      {
+        body: JSON.stringify({ id: 'doing', title: 'Doing' }),
+        expectedStatus: 201,
+        method: 'POST',
+        url: '/api/board/columns',
+      },
+      {
+        body: JSON.stringify({ title: 'Updated' }),
+        expectedStatus: 200,
+        method: 'PATCH',
+        url: '/api/board/columns/todo',
+      },
+      {
+        body: JSON.stringify({ afterColumnId: null, beforeColumnId: 'todo' }),
+        expectedStatus: 200,
+        method: 'PATCH',
+        url: '/api/board/columns/done/move',
+      },
+      {
+        expectedStatus: 200,
+        method: 'DELETE',
+        url: '/api/board/columns/done',
+      },
+      {
+        body: JSON.stringify({ id: 'tag-2', name: 'Focus' }),
+        expectedStatus: 201,
+        method: 'POST',
+        url: '/api/board/tags',
+      },
+      {
+        body: JSON.stringify({ name: 'Updated' }),
+        expectedStatus: 200,
+        method: 'PATCH',
+        url: '/api/board/tags/tag-1',
+      },
+      {
+        expectedStatus: 200,
+        method: 'DELETE',
+        url: '/api/board/tags/tag-1',
+      },
+      {
+        expectedStatus: 200,
+        method: 'PUT',
+        url: '/api/board/cards/card-1/tags/tag-1',
+      },
+      {
+        body: JSON.stringify({
+          background: { type: 'color', value: '#ffffff' },
+        }),
+        expectedStatus: 200,
+        method: 'PATCH',
+        url: '/api/board/settings',
+      },
+      {
+        body: JSON.stringify({ completedColumnId: 'done' }),
+        expectedStatus: 200,
+        method: 'PATCH',
+        url: '/api/board/work-cycle/settings',
+      },
+    ];
+
+    for (const request of successRequests) {
+      const response = createResponse();
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest(request),
+        response,
+        createMutationPrisma(),
+        authenticatedResolver
+      );
+
+      expect(handled).toBe(true);
+      expect(response.statusCode).toBe(request.expectedStatus);
+    }
+  });
+
+  test('unassigns active card tags for authenticated users', async () => {
+    const response = createResponse();
+    const prisma = createMutationPrisma();
+
+    vi.mocked(prisma.cardTag.findUnique).mockResolvedValue({
+      cardId: 'card-1',
+      createdAt: new Date('2026-07-02T00:00:00.000Z'),
+      tagId: 'tag-1',
+    });
+
+    const handled = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        method: 'DELETE',
+        url: '/api/board/cards/card-1/tags/tag-1',
+      }),
+      response,
+      prisma,
+      authenticatedResolver
+    );
+
+    expect(handled).toBe(true);
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body).card.id).toBe('card-1');
+  });
+
   test('rejects unauthenticated active card mutations', async () => {
     const prisma = createMutationPrisma({ card: null });
     const response = createResponse();
@@ -596,6 +735,55 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         }),
         method: 'PATCH',
         url: '/api/board/cards/card-1/move',
+      },
+    ];
+
+    for (const request of invalidRequests) {
+      const response = createResponse();
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest(request),
+        response,
+        createMutationPrisma(),
+        authenticatedResolver
+      );
+
+      expect(handled).toBe(true);
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body).error.code).toBe('bad_request');
+    }
+  });
+
+  test('rejects invalid non-card board mutation payloads', async () => {
+    const invalidRequests = [
+      {
+        body: '{not-json',
+        method: 'POST',
+        url: '/api/board/columns',
+      },
+      {
+        body: JSON.stringify({ id: 'doing', title: '' }),
+        method: 'POST',
+        url: '/api/board/columns',
+      },
+      {
+        body: JSON.stringify({ afterColumnId: 'done', beforeColumnId: 'todo' }),
+        method: 'PATCH',
+        url: '/api/board/columns/done/move',
+      },
+      {
+        body: JSON.stringify({ id: 'tag-2', name: '' }),
+        method: 'POST',
+        url: '/api/board/tags',
+      },
+      {
+        body: JSON.stringify({ background: { type: 'video', value: 'x' } }),
+        method: 'PATCH',
+        url: '/api/board/settings',
+      },
+      {
+        body: JSON.stringify({ completedColumnId: '' }),
+        method: 'PATCH',
+        url: '/api/board/work-cycle/settings',
       },
     ];
 
