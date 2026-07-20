@@ -208,6 +208,13 @@ export type CompleteWorkCycleMutationResponse = {
 
 export type ArchivedCardDetailResponse = ArchivedBoardCard;
 
+export type ClearBoardMutationResponse = {
+  boardVersion: number;
+  cardIds: string[];
+  columns: BoardBootstrapResponse['columns'];
+  workCycle: BoardActiveWorkCycle;
+};
+
 const createHeaders = (accessToken?: string) => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
@@ -326,6 +333,14 @@ const parseCompleteWorkCycleMutationResponse = async (response: Response) => {
   }
 
   return (await response.json()) as CompleteWorkCycleMutationResponse;
+};
+
+const parseClearBoardMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to clear board.');
+  }
+
+  return (await response.json()) as ClearBoardMutationResponse;
 };
 
 const parseCompletedHistoryResponse = async (response: Response) => {
@@ -624,6 +639,15 @@ export const completeWorkCycle = async (accessToken?: string) => {
   );
 
   return parseCompleteWorkCycleMutationResponse(response);
+};
+
+export const clearBoard = async (accessToken?: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/board/clear`, {
+    headers: createHeaders(accessToken),
+    method: 'POST',
+  });
+
+  return parseClearBoardMutationResponse(response);
 };
 
 export const fetchCompletedHistory = async ({

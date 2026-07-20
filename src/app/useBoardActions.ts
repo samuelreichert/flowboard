@@ -15,12 +15,7 @@ import {
   updateStorage,
   updateStorageLocal,
 } from '../storage';
-import type {
-  BoardActiveWorkCycle,
-  BoardColumn,
-  BoardState,
-  BoardTag,
-} from '../types';
+import type { BoardActiveWorkCycle, BoardColumn, BoardTag } from '../types';
 import type { AppAction } from './appTypes';
 import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 
@@ -29,14 +24,12 @@ const useBoardActions = ({
   boardMutations,
   dispatch,
   openSettings,
-  persistAuthenticatedBoard,
   tags,
 }: {
   activeWorkCycle: BoardActiveWorkCycle;
   boardMutations: ReturnType<typeof useFlowboardBoardMutations>;
   dispatch: Dispatch<AppAction>;
   openSettings: () => void;
-  persistAuthenticatedBoard: (nextState: BoardState) => void;
   tags: BoardTag[];
 }) => {
   const completionPulseTimeoutRef = useRef<number | null>(null);
@@ -95,11 +88,11 @@ const useBoardActions = ({
   };
 
   const clearBoard = () => {
-    updateStorage([]);
+    updateStorageLocal([]);
     const nextState = fetchBoardState();
 
     dispatch({ state: nextState, type: 'boardStateChanged' });
-    persistAuthenticatedBoard(nextState);
+    boardMutations.clearBoard();
   };
 
   const chooseCompletedColumn = (completedColumnId: string | null) => {

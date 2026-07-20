@@ -236,6 +236,13 @@ export type CompleteWorkCycleResult = {
 
 export type ArchivedCardDetail = ArchivedBoardCard;
 
+export type ClearActiveBoardResult = {
+  boardVersion: number;
+  cardIds: string[];
+  columns: BoardBootstrapColumn[];
+  workCycle: BoardActiveWorkCycle;
+};
+
 const createId = () => randomUUID();
 
 const toDate = (value: string) => new Date(value);
@@ -1323,6 +1330,70 @@ export const deleteActiveColumn = async (
     cardIds: deletedCardIds,
     columnId,
     columns: saved.columns.map(toBootstrapColumn),
+    workCycle: {
+      completedColumnId: saved.workCycle.completedColumnId,
+      startDate: toIso(saved.workCycle.startDate),
+    },
+  };
+};
+
+export const clearActiveBoard = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string
+): Promise<ClearActiveBoardResult> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const activeCards = await prisma.card.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true },
+    where: { boardId: board.id },
+  });
+  const cardIds = activeCards.map((card) => card.id);
+
+  const saved = await prisma.$transaction(
+    async (transaction) => {
+      await transaction.cardTag.deleteMany({
+        where: {
+          card: {
+            boardId: board.id,
+          },
+        },
+      });
+      await transaction.card.deleteMany({ where: { boardId: board.id } });
+      await transaction.boardColumn.deleteMany({
+        where: { boardId: board.id },
+      });
+
+      const [workCycle, updatedBoard] = await Promise.all([
+        transaction.boardWorkCycle.upsert({
+          create: {
+            boardId: board.id,
+            completedColumnId: null,
+            id: createId(),
+            startDate: board.createdAt,
+          },
+          update: {
+            completedColumnId: null,
+          },
+          where: { boardId: board.id },
+        }),
+        transaction.board.update({
+          data: { version: { increment: 1 } },
+          where: { id: board.id },
+        }),
+      ]);
+
+      return {
+        boardVersion: updatedBoard.version,
+        workCycle,
+      };
+    },
+    { timeout: BOARD_WRITE_TRANSACTION_TIMEOUT_MS }
+  );
+
+  return {
+    boardVersion: saved.boardVersion,
+    cardIds,
+    columns: [],
     workCycle: {
       completedColumnId: saved.workCycle.completedColumnId,
       startDate: toIso(saved.workCycle.startDate),

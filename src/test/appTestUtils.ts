@@ -677,6 +677,29 @@ const mockFlowboardApi = () => {
         });
       }
 
+      if (url.endsWith('/api/board/clear') && init?.method === 'POST') {
+        const cardIds = mockServerBoardState.columns.flatMap((column) =>
+          column.cards.map((card) => card.id)
+        );
+        const activeWorkCycle = {
+          ...mockServerBoardState.activeWorkCycle,
+          completedColumnId: null,
+        };
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          activeWorkCycle,
+          columns: [],
+        });
+
+        return jsonResponse({
+          boardVersion: 2,
+          cardIds,
+          columns: [],
+          workCycle: activeWorkCycle,
+        });
+      }
+
       if (url.endsWith('/api/boards/default')) {
         return jsonResponse({
           board: {
