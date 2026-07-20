@@ -161,7 +161,7 @@ const useBoardActions = ({
 
     updateBoardStateStorage(nextState);
     dispatch({ state: nextState, type: 'boardStateChanged' });
-    persistAuthenticatedBoard(nextState);
+    boardMutations.completeWorkCycle();
     dispatch({ active: true, type: 'completionPulseChanged' });
     if (completionPulseTimeoutRef.current !== null) {
       window.clearTimeout(completionPulseTimeoutRef.current);

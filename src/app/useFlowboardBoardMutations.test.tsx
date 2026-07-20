@@ -9,9 +9,11 @@ import { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import type {
   ActiveCardDetailResponse,
   BoardBootstrapResponse,
+  CompletedHistoryResponse,
 } from '../storage/authenticatedApi';
 import {
   assignActiveCardTag,
+  completeWorkCycle,
   createActiveColumn,
   createBoardTag,
   deleteActiveColumn,
@@ -27,6 +29,7 @@ vi.mock('../storage/authenticatedApi', async (importOriginal) => {
   return {
     ...actual,
     assignActiveCardTag: vi.fn(),
+    completeWorkCycle: vi.fn(),
     createActiveColumn: vi.fn(),
     createBoardTag: vi.fn(),
     deleteActiveColumn: vi.fn(),
@@ -66,6 +69,7 @@ const bootstrap: BoardBootstrapResponse = {
 describe('useFlowboardBoardMutations', () => {
   beforeEach(() => {
     vi.mocked(assignActiveCardTag).mockReset();
+    vi.mocked(completeWorkCycle).mockReset();
     vi.mocked(createActiveColumn).mockReset();
     vi.mocked(createBoardTag).mockReset();
     vi.mocked(deleteActiveColumn).mockReset();
@@ -166,9 +170,9 @@ describe('useFlowboardBoardMutations', () => {
     act(() => result.current.deleteTag({ tagId: 'tag-1' }));
     await waitFor(() =>
       expect(
-        queryClient
-          .getQueryData<BoardBootstrapResponse>(queryKeys.board.bootstrap)
-          ?.cards[0].tagIds
+        queryClient.getQueryData<BoardBootstrapResponse>(
+          queryKeys.board.bootstrap
+        )?.cards[0].tagIds
       ).not.toContain('tag-1')
     );
 
@@ -234,5 +238,112 @@ describe('useFlowboardBoardMutations', () => {
         queryKeys.board.bootstrap
       )
     ).toEqual(bootstrap);
+  });
+
+  test('completes work through resource mutation and merges bootstrap/history caches', async () => {
+    const queryClient = createFlowboardQueryClient();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const completionBootstrap: BoardBootstrapResponse = {
+      ...bootstrap,
+      cards: [
+        bootstrap.cards[0],
+        {
+          columnId: 'done',
+          id: 'done-card',
+          priority: 'high',
+          tagIds: ['tag-1'],
+          title: 'Done card',
+        },
+      ],
+    };
+    const detail: ActiveCardDetailResponse = {
+      content: 'Done content',
+      createdAt: '2026-07-17T10:00:00.000Z',
+      id: 'done-card',
+      priority: 'high',
+      tagIds: ['tag-1'],
+      title: 'Done card',
+    };
+
+    queryClient.setQueryData(queryKeys.board.bootstrap, completionBootstrap);
+    queryClient.setQueryData(queryKeys.board.card('done-card'), detail);
+    queryClient.setQueryData(queryKeys.board.history(20), {
+      pageParams: [null],
+      pages: [
+        {
+          cycles: [],
+          pageInfo: {
+            hasMore: false,
+            nextCursor: null,
+          },
+        },
+      ],
+    });
+    vi.mocked(completeWorkCycle).mockResolvedValue({
+      boardVersion: 9,
+      cardIds: ['done-card'],
+      columnId: 'done',
+      cycle: {
+        cards: [
+          {
+            archivedAt: '2026-07-18T10:00:00.000Z',
+            createdAt: '2026-07-17T10:00:00.000Z',
+            hasContent: true,
+            id: 'done-card',
+            priority: 'high',
+            tagIds: ['tag-1'],
+            tagSnapshots: [{ id: 'tag-1', name: 'Existing' }],
+            title: 'Done card',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: '2026-07-18T10:00:00.000Z',
+        id: 'cycle-1',
+        startDate: '2026-07-17T10:00:00.000Z',
+      },
+      workCycle: {
+        completedColumnId: 'done',
+        startDate: '2026-07-18T10:00:00.000Z',
+      },
+    });
+
+    const { result } = renderHook(
+      () => useFlowboardBoardMutations({ accessToken: 'token-1' }),
+      { wrapper }
+    );
+
+    act(() => result.current.completeWorkCycle());
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<BoardBootstrapResponse>(
+          queryKeys.board.bootstrap
+        )?.board.version
+      ).toBe(9)
+    );
+
+    expect(completeWorkCycle).toHaveBeenCalledWith('token-1');
+    expect(
+      queryClient
+        .getQueryData<BoardBootstrapResponse>(queryKeys.board.bootstrap)
+        ?.cards.map((card) => card.id)
+    ).toEqual(['card-1']);
+    expect(
+      queryClient.getQueryData<BoardBootstrapResponse>(
+        queryKeys.board.bootstrap
+      )?.workCycle.startDate
+    ).toBe('2026-07-18T10:00:00.000Z');
+    expect(
+      queryClient.getQueryData<ActiveCardDetailResponse>(
+        queryKeys.board.card('done-card')
+      )
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryData<{
+        pages: CompletedHistoryResponse[];
+      }>(queryKeys.board.history(20))?.pages[0].cycles[0].id
+    ).toBe('cycle-1');
   });
 });

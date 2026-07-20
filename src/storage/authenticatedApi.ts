@@ -1,6 +1,8 @@
 import type {
+  ArchivedBoardCard,
   BoardActiveWorkCycle,
   BoardBackground,
+  CompletedWorkCycle,
   BoardState,
   BoardTag,
   CardPriority,
@@ -180,6 +182,32 @@ export type WorkCycleSettingsMutationResponse = {
   workCycle: BoardActiveWorkCycle;
 };
 
+export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'> & {
+  hasContent: boolean;
+};
+
+export type CompletedHistoryCycleSummary = Omit<CompletedWorkCycle, 'cards'> & {
+  cards: CompletedHistoryCardSummary[];
+};
+
+export type CompletedHistoryResponse = {
+  cycles: CompletedHistoryCycleSummary[];
+  pageInfo: {
+    hasMore: boolean;
+    nextCursor: string | null;
+  };
+};
+
+export type CompleteWorkCycleMutationResponse = {
+  boardVersion: number;
+  cardIds: string[];
+  columnId: string;
+  cycle: CompletedHistoryCycleSummary;
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type ArchivedCardDetailResponse = ArchivedBoardCard;
+
 const createHeaders = (accessToken?: string) => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   'Content-Type': 'application/json',
@@ -290,6 +318,30 @@ const parseWorkCycleSettingsMutationResponse = async (response: Response) => {
   }
 
   return (await response.json()) as WorkCycleSettingsMutationResponse;
+};
+
+const parseCompleteWorkCycleMutationResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to complete work cycle.');
+  }
+
+  return (await response.json()) as CompleteWorkCycleMutationResponse;
+};
+
+const parseCompletedHistoryResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to load completed work history.');
+  }
+
+  return (await response.json()) as CompletedHistoryResponse;
+};
+
+const parseArchivedCardDetailResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error('Unable to load archived card detail.');
+  }
+
+  return (await response.json()) as ArchivedCardDetailResponse;
 };
 
 export const fetchAuthenticatedProfile = async (accessToken: string) => {
@@ -560,6 +612,63 @@ export const updateWorkCycleSettings = async (
   );
 
   return parseWorkCycleSettingsMutationResponse(response);
+};
+
+export const completeWorkCycle = async (accessToken?: string) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/work-cycle/complete`,
+    {
+      headers: createHeaders(accessToken),
+      method: 'POST',
+    }
+  );
+
+  return parseCompleteWorkCycleMutationResponse(response);
+};
+
+export const fetchCompletedHistory = async ({
+  accessToken,
+  cursor,
+  limit,
+}: {
+  accessToken?: string;
+  cursor?: string | null;
+  limit?: number;
+} = {}) => {
+  const searchParams = new URLSearchParams();
+
+  if (limit !== undefined) {
+    searchParams.set('limit', String(limit));
+  }
+
+  if (cursor) {
+    searchParams.set('cursor', cursor);
+  }
+
+  const queryString = searchParams.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/work-cycles/history${queryString ? `?${queryString}` : ''}`,
+    {
+      headers: createHeaders(accessToken),
+    }
+  );
+
+  return parseCompletedHistoryResponse(response);
+};
+
+export const fetchArchivedCardDetail = async (
+  cycleId: string,
+  cardId: string,
+  accessToken?: string
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/board/work-cycles/${encodeURIComponent(cycleId)}/cards/${encodeURIComponent(cardId)}`,
+    {
+      headers: createHeaders(accessToken),
+    }
+  );
+
+  return parseArchivedCardDetailResponse(response);
 };
 
 export const fetchDefaultBoard = async (accessToken?: string) => {

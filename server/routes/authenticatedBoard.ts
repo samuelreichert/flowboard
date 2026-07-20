@@ -11,15 +11,21 @@ import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import {
   assignActiveCardTag,
+  completeActiveWorkCycle,
+  COMPLETED_HISTORY_DEFAULT_LIMIT,
+  COMPLETED_HISTORY_MAX_LIMIT,
   createActiveColumn,
   createActiveCard,
   createBoardTag,
+  decodeCompletedHistoryCursor,
   deleteActiveColumn,
   deleteActiveCard,
   deleteBoardTag,
   listProjects,
   loadActiveCardDetail,
+  loadArchivedCardDetail,
   loadBoard,
+  loadCompletedHistoryPage,
   loadMainBoardBootstrap,
   moveActiveColumn,
   moveActiveCard,
@@ -62,12 +68,15 @@ const BOARD_TAG_COLLECTION_PATH = '/api/board/tags';
 const BOARD_TAG_DETAIL_PATH_PATTERN = /^\/api\/board\/tags\/([^/]+)$/;
 const BOARD_SETTINGS_PATH = '/api/board/settings';
 const WORK_CYCLE_SETTINGS_PATH = '/api/board/work-cycle/settings';
+const WORK_CYCLE_COMPLETE_PATH = '/api/board/work-cycle/complete';
+const COMPLETED_HISTORY_PATH = '/api/board/work-cycles/history';
+const ARCHIVED_CARD_DETAIL_PATH_PATTERN =
+  /^\/api\/board\/work-cycles\/([^/]+)\/cards\/([^/]+)$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isString = (value: unknown): value is string =>
-  typeof value === 'string';
+const isString = (value: unknown): value is string => typeof value === 'string';
 
 const isNonEmptyString = (value: unknown): value is string =>
   isString(value) && value.trim().length > 0;
@@ -193,9 +202,7 @@ const normalizeNullableString = (value: unknown) => {
   return isNonEmptyString(value) ? value : undefined;
 };
 
-const normalizeMoveCardInput = (
-  body: unknown
-): ActiveCardMoveInput | null => {
+const normalizeMoveCardInput = (body: unknown): ActiveCardMoveInput | null => {
   if (!isRecord(body) || !isNonEmptyString(body.columnId)) {
     return null;
   }
@@ -221,7 +228,11 @@ const normalizeMoveCardInput = (
 const normalizeCreateColumnInput = (
   body: unknown
 ): ActiveColumnCreateInput | null => {
-  if (!isRecord(body) || !isNonEmptyString(body.id) || !isNonEmptyString(body.title)) {
+  if (
+    !isRecord(body) ||
+    !isNonEmptyString(body.id) ||
+    !isNonEmptyString(body.title)
+  ) {
     return null;
   }
 
@@ -265,10 +276,12 @@ const normalizeMoveColumnInput = (
   };
 };
 
-const normalizeCreateTagInput = (
-  body: unknown
-): BoardTagCreateInput | null => {
-  if (!isRecord(body) || !isNonEmptyString(body.id) || !isNonEmptyString(body.name)) {
+const normalizeCreateTagInput = (body: unknown): BoardTagCreateInput | null => {
+  if (
+    !isRecord(body) ||
+    !isNonEmptyString(body.id) ||
+    !isNonEmptyString(body.name)
+  ) {
     return null;
   }
 
@@ -278,9 +291,7 @@ const normalizeCreateTagInput = (
   };
 };
 
-const normalizeUpdateTagInput = (
-  body: unknown
-): BoardTagUpdateInput | null => {
+const normalizeUpdateTagInput = (body: unknown): BoardTagUpdateInput | null => {
   if (!isRecord(body) || !isNonEmptyString(body.name)) {
     return null;
   }
@@ -314,6 +325,30 @@ const normalizeWorkCycleSettingsInput = (
   return { completedColumnId };
 };
 
+const normalizeCompletedHistoryQuery = (url: URL) => {
+  const limitValue = url.searchParams.get('limit');
+  const cursor = url.searchParams.get('cursor');
+  const limit =
+    limitValue === null ? COMPLETED_HISTORY_DEFAULT_LIMIT : Number(limitValue);
+
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > COMPLETED_HISTORY_MAX_LIMIT
+  ) {
+    return null;
+  }
+
+  if (cursor !== null && !decodeCompletedHistoryCursor(cursor)) {
+    return null;
+  }
+
+  return {
+    cursor,
+    limit,
+  };
+};
+
 const decodePathId = (value: string) => {
   try {
     return decodeURIComponent(value);
@@ -328,7 +363,8 @@ export const handleAuthenticatedBoardApiRequest = async (
   prisma: FlowboardPrismaClient,
   principalResolver: PrincipalResolver
 ) => {
-  const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+  const url = new URL(request.url ?? '/', 'http://localhost');
+  const pathname = url.pathname;
 
   if (
     pathname !== '/api/board/bootstrap' &&
@@ -337,6 +373,8 @@ export const handleAuthenticatedBoardApiRequest = async (
     pathname !== BOARD_TAG_COLLECTION_PATH &&
     pathname !== BOARD_SETTINGS_PATH &&
     pathname !== WORK_CYCLE_SETTINGS_PATH &&
+    pathname !== WORK_CYCLE_COMPLETE_PATH &&
+    pathname !== COMPLETED_HISTORY_PATH &&
     pathname !== '/api/projects' &&
     pathname !== '/api/boards/default' &&
     !ACTIVE_CARD_MOVE_PATH_PATTERN.test(pathname) &&
@@ -344,6 +382,7 @@ export const handleAuthenticatedBoardApiRequest = async (
     !ACTIVE_CARD_DETAIL_PATH_PATTERN.test(pathname) &&
     !ACTIVE_COLUMN_MOVE_PATH_PATTERN.test(pathname) &&
     !ACTIVE_COLUMN_DETAIL_PATH_PATTERN.test(pathname) &&
+    !ARCHIVED_CARD_DETAIL_PATH_PATTERN.test(pathname) &&
     !BOARD_TAG_DETAIL_PATH_PATTERN.test(pathname) &&
     !BOARD_PATH_PATTERN.test(pathname)
   ) {
@@ -366,6 +405,76 @@ export const handleAuthenticatedBoardApiRequest = async (
     }
 
     sendJson(response, 200, await loadMainBoardBootstrap(prisma, user.id));
+    return true;
+  }
+
+  if (pathname === WORK_CYCLE_COMPLETE_PATH) {
+    if (request.method !== 'POST') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    const result = await completeActiveWorkCycle(prisma, user.id);
+
+    if (!result) {
+      sendBadRequest(response, 'Unable to complete work cycle.');
+      return true;
+    }
+
+    sendJson(response, 200, result);
+    return true;
+  }
+
+  if (pathname === COMPLETED_HISTORY_PATH) {
+    if (request.method !== 'GET') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    const input = normalizeCompletedHistoryQuery(url);
+
+    if (!input) {
+      sendBadRequest(response, 'Invalid history pagination.');
+      return true;
+    }
+
+    const result = await loadCompletedHistoryPage(prisma, user.id, input);
+
+    if (!result) {
+      sendBadRequest(response, 'Invalid history pagination.');
+      return true;
+    }
+
+    sendJson(response, 200, result);
+    return true;
+  }
+
+  const archivedCardDetailMatch = pathname.match(
+    ARCHIVED_CARD_DETAIL_PATH_PATTERN
+  );
+
+  if (archivedCardDetailMatch) {
+    if (request.method !== 'GET') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    const cycleId = decodePathId(archivedCardDetailMatch[1]);
+    const cardId = decodePathId(archivedCardDetailMatch[2]);
+
+    if (!isNonEmptyString(cycleId) || !isNonEmptyString(cardId)) {
+      sendBadRequest(response, 'Invalid archived card route.');
+      return true;
+    }
+
+    const card = await loadArchivedCardDetail(prisma, user.id, cycleId, cardId);
+
+    if (!card) {
+      sendNotFound(response);
+      return true;
+    }
+
+    sendJson(response, 200, card);
     return true;
   }
 
@@ -417,7 +526,9 @@ export const handleAuthenticatedBoardApiRequest = async (
     return true;
   }
 
-  const activeColumnMoveId = pathname.match(ACTIVE_COLUMN_MOVE_PATH_PATTERN)?.[1];
+  const activeColumnMoveId = pathname.match(
+    ACTIVE_COLUMN_MOVE_PATH_PATTERN
+  )?.[1];
 
   if (activeColumnMoveId) {
     if (request.method !== 'PATCH') {
@@ -530,12 +641,7 @@ export const handleAuthenticatedBoardApiRequest = async (
         return true;
       }
 
-      const result = await renameBoardTag(
-        prisma,
-        user.id,
-        decodedTagId,
-        input
-      );
+      const result = await renameBoardTag(prisma, user.id, decodedTagId, input);
 
       if (!result) {
         sendBadRequest(response, 'Invalid tag payload.');
@@ -569,7 +675,12 @@ export const handleAuthenticatedBoardApiRequest = async (
     const decodedTagId = decodePathId(activeCardTagMatch[2]);
     const result =
       request.method === 'PUT'
-        ? await assignActiveCardTag(prisma, user.id, decodedCardId, decodedTagId)
+        ? await assignActiveCardTag(
+            prisma,
+            user.id,
+            decodedCardId,
+            decodedTagId
+          )
         : request.method === 'DELETE'
           ? await unassignActiveCardTag(
               prisma,
@@ -616,7 +727,9 @@ export const handleAuthenticatedBoardApiRequest = async (
       return true;
     }
 
-    const input = normalizeWorkCycleSettingsInput(await readJsonPayload(request));
+    const input = normalizeWorkCycleSettingsInput(
+      await readJsonPayload(request)
+    );
 
     if (!input) {
       sendBadRequest(response, 'Invalid work-cycle settings payload.');

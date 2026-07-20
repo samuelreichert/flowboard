@@ -2,7 +2,8 @@ import { Button } from '@base-ui/react/button';
 import { AlignLeft } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
-import type { BoardTag, CompletedWorkCycle } from '../../types';
+import type { CompletedHistoryCycleSummary } from '../../storage/authenticatedApi';
+import type { BoardTag } from '../../types';
 import CardMetadata from '../CardMetadata';
 import { InlineEmptyState } from '../EmptyState';
 import { getVisibleTagNames } from './historyHelpers';
@@ -10,7 +11,7 @@ import { getVisibleTagNames } from './historyHelpers';
 export type HistoryLayout = 'grid' | 'list';
 
 type HistoryCycleListProps = {
-  cycles: CompletedWorkCycle[];
+  cycles: CompletedHistoryCycleSummary[];
   historyLayout: HistoryLayout;
   onCardOpen: (cycleId: string, cardId: string) => void;
   tags: BoardTag[];
@@ -61,7 +62,7 @@ const HistoryCycleList = ({
                         <span className="history-card__title">
                           {card.title}
                         </span>
-                        {card.content && (
+                        {card.hasContent && (
                           <AlignLeft
                             aria-label={messages.card.hasContent}
                             className="history-card__content-icon"
@@ -70,10 +71,7 @@ const HistoryCycleList = ({
                         )}
                       </div>
                       <CardMetadata
-                        hiddenTagCount={Math.max(
-                          0,
-                          visibleTagNames.length - 2
-                        )}
+                        hiddenTagCount={Math.max(0, visibleTagNames.length - 2)}
                         leadingClassName="history-card__created-date"
                         leadingText={messages.history.created(
                           formatDate(card.createdAt)

@@ -38,6 +38,7 @@ beforeEach(resetAppTestEnvironment);
 test('completes work after confirmation and moves done cards to history', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
   await addColumn(user, 'Todo');
   await addColumn(user, 'Done');
@@ -58,6 +59,17 @@ test('completes work after confirmation and moves done cards to history', async 
   await user.click(screen.getByRole('button', { name: /complete work/i }));
   await user.click(screen.getByRole('button', { name: /^complete work$/i }));
 
+  expect(
+    fetchMock.mock.calls.some(
+      ([url]) => String(url) === '/api/board/work-cycle/complete'
+    )
+  ).toBe(true);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
   expect(
     readColumns().find((column) => column.title === 'Done')?.cards
   ).toEqual([]);
@@ -214,8 +226,19 @@ test('switches completed work history between grid and list layouts', async () =
   });
 
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
   await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(
+    fetchMock.mock.calls.some(([url]) =>
+      String(url).includes('/api/board/work-cycles/history')
+    )
+  ).toBe(true);
+  expect(
+    fetchMock.mock.calls.some(([url]) =>
+      String(url).endsWith('/api/boards/default')
+    )
+  ).toBe(false);
   expect(screen.getByRole('button', { name: /grid view/i })).toHaveAttribute(
     'aria-pressed',
     'true'

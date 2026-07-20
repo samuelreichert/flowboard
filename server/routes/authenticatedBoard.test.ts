@@ -302,6 +302,144 @@ const createMutationPrisma = ({
   return prisma;
 };
 
+const createWorkCyclePrisma = ({
+  archivedCardDetail = {
+    archivedAt: new Date('2026-07-05T00:00:00.000Z'),
+    content: 'Archived rich content',
+    createdAt: new Date('2026-07-04T00:00:00.000Z'),
+    id: 'card-1',
+    priority: 'high',
+    tagSnapshots: [
+      {
+        id: 'snapshot-1',
+        name: 'Architecture',
+        originalTagId: 'tag-1',
+      },
+    ],
+    title: 'Completed card',
+  },
+}: {
+  archivedCardDetail?: {
+    archivedAt: Date;
+    content: string;
+    createdAt: Date;
+    id: string;
+    priority: string;
+    tagSnapshots: Array<{
+      id: string;
+      name: string;
+      originalTagId: string | null;
+    }>;
+    title: string;
+  } | null;
+} = {}) => {
+  const prisma = {
+    $transaction: vi.fn(async (callback) => callback(prisma)),
+    board: {
+      create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(boardRecord),
+      update: vi.fn().mockResolvedValue({
+        ...boardRecord,
+        version: 8,
+      }),
+    },
+    boardColumn: {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'done',
+        title: 'Done',
+      }),
+    },
+    boardWorkCycle: {
+      findUnique: vi.fn().mockResolvedValue({
+        completedColumnId: 'done',
+        startDate: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+      update: vi.fn().mockResolvedValue({
+        completedColumnId: 'done',
+        startDate: new Date('2026-07-05T00:00:00.000Z'),
+      }),
+    },
+    card: {
+      deleteMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          content: 'Done content',
+          createdAt: new Date('2026-07-04T00:00:00.000Z'),
+          id: 'card-1',
+          priority: 'high',
+          sortOrder: 0,
+          title: 'Completed card',
+        },
+      ]),
+    },
+    cardTag: {
+      deleteMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          cardId: 'card-1',
+          tag: {
+            id: 'tag-1',
+            name: 'Architecture',
+            sortOrder: 0,
+          },
+        },
+      ]),
+    },
+    completedWorkCycle: {
+      create: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          cards: [
+            {
+              archivedAt: new Date('2026-07-05T00:00:00.000Z'),
+              content: 'Archived rich content',
+              createdAt: new Date('2026-07-04T00:00:00.000Z'),
+              id: 'card-1',
+              priority: 'high',
+              tagSnapshots: [
+                {
+                  id: 'snapshot-1',
+                  name: 'Architecture',
+                  originalTagId: 'tag-1',
+                },
+              ],
+              title: 'Completed card',
+            },
+          ],
+          completedColumnId: 'done',
+          completedColumnTitle: 'Done',
+          endDate: new Date('2026-07-05T00:00:00.000Z'),
+          id: 'cycle-1',
+          startDate: new Date('2026-07-01T00:00:00.000Z'),
+        },
+      ]),
+    },
+    completedWorkCycleCard: {
+      createMany: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(archivedCardDetail),
+    },
+    completedWorkCycleCardTag: {
+      createMany: vi.fn(),
+    },
+    profile: {
+      create: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue({
+        avatarStoragePath: null,
+        avatarUrl: null,
+        displayName: null,
+        id: 'user-1',
+      }),
+      update: vi.fn(),
+    },
+    project: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+    },
+  } as unknown as FlowboardPrismaClient;
+
+  return prisma;
+};
+
 describe('handleAuthenticatedBoardApiRequest', () => {
   test('rejects unauthenticated durable board requests', async () => {
     const response = createResponse();
@@ -668,6 +806,163 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     expect(handled).toBe(true);
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body).card.id).toBe('card-1');
+  });
+
+  test('completes work cycles for authenticated users', async () => {
+    const response = createResponse();
+    const prisma = createWorkCyclePrisma();
+    const handled = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        method: 'POST',
+        url: '/api/board/work-cycle/complete',
+      }),
+      response,
+      prisma,
+      authenticatedResolver
+    );
+    const body = JSON.parse(response.body);
+
+    expect(handled).toBe(true);
+    expect(response.statusCode).toBe(200);
+    expect(body).toEqual({
+      boardVersion: 8,
+      cardIds: ['card-1'],
+      columnId: 'done',
+      cycle: {
+        cards: [
+          {
+            archivedAt: expect.any(String),
+            createdAt: '2026-07-04T00:00:00.000Z',
+            hasContent: true,
+            id: 'card-1',
+            priority: 'high',
+            tagIds: ['tag-1'],
+            tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+            title: 'Completed card',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: expect.any(String),
+        id: expect.any(String),
+        startDate: '2026-07-01T00:00:00.000Z',
+      },
+      workCycle: {
+        completedColumnId: 'done',
+        startDate: '2026-07-05T00:00:00.000Z',
+      },
+    });
+    expect(body.cycle.cards[0]).not.toHaveProperty('content');
+    expect(prisma.completedWorkCycle.create).toHaveBeenCalled();
+    expect(prisma.card.deleteMany).toHaveBeenCalled();
+  });
+
+  test('serves completed history summaries and archived-card detail', async () => {
+    const historyResponse = createResponse();
+    const detailResponse = createResponse();
+    const prisma = createWorkCyclePrisma();
+
+    const handledHistory = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        method: 'GET',
+        url: '/api/board/work-cycles/history?limit=1',
+      }),
+      historyResponse,
+      prisma,
+      authenticatedResolver
+    );
+    const handledDetail = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        method: 'GET',
+        url: '/api/board/work-cycles/cycle-1/cards/card-1',
+      }),
+      detailResponse,
+      prisma,
+      authenticatedResolver
+    );
+    const historyBody = JSON.parse(historyResponse.body);
+
+    expect(handledHistory).toBe(true);
+    expect(historyResponse.statusCode).toBe(200);
+    expect(historyBody).toEqual({
+      cycles: [
+        {
+          cards: [
+            {
+              archivedAt: '2026-07-05T00:00:00.000Z',
+              createdAt: '2026-07-04T00:00:00.000Z',
+              hasContent: true,
+              id: 'card-1',
+              priority: 'high',
+              tagIds: ['tag-1'],
+              tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+              title: 'Completed card',
+            },
+          ],
+          completedColumnId: 'done',
+          completedColumnTitle: 'Done',
+          endDate: '2026-07-05T00:00:00.000Z',
+          id: 'cycle-1',
+          startDate: '2026-07-01T00:00:00.000Z',
+        },
+      ],
+      pageInfo: {
+        hasMore: false,
+        nextCursor: null,
+      },
+    });
+    expect(historyBody.cycles[0].cards[0]).not.toHaveProperty('content');
+    expect(handledDetail).toBe(true);
+    expect(detailResponse.statusCode).toBe(200);
+    expect(JSON.parse(detailResponse.body)).toEqual({
+      archivedAt: '2026-07-05T00:00:00.000Z',
+      content: 'Archived rich content',
+      createdAt: '2026-07-04T00:00:00.000Z',
+      id: 'card-1',
+      priority: 'high',
+      tagIds: ['tag-1'],
+      tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+      title: 'Completed card',
+    });
+  });
+
+  test('rejects invalid work-cycle resource requests', async () => {
+    const cases = [
+      {
+        expectedStatus: 400,
+        prisma: createWorkCyclePrisma(),
+        url: '/api/board/work-cycles/history?limit=999',
+      },
+      {
+        expectedStatus: 404,
+        prisma: createWorkCyclePrisma({ archivedCardDetail: null }),
+        url: '/api/board/work-cycles/cycle-1/cards/missing-card',
+      },
+      {
+        expectedStatus: 401,
+        prisma: createWorkCyclePrisma(),
+        resolver: {
+          resolveRequest: vi.fn().mockResolvedValue(null),
+        } satisfies PrincipalResolver,
+        url: '/api/board/work-cycles/history',
+      },
+    ];
+
+    for (const item of cases) {
+      const response = createResponse();
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest({
+          method: 'GET',
+          url: item.url,
+        }),
+        response,
+        item.prisma,
+        item.resolver ?? authenticatedResolver
+      );
+
+      expect(handled).toBe(true);
+      expect(response.statusCode).toBe(item.expectedStatus);
+    }
   });
 
   test('rejects unauthenticated active card mutations', async () => {

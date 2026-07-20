@@ -52,8 +52,8 @@ const createBootstrapResponse = () => {
 };
 
 const findCardDetail = (cardId: string) =>
-  mockServerBoardState
-    .columns.flatMap((column) => column.cards)
+  mockServerBoardState.columns
+    .flatMap((column) => column.cards)
     .find((card) => card.id === cardId);
 
 const updateMockServerBoardState = (state: BoardState) => {
@@ -61,9 +61,7 @@ const updateMockServerBoardState = (state: BoardState) => {
   updateBoardStateStorage(state);
 };
 
-const mapMockColumns = (
-  mapper: (column: BoardColumn) => BoardColumn
-) => {
+const mapMockColumns = (mapper: (column: BoardColumn) => BoardColumn) => {
   updateMockServerBoardState({
     ...mockServerBoardState,
     activeWorkCycle: fetchActiveWorkCycleStorage(),
@@ -183,14 +181,128 @@ const toColumnSummaries = () =>
 
 const toTagSummaries = () => mockServerBoardState.tags;
 
+const toCompletedHistoryResponse = () => ({
+  cycles: mockServerBoardState.completedWorkCycles.map((cycle) => ({
+    ...cycle,
+    cards: cycle.cards.map(({ content: _content, ...card }) => ({
+      ...card,
+      hasContent: Boolean(_content),
+    })),
+  })),
+  pageInfo: {
+    hasMore: false,
+    nextCursor: null,
+  },
+});
+
+const findArchivedCardDetail = (cycleId: string, cardId: string) =>
+  mockServerBoardState.completedWorkCycles
+    .find((cycle) => cycle.id === cycleId)
+    ?.cards.find((card) => card.id === cardId) ?? null;
+
 const mockFlowboardApi = () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+      const parsedUrl = new URL(url, 'http://localhost');
 
       if (url.endsWith('/api/board/bootstrap')) {
         return jsonResponse(createBootstrapResponse());
+      }
+
+      if (
+        parsedUrl.pathname === '/api/board/work-cycle/complete' &&
+        init?.method === 'POST'
+      ) {
+        const completedColumnId =
+          mockServerBoardState.activeWorkCycle.completedColumnId;
+        const completedColumn = mockServerBoardState.columns.find(
+          (column) => column.id === completedColumnId
+        );
+
+        if (!completedColumn || completedColumn.cards.length === 0) {
+          return jsonResponse(
+            { error: 'Unable to complete work cycle.' },
+            { status: 400 }
+          );
+        }
+
+        const archivedAt = CREATED_AT;
+        const cycle = {
+          cards: completedColumn.cards.map((card) => ({
+            archivedAt,
+            content: card.content,
+            createdAt: card.createdAt,
+            id: card.id,
+            priority: card.priority,
+            tagIds: card.tagIds,
+            tagSnapshots: card.tagIds
+              .map((tagId) =>
+                mockServerBoardState.tags.find((tag) => tag.id === tagId)
+              )
+              .filter((tag): tag is { id: string; name: string } =>
+                Boolean(tag)
+              ),
+            title: card.title,
+          })),
+          completedColumnId: completedColumn.id,
+          completedColumnTitle: completedColumn.title,
+          endDate: archivedAt,
+          id: `cycle-${mockServerBoardState.completedWorkCycles.length + 1}`,
+          startDate: mockServerBoardState.activeWorkCycle.startDate,
+        };
+        const activeWorkCycle = {
+          ...mockServerBoardState.activeWorkCycle,
+          startDate: archivedAt,
+        };
+
+        updateMockServerBoardState({
+          ...mockServerBoardState,
+          activeWorkCycle,
+          columns: mockServerBoardState.columns.map((column) =>
+            column.id === completedColumn.id ? { ...column, cards: [] } : column
+          ),
+          completedWorkCycles: [
+            ...mockServerBoardState.completedWorkCycles,
+            cycle,
+          ],
+        });
+
+        return jsonResponse({
+          boardVersion: 2,
+          cardIds: completedColumn.cards.map((card) => card.id),
+          columnId: completedColumn.id,
+          cycle: {
+            ...cycle,
+            cards: cycle.cards.map(({ content: _content, ...card }) => ({
+              ...card,
+              hasContent: Boolean(_content),
+            })),
+          },
+          workCycle: activeWorkCycle,
+        });
+      }
+
+      if (parsedUrl.pathname === '/api/board/work-cycles/history') {
+        return jsonResponse(toCompletedHistoryResponse());
+      }
+
+      const archivedCardMatch = parsedUrl.pathname.match(
+        /^\/api\/board\/work-cycles\/([^/]+)\/cards\/([^/]+)$/
+      );
+
+      if (archivedCardMatch) {
+        const cycleId = decodeURIComponent(archivedCardMatch[1]);
+        const cardId = decodeURIComponent(archivedCardMatch[2]);
+        const card = findArchivedCardDetail(cycleId, cardId);
+
+        return card
+          ? jsonResponse(card)
+          : jsonResponse(
+              { error: 'Archived card not found.' },
+              { status: 404 }
+            );
       }
 
       if (url.endsWith('/api/board/cards') && init?.method === 'POST') {
@@ -270,7 +382,9 @@ const mockFlowboardApi = () => {
       }
 
       if (url.includes('/api/board/columns/')) {
-        const columnId = decodeURIComponent(url.split('/api/board/columns/')[1]);
+        const columnId = decodeURIComponent(
+          url.split('/api/board/columns/')[1]
+        );
 
         if (init?.method === 'PATCH') {
           const patch = JSON.parse(String(init.body));
@@ -278,13 +392,17 @@ const mockFlowboardApi = () => {
           updateMockServerBoardState({
             ...mockServerBoardState,
             columns: mockServerBoardState.columns.map((column) =>
-              column.id === columnId ? { ...column, title: patch.title } : column
+              column.id === columnId
+                ? { ...column, title: patch.title }
+                : column
             ),
           });
 
           return jsonResponse({
             boardVersion: 2,
-            column: toColumnSummaries().find((column) => column.id === columnId),
+            column: toColumnSummaries().find(
+              (column) => column.id === columnId
+            ),
             columns: toColumnSummaries(),
           });
         }
@@ -750,7 +868,9 @@ export const openBoardSettings = async (
   user: ReturnType<typeof userEvent.setup>
 ) => {
   await user.click(
-    screen.getByRole('button', { name: /open account menu|abrir menu da conta/i })
+    screen.getByRole('button', {
+      name: /open account menu|abrir menu da conta/i,
+    })
   );
   await user.click(
     await screen.findByRole('menuitem', { name: /^settings$|^configurações$/i })

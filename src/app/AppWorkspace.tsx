@@ -4,10 +4,11 @@ import { lazy, Suspense } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
-import type { BoardColumn, BoardTag, CompletedWorkCycle } from '../types';
+import type { BoardColumn, BoardTag } from '../types';
 import type { AppView } from './appTypes';
 import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import type { useFlowboardCardMutations } from './useFlowboardCardMutations';
+import { useCompletedHistoryQuery } from './useFlowboardQueries';
 
 import './AppWorkspace.css';
 
@@ -23,7 +24,6 @@ type AppWorkspaceProps = {
   cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
   completeWorkDisabledReason: string;
-  completedWorkCycles: CompletedWorkCycle[];
   completionPulse: boolean;
   currentView: AppView;
   manageColumnsOpen: boolean;
@@ -49,7 +49,6 @@ const AppWorkspace = ({
   cardMutations,
   columns,
   completeWorkDisabledReason,
-  completedWorkCycles,
   completionPulse,
   currentView,
   manageColumnsOpen,
@@ -65,6 +64,12 @@ const AppWorkspace = ({
   tags,
 }: AppWorkspaceProps) => {
   const { messages } = useLocalization();
+  const historyQuery = useCompletedHistoryQuery({
+    accessToken: cardDetailAccessToken,
+    enabled: currentView === 'history',
+  });
+  const completedWorkCycles =
+    historyQuery.data?.pages.flatMap((page) => page.cycles) ?? [];
   const workspaceTitle =
     currentView === 'history'
       ? messages.app.workspace.history
@@ -152,9 +157,16 @@ const AppWorkspace = ({
           }
         >
           <HistoryView
+            accessToken={cardDetailAccessToken}
             boardLoading={boardLoading}
             completedWorkCycles={completedWorkCycles}
+            hasMoreHistory={Boolean(historyQuery.hasNextPage)}
+            historyLoading={historyQuery.isLoading}
+            historyLoadingMore={historyQuery.isFetchingNextPage}
             onArchivedCardClose={onArchivedCardClose}
+            onLoadMoreHistory={() => {
+              void historyQuery.fetchNextPage();
+            }}
             routeCard={archivedCardRoute}
             tags={tags}
           />

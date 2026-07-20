@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
 
 import {
   assignActiveCardTag,
+  completeWorkCycle,
   createActiveColumn,
   createBoardTag,
   deleteActiveColumn,
@@ -18,6 +20,8 @@ import {
   type BoardBootstrapResponse,
   type BoardSettingsMutationInput,
   type CardTagMutationResponse,
+  type CompleteWorkCycleMutationResponse,
+  type CompletedHistoryResponse,
   type ColumnMutationResponse,
   type CreateColumnMutationInput,
   type CreateTagMutationInput,
@@ -30,8 +34,10 @@ import {
   type WorkCycleSettingsMutationInput,
 } from '../storage/authenticatedApi';
 import {
+  applyCompletedWorkCycleToBootstrap,
   applyDeletedColumn,
   applyDeletedTag,
+  mergeCompletedHistoryCycle,
   updateBootstrapBackground,
   updateBootstrapColumns,
   updateBootstrapTags,
@@ -39,6 +45,7 @@ import {
   upsertBootstrapCardSummary,
 } from './flowboardMutationCache';
 import { queryKeys } from './queryKeys';
+import { COMPLETED_HISTORY_PAGE_LIMIT } from './useFlowboardQueries';
 
 export type UpdateColumnMutationVariables = {
   column: UpdateColumnMutationInput;
@@ -74,6 +81,7 @@ type MutationContext = {
     cardId: string;
     detail?: ActiveCardDetailResponse;
   }>;
+  previousHistory?: InfiniteData<CompletedHistoryResponse, string | null>;
 };
 
 const reorderColumns = (
@@ -121,14 +129,20 @@ export const useFlowboardBoardMutations = ({
   const queryClient = useQueryClient();
 
   const getBootstrap = () =>
-    queryClient.getQueryData<BoardBootstrapResponse>(
-      queryKeys.board.bootstrap
-    );
+    queryClient.getQueryData<BoardBootstrapResponse>(queryKeys.board.bootstrap);
+  const getHistory = () =>
+    queryClient.getQueryData<
+      InfiniteData<CompletedHistoryResponse, string | null>
+    >(queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT));
 
   const restoreContext = (context?: MutationContext) => {
     queryClient.setQueryData(
       queryKeys.board.bootstrap,
       context?.previousBootstrap
+    );
+    queryClient.setQueryData(
+      queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT),
+      context?.previousHistory
     );
 
     for (const item of context?.previousCardDetails ?? []) {
@@ -326,7 +340,10 @@ export const useFlowboardBoardMutations = ({
     onSuccess: (result) => {
       onMutationSuccess?.();
       queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
-        applyDeletedColumn(current as BoardBootstrapResponse | undefined, result)
+        applyDeletedColumn(
+          current as BoardBootstrapResponse | undefined,
+          result
+        )
       );
 
       for (const cardId of result.cardIds) {
@@ -459,7 +476,9 @@ export const useFlowboardBoardMutations = ({
               ...bootstrap,
               cards: bootstrap.cards.map((card) => ({
                 ...card,
-                tagIds: card.tagIds.filter((tagId) => tagId !== variables.tagId),
+                tagIds: card.tagIds.filter(
+                  (tagId) => tagId !== variables.tagId
+                ),
               })),
               tags: bootstrap.tags.filter((tag) => tag.id !== variables.tagId),
             }
@@ -529,13 +548,16 @@ export const useFlowboardBoardMutations = ({
             }
           : bootstrap;
       });
-      queryClient.setQueryData(queryKeys.board.card(variables.cardId), (current) => {
-        const detail = current as ActiveCardDetailResponse | undefined;
+      queryClient.setQueryData(
+        queryKeys.board.card(variables.cardId),
+        (current) => {
+          const detail = current as ActiveCardDetailResponse | undefined;
 
-        return detail && !detail.tagIds.includes(variables.tagId)
-          ? { ...detail, tagIds: [...detail.tagIds, variables.tagId] }
-          : detail;
-      });
+          return detail && !detail.tagIds.includes(variables.tagId)
+            ? { ...detail, tagIds: [...detail.tagIds, variables.tagId] }
+            : detail;
+        }
+      );
 
       return { previousBootstrap, previousCardDetails };
     },
@@ -548,11 +570,13 @@ export const useFlowboardBoardMutations = ({
           result.boardVersion
         )
       );
-      queryClient.setQueryData(queryKeys.board.card(result.card.id), (current) =>
-        updateCardDetailTagIds(
-          current as ActiveCardDetailResponse | undefined,
-          result.card.tagIds
-        )
+      queryClient.setQueryData(
+        queryKeys.board.card(result.card.id),
+        (current) =>
+          updateCardDetailTagIds(
+            current as ActiveCardDetailResponse | undefined,
+            result.card.tagIds
+          )
       );
     },
   });
@@ -603,13 +627,15 @@ export const useFlowboardBoardMutations = ({
             }
           : bootstrap;
       });
-      queryClient.setQueryData(queryKeys.board.card(variables.cardId), (current) =>
-        updateCardDetailTagIds(
-          current as ActiveCardDetailResponse | undefined,
-          (current as ActiveCardDetailResponse | undefined)?.tagIds.filter(
-            (tagId) => tagId !== variables.tagId
-          ) ?? []
-        )
+      queryClient.setQueryData(
+        queryKeys.board.card(variables.cardId),
+        (current) =>
+          updateCardDetailTagIds(
+            current as ActiveCardDetailResponse | undefined,
+            (current as ActiveCardDetailResponse | undefined)?.tagIds.filter(
+              (tagId) => tagId !== variables.tagId
+            ) ?? []
+          )
       );
 
       return { previousBootstrap, previousCardDetails };
@@ -623,11 +649,13 @@ export const useFlowboardBoardMutations = ({
           result.boardVersion
         )
       );
-      queryClient.setQueryData(queryKeys.board.card(result.card.id), (current) =>
-        updateCardDetailTagIds(
-          current as ActiveCardDetailResponse | undefined,
-          result.card.tagIds
-        )
+      queryClient.setQueryData(
+        queryKeys.board.card(result.card.id),
+        (current) =>
+          updateCardDetailTagIds(
+            current as ActiveCardDetailResponse | undefined,
+            result.card.tagIds
+          )
       );
     },
   });
@@ -708,9 +736,112 @@ export const useFlowboardBoardMutations = ({
     },
   });
 
+  const completeWorkCycleMutation = useMutation<
+    CompleteWorkCycleMutationResponse,
+    Error,
+    void,
+    MutationContext
+  >({
+    mutationFn: () => completeWorkCycle(accessToken),
+    onError: (_error, _variables, context) => {
+      onMutationError?.();
+      restoreContext(context);
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT),
+      });
+
+      const previousBootstrap = getBootstrap();
+      const previousHistory = getHistory();
+      const completedColumnId = previousBootstrap?.workCycle.completedColumnId;
+      const completedCardIds =
+        previousBootstrap?.cards.reduce<string[]>((cardIds, card) => {
+          if (card.columnId === completedColumnId) {
+            cardIds.push(card.id);
+          }
+
+          return cardIds;
+        }, []) ?? [];
+      const completedCardIdSet = new Set(completedCardIds);
+      const previousCardDetails = completedCardIds.map((cardId) => ({
+        cardId,
+        detail: queryClient.getQueryData<ActiveCardDetailResponse>(
+          queryKeys.board.card(cardId)
+        ),
+      }));
+      const completedAt = new Date().toISOString();
+
+      queryClient.setQueryData(queryKeys.board.bootstrap, (current) => {
+        const bootstrap = current as BoardBootstrapResponse | undefined;
+
+        return bootstrap
+          ? {
+              ...bootstrap,
+              cards: bootstrap.cards.filter(
+                (card) => !completedCardIdSet.has(card.id)
+              ),
+              workCycle: {
+                ...bootstrap.workCycle,
+                startDate: completedAt,
+              },
+            }
+          : bootstrap;
+      });
+
+      for (const cardId of completedCardIds) {
+        queryClient.removeQueries({
+          exact: true,
+          queryKey: queryKeys.board.card(cardId),
+        });
+      }
+
+      return { previousBootstrap, previousCardDetails, previousHistory };
+    },
+    onSuccess: (result) => {
+      onMutationSuccess?.();
+      queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
+        applyCompletedWorkCycleToBootstrap(
+          current as BoardBootstrapResponse | undefined,
+          result
+        )
+      );
+      queryClient.setQueryData(
+        queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT),
+        (current) => {
+          const history = current as
+            | InfiniteData<CompletedHistoryResponse, string | null>
+            | undefined;
+
+          if (!history || history.pages.length === 0) {
+            return history;
+          }
+
+          return {
+            ...history,
+            pages: history.pages.map((page, index) =>
+              index === 0
+                ? (mergeCompletedHistoryCycle(page, result) ?? page)
+                : page
+            ),
+          };
+        }
+      );
+
+      for (const cardId of result.cardIds) {
+        queryClient.removeQueries({
+          exact: true,
+          queryKey: queryKeys.board.card(cardId),
+        });
+      }
+    },
+  });
+
   return useMemo(
     () => ({
       assignCardTag: assignTagMutation.mutate,
+      completeWorkCycle: completeWorkCycleMutation.mutate,
       createColumn: createColumnMutation.mutate,
       createTag: createTagMutation.mutate,
       deleteColumn: deleteColumnMutation.mutate,
@@ -724,6 +855,7 @@ export const useFlowboardBoardMutations = ({
     }),
     [
       assignTagMutation.mutate,
+      completeWorkCycleMutation.mutate,
       createColumnMutation.mutate,
       createTagMutation.mutate,
       deleteColumnMutation.mutate,
