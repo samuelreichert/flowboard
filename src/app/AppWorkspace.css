@@ -57,41 +57,266 @@
   white-space: nowrap;
 }
 
-.complete-work-pulse {
-  align-items: center;
-  animation: complete-work-float 900ms ease both;
-  background-color: var(--color-surface-raised);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  box-shadow:
-    0 16px 34px var(--color-shadow),
-    0 2px 8px var(--color-shadow-soft);
-  color: var(--color-primary);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 700;
-  gap: 7px;
-  padding: 8px 12px;
+.completion-overlay {
+  animation: completion-overlay-presence 2800ms ease both;
+  display: grid;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+  place-items: center;
+  pointer-events: none;
   position: absolute;
-  right: 10px;
-  top: 4px;
-  z-index: 5;
+  z-index: 8;
 }
 
-@keyframes complete-work-float {
-  0% {
+.completion-overlay__scrim {
+  background-color: var(--color-workspace-bg);
+  inset: 0;
+  opacity: 0.9;
+  position: absolute;
+}
+
+.completion-overlay__stage {
+  align-items: center;
+  animation: completion-stage-presence 2800ms ease both;
+  color: var(--color-text);
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  max-width: min(360px, calc(100vw - 48px));
+  position: relative;
+  text-align: center;
+}
+
+.completion-overlay__stack {
+  height: 96px;
+  position: relative;
+  width: 128px;
+}
+
+.completion-overlay__card {
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 18px 42px var(--color-shadow),
+    0 4px 12px var(--color-shadow-soft);
+  height: 72px;
+  left: 24px;
+  position: absolute;
+  top: 10px;
+  width: 80px;
+}
+
+.completion-overlay__card::before,
+.completion-overlay__card::after {
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-pill);
+  content: '';
+  display: block;
+  height: 5px;
+  left: 12px;
+  position: absolute;
+}
+
+.completion-overlay__card::before {
+  top: 17px;
+  width: 42px;
+}
+
+.completion-overlay__card::after {
+  opacity: 0.72;
+  top: 31px;
+  width: 56px;
+}
+
+.completion-overlay__card--one {
+  animation: completion-card-one 2800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.completion-overlay__card--two {
+  animation: completion-card-two 2800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  border-color: var(--color-primary);
+}
+
+.completion-overlay__card--three {
+  animation: completion-card-three 2800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.completion-overlay__card--four {
+  animation: completion-card-four 2800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.completion-overlay__mark {
+  align-items: center;
+  animation: completion-mark-pop 2800ms ease both;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-round);
+  box-shadow:
+    0 0 0 8px var(--color-primary-subtle),
+    0 18px 44px var(--color-shadow);
+  color: var(--color-on-solid);
+  display: inline-flex;
+  height: 64px;
+  justify-content: center;
+  margin-top: -26px;
+  width: 64px;
+}
+
+.completion-overlay__copy {
+  animation: completion-copy-presence 2800ms ease both;
+  display: grid;
+  gap: 5px;
+}
+
+.completion-overlay__title {
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.completion-overlay__description {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@keyframes completion-overlay-presence {
+  0%,
+  100% {
     opacity: 0;
-    transform: translateY(8px) rotate(-2deg) scale(0.96);
   }
 
-  28% {
+  10%,
+  82% {
     opacity: 1;
-    transform: translateY(0) rotate(1deg) scale(1);
+  }
+}
+
+@keyframes completion-stage-presence {
+  0% {
+    transform: translateY(14px) scale(0.98);
+  }
+
+  14%,
+  76% {
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateY(-12px) scale(0.98);
+  }
+}
+
+@keyframes completion-card-one {
+  0% {
+    opacity: 0;
+    transform: translate(-72px, 42px) rotate(-11deg) scale(0.92);
+  }
+
+  30%,
+  68% {
+    opacity: 1;
+    transform: translate(-14px, 10px) rotate(-7deg) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-18px) rotate(0deg) scale(0.98);
+    transform: translate(34px, -10px) rotate(-7deg) scale(0.84);
+  }
+}
+
+@keyframes completion-card-two {
+  0% {
+    opacity: 0;
+    transform: translate(64px, 34px) rotate(10deg) scale(0.92);
+  }
+
+  34%,
+  68% {
+    opacity: 1;
+    transform: translate(10px, 3px) rotate(5deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(50px, -14px) rotate(5deg) scale(0.84);
+  }
+}
+
+@keyframes completion-card-three {
+  0% {
+    opacity: 0;
+    transform: translate(-18px, -42px) rotate(-3deg) scale(0.92);
+  }
+
+  38%,
+  68% {
+    opacity: 1;
+    transform: translate(0, -6px) rotate(-2deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(44px, -24px) rotate(-2deg) scale(0.84);
+  }
+}
+
+@keyframes completion-card-four {
+  0% {
+    opacity: 0;
+    transform: translate(10px, 54px) rotate(2deg) scale(0.92);
+  }
+
+  42%,
+  68% {
+    opacity: 1;
+    transform: translate(0, 14px) rotate(1deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(58px, -4px) rotate(1deg) scale(0.84);
+  }
+}
+
+@keyframes completion-mark-pop {
+  0%,
+  38% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+
+  50%,
+  78% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes completion-copy-presence {
+  0%,
+  46% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  58%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
@@ -117,5 +342,36 @@
 
   .board__complete-work {
     width: 100%;
+  }
+
+  .completion-overlay__title {
+    font-size: 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completion-overlay,
+  .completion-overlay__stage,
+  .completion-overlay__card,
+  .completion-overlay__mark,
+  .completion-overlay__copy {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+    transition: none;
+  }
+
+  .completion-overlay {
+    opacity: 1;
+  }
+
+  .completion-overlay__card {
+    opacity: 1;
+    transform: none;
+  }
+
+  .completion-overlay__mark,
+  .completion-overlay__copy {
+    opacity: 1;
+    transform: none;
   }
 }

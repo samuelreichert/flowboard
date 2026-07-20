@@ -171,7 +171,7 @@ const RoutedApp = () => {
           canCompleteWork={controller.canCompleteWork}
           columns={controller.columns}
           completeWorkDisabledReason={controller.completeWorkDisabledReason}
-          completionPulse={controller.completionPulse}
+          completionAcknowledgement={controller.completionAcknowledgement}
           currentView={currentView}
           manageColumnsOpen={controller.manageColumnsOpen}
           onActiveCardClose={() => navigate(APP_ROUTES.board)}

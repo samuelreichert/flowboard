@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react';
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
 import type { BoardColumn, BoardTag } from '../types';
+import CompletionOverlay from './CompletionOverlay';
 import type { AppView } from './appTypes';
 import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import type { useFlowboardCardMutations } from './useFlowboardCardMutations';
@@ -24,7 +25,7 @@ type AppWorkspaceProps = {
   cardMutations: ReturnType<typeof useFlowboardCardMutations>;
   columns: BoardColumn[];
   completeWorkDisabledReason: string;
-  completionPulse: boolean;
+  completionAcknowledgement: boolean;
   currentView: AppView;
   manageColumnsOpen: boolean;
   onActiveCardClose: () => void;
@@ -49,7 +50,7 @@ const AppWorkspace = ({
   cardMutations,
   columns,
   completeWorkDisabledReason,
-  completionPulse,
+  completionAcknowledgement,
   currentView,
   manageColumnsOpen,
   onActiveCardClose,
@@ -124,11 +125,11 @@ const AppWorkspace = ({
           className="board"
           aria-label={messages.app.workspace.boardAriaLabel}
         >
-          {completionPulse && (
-            <div className="complete-work-pulse" aria-live="polite">
-              <CheckCircle2 size={18} />
-              <span>{messages.app.workspace.workCompleted}</span>
-            </div>
+          {completionAcknowledgement && (
+            <CompletionOverlay
+              description={messages.app.workspace.newCycleReady}
+              title={messages.app.workspace.workCompleted}
+            />
           )}
           <Columns
             activeCardId={activeCardId}
