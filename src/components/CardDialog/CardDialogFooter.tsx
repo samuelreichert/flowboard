@@ -26,18 +26,15 @@ const CardDialogFooterContent = ({
           {error}
         </Field.Error>
       </Field.Root>
-      <div className="dialog-actions dialog-actions--spread">
-        <div />
-        <div className="dialog-actions__group">
-          <Button
-            className="button button--danger"
-            onClick={onDeleteClick}
-            type="button"
-          >
-            <Trash2 size={16} />
-            {messages.card.deleteCard}
-          </Button>
-        </div>
+      <div className="dialog-actions__group">
+        <Button
+          className="button button--danger"
+          onClick={onDeleteClick}
+          type="button"
+        >
+          <Trash2 size={16} />
+          {messages.card.deleteCard}
+        </Button>
       </div>
     </>
   );

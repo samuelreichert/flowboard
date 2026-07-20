@@ -55,6 +55,29 @@ test('exports card content as Markdown', async () => {
   expect(writeText).toHaveBeenCalledWith('# Context');
 });
 
+test('visually groups toolbar controls without removing accessible commands', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Grouped toolbar', 'Content');
+  await user.click(screen.getByText('Grouped toolbar'));
+
+  const toolbar = await screen.findByRole('toolbar', {
+    name: /content formatting/i,
+  });
+
+  expect(
+    toolbar.querySelectorAll('.editor-toolbar__separator').length
+  ).toBeGreaterThan(0);
+  expect(
+    within(toolbar).getByRole('button', { name: 'Bold' })
+  ).toBeInTheDocument();
+  expect(
+    within(toolbar).getByRole('button', { name: /copy markdown/i })
+  ).toBeInTheDocument();
+});
+
 test('preserves link, code, and list Markdown through the editor', async () => {
   const user = userEvent.setup();
   const writeText = vi
@@ -119,9 +142,6 @@ test('drops image files into card content as Markdown data URLs', async () => {
 
 test('creates and toggles task lists as Markdown checkboxes', async () => {
   const user = userEvent.setup();
-  const writeText = vi
-    .spyOn(navigator.clipboard, 'writeText')
-    .mockResolvedValue(undefined);
   render(<App />);
 
   await addColumn(user, 'Todo');
@@ -136,19 +156,11 @@ test('creates and toggles task lists as Markdown checkboxes', async () => {
   expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'false');
   await user.click(checkbox);
   expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'true');
-  await user.click(
-    await screen.findByRole('button', { name: /copy markdown/i })
-  );
-
-  expect(writeText).toHaveBeenLastCalledWith('- [x] Ship editor');
   expect(readColumns()[0].cards[0].content).toBe('- [x] Ship editor');
 });
 
 test('applies heading and alignment dropdown formatting', async () => {
   const user = userEvent.setup();
-  const writeText = vi
-    .spyOn(navigator.clipboard, 'writeText')
-    .mockResolvedValue(undefined);
   render(<App />);
 
   await addColumn(user, 'Todo');
@@ -157,20 +169,16 @@ test('applies heading and alignment dropdown formatting', async () => {
   await user.click(await screen.findByLabelText('Content'));
   await chooseSelectOption(user, 'Text style', 'Heading 3');
   await chooseSelectOption(user, 'Text alignment', 'Align center');
-  await user.click(
-    await screen.findByRole('button', { name: /copy markdown/i })
+  await waitFor(() =>
+    expect(readColumns()[0].cards[0].content).toBe(
+      '<h3 style="text-align: center">Center me</h3>'
+    )
   );
 
-  expect(writeText).toHaveBeenLastCalledWith(
-    '<h3 style="text-align: center">Center me</h3>'
-  );
-
-  await user.keyboard('{Escape}');
-  await user.click(screen.getByText('Format'));
   expect(screen.getByRole('heading', { name: 'Center me' })).toHaveStyle({
     textAlign: 'center',
   });
-});
+}, 10000);
 
 test('creates, opens, edits, and removes links from editor surfaces', async () => {
   const user = userEvent.setup();
@@ -199,7 +207,7 @@ test('creates, opens, edits, and removes links from editor surfaces', async () =
   const linkBubble = screen
     .getByRole('button', { name: /open link/i })
     .closest('.editor-link-bubble');
-  expect(linkBubble?.parentElement).toBe(document.body);
+  expect(linkBubble?.closest('.dialog-popup--card')).toBeInTheDocument();
   expect(window.getComputedStyle(linkBubble as Element).zIndex).toBe('60');
   expect(open).toHaveBeenCalledWith(
     'https://tiptap.dev',

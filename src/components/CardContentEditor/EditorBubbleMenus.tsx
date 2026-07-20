@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import EditorAssetBubble from './EditorAssetBubble';
+import { getEditorBubbleMenuAppendTarget } from './editorPortalTarget';
 
 type EditorBubbleMenusProps = {
   currentHref: string;
@@ -29,8 +30,6 @@ type EditorBubbleMenusProps = {
   onSetImageBubbleUrl: (value: string) => void;
   onSetLinkBubbleUrl: (value: string) => void;
 };
-
-const getEditorBubbleMenuAppendTarget = () => document.body;
 
 const editorBubbleMenuOptions = {
   flip: {

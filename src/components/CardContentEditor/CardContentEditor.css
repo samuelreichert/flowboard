@@ -17,8 +17,10 @@
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+  overflow-x: auto;
+  overflow-y: visible;
   padding: 8px;
   position: relative;
   z-index: 2;
@@ -112,6 +114,15 @@
   justify-content: center;
 }
 
+.editor-toolbar__separator {
+  align-self: stretch;
+  background-color: var(--color-border);
+  display: inline-block;
+  flex: 0 0 1px;
+  margin: 4px 3px;
+  min-height: 22px;
+}
+
 .editor-toolbar__select-positioner,
 .editor-url-popover__positioner {
   z-index: 40;
@@ -159,6 +170,10 @@
 }
 
 .editor-toolbar__copy {
+  margin-left: auto;
+}
+
+.editor-toolbar__separator + .editor-toolbar__copy {
   margin-left: auto;
 }
 
@@ -290,8 +305,12 @@
   width: 15px;
 }
 
-.card-content-editor__surface--readonly li[data-type='taskItem'] input[type='checkbox'],
-.card-content-editor__surface--readonly li[data-checked] input[type='checkbox'] {
+.card-content-editor__surface--readonly
+  li[data-type='taskItem']
+  input[type='checkbox'],
+.card-content-editor__surface--readonly
+  li[data-checked]
+  input[type='checkbox'] {
   pointer-events: none;
 }
 
