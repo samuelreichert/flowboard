@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef } from 'react';
 
 import { isSupabaseConfigured } from '../auth/supabase';
 import { LOCAL_PROFILE_IDENTITY } from '../auth/profileDisplay';
-import { notifyPersistenceFailure } from '../components/ToastNotifications';
+import { notifyPersistenceFailure } from '../components/ToastNotifications/toastNotifications';
 import { getMessages } from '../localization';
 import { appReducer, initAppState } from './appReducer';
 import useBoardActions from './useBoardActions';

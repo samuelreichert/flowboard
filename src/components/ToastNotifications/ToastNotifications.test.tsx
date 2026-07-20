@@ -1,9 +1,16 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { LocalizationProvider } from '../../LocalizationProvider';
-import { dismissToast, FlowboardToastProvider, notify } from './index';
+import { FlowboardToastProvider } from './index';
+import { dismissToast, notify } from './toastNotifications';
 
 const renderToasts = (language: 'en' | 'pt-BR' = 'en') =>
   render(

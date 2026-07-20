@@ -6,7 +6,7 @@ import {
   notifyBoardLoading,
   notifyBoardUnavailable,
   TOAST_IDS,
-} from '../components/ToastNotifications';
+} from '../components/ToastNotifications/toastNotifications';
 import type { Messages } from '../localization';
 import { fetchBoardState, updateBoardStateStorage } from '../storage';
 import type { AppAction } from './appTypes';
@@ -70,7 +70,8 @@ const useAuthenticatedBoardSync = (
 
   return {
     authenticatedBoardLoading:
-      shouldLoadBoard && (bootstrapQuery.isPending || bootstrapQuery.isFetching),
+      shouldLoadBoard &&
+      (bootstrapQuery.isPending || bootstrapQuery.isFetching),
   };
 };
 
