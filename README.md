@@ -44,6 +44,12 @@ Copy the example environment file for local database and server configuration:
 cp .env.example .env
 ```
 
+Initialize the local SQLite database before the first durable development run:
+
+```bash
+npm run db:migrate:sqlite
+```
+
 Flowboard uses the same Prisma data model in every durable mode:
 
 - Local development uses the Node API, Prisma, and SQLite.
@@ -127,6 +133,9 @@ npm run db:generate:sqlite
 npm run db:migrate:sqlite
 npm run db:studio:sqlite
 ```
+
+`db:migrate:sqlite` creates the SQLite file and its parent directory when they
+do not exist, then applies the tracked migrations.
 
 Production Supabase Postgres uses:
 

@@ -54,6 +54,8 @@ this matrix first so future humans and AI agents know which mode to use.
   calls. Leave it empty when the API is served from the same origin.
 - `PRISMA_PROVIDER=sqlite` selects the local Prisma SQLite schema/client.
   `PRISMA_PROVIDER=postgresql` selects the production Postgres schema/client.
+- On a fresh SQLite checkout, run `npm run db:migrate:sqlite` before `npm run
+  dev`; it creates the local SQLite file and applies the tracked migrations.
 - Do not add a browser-storage board fallback. If the API is unavailable,
   surface that persistence is unavailable instead of writing board data to
   localStorage.
