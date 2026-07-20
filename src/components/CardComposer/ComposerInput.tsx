@@ -1,4 +1,5 @@
 import type { KeyboardEvent, RefObject } from 'react';
+import { Field } from '@base-ui/react/field';
 
 import { useLocalization } from '../../LocalizationProvider';
 
@@ -36,31 +37,35 @@ const ComposerInput = ({
   };
 
   return (
-    <div className="card-composer__input-row">
-      <label className="card-composer__label" htmlFor={inputId}>
+    <Field.Root className="card-composer__input-row" invalid={Boolean(error)}>
+      <Field.Label className="card-composer__label">
         {messages.composer.newCard}
-      </label>
-      <textarea
-        aria-describedby={error ? errorId : undefined}
-        aria-invalid={Boolean(error)}
+      </Field.Label>
+      <Field.Control
         className="card-composer__input"
         disabled={disabled}
         id={inputId}
         maxLength={100_000}
         onBlur={onBlur}
-        onChange={(event) => onChange(event.target.value)}
         onFocus={onFocus}
         onKeyDown={onKeyDown}
+        onValueChange={onChange}
         placeholder={
           disabled
             ? messages.composer.addColumnBeforeCapturingPlaceholder
             : messages.composer.captureCard
         }
         ref={textareaRef}
+        render={<textarea />}
         rows={1}
         value={draft}
       />
-    </div>
+      {error && (
+        <Field.Error className="card-composer__error" id={errorId}>
+          {error}
+        </Field.Error>
+      )}
+    </Field.Root>
   );
 };
 

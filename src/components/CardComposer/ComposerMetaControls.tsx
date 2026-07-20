@@ -19,12 +19,12 @@ type ComposerMetaControlsProps = {
   onPriorityChange: (value: CardPriority) => void;
   onSelectedColumnChange: (value: string) => void;
   onStartCreatingTag: () => void;
-  onTagToggle: (tagId: string) => void;
+  onSelectedTagIdsChange: (tagIds: string[]) => void;
   onTagsOpenChange: (open: boolean) => void;
   priority: CardPriority;
   priorityOptions: PriorityOption[];
   selectedColumnId: string;
-  selectedTagIdSet: Set<string>;
+  selectedTagIds: string[];
   tagError: string;
   tagSummary: string;
   tags: BoardTag[];
@@ -43,12 +43,12 @@ const ComposerMetaControls = ({
   onPriorityChange,
   onSelectedColumnChange,
   onStartCreatingTag,
-  onTagToggle,
+  onSelectedTagIdsChange,
   onTagsOpenChange,
   priority,
   priorityOptions,
   selectedColumnId,
-  selectedTagIdSet,
+  selectedTagIds,
   tagError,
   tagSummary,
   tags,
@@ -78,8 +78,8 @@ const ComposerMetaControls = ({
               onNewTagNameChange={onNewTagNameChange}
               onOpenChange={onTagsOpenChange}
               onStartCreatingTag={onStartCreatingTag}
-              onTagToggle={onTagToggle}
-              selectedTagIdSet={selectedTagIdSet}
+              onValueChange={onSelectedTagIdsChange}
+              selectedTagIds={selectedTagIds}
               tagError={tagError}
               tagSummary={tagSummary}
               tags={tags}

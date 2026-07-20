@@ -1,6 +1,6 @@
 import { Button } from '@base-ui/react/button';
 import { CheckCircle2, Menu as MenuIcon } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, type RefObject } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
@@ -28,6 +28,7 @@ type AppWorkspaceProps = {
   completionAcknowledgement: boolean;
   currentView: AppView;
   manageColumnsOpen: boolean;
+  mobileNavigationTriggerRef: RefObject<HTMLButtonElement | null>;
   onActiveCardClose: () => void;
   onArchivedCardClose: () => void;
   onCardColumnsChange: (columns: BoardColumn[]) => void;
@@ -53,6 +54,7 @@ const AppWorkspace = ({
   completionAcknowledgement,
   currentView,
   manageColumnsOpen,
+  mobileNavigationTriggerRef,
   onActiveCardClose,
   onArchivedCardClose,
   onCardColumnsChange,
@@ -93,6 +95,7 @@ const AppWorkspace = ({
             aria-label={messages.app.navigation.openNavigation}
             className="icon-button board__mobile-nav-trigger"
             onClick={onOpenMobileSidebar}
+            ref={mobileNavigationTriggerRef}
             type="button"
           >
             <MenuIcon size={18} />

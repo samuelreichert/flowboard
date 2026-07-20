@@ -1,4 +1,5 @@
 import { Button } from '@base-ui/react/button';
+import { Field } from '@base-ui/react/field';
 import { type FormEvent, useState } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
@@ -112,18 +113,20 @@ export const AuthGate = ({
               <span>{messages.app.auth.divider}</span>
             </div>
             <form className="auth-panel__form" onSubmit={submit}>
-              <label className="auth-panel__label" htmlFor="auth-email">
-                {messages.app.auth.email}
-              </label>
-              <input
-                className="auth-panel__input"
-                id="auth-email"
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                required
-                type="email"
-                value={email}
-              />
+              <Field.Root>
+                <Field.Label className="auth-panel__label">
+                  {messages.app.auth.email}
+                </Field.Label>
+                <Field.Control
+                  className="auth-panel__input"
+                  id="auth-email"
+                  onValueChange={setEmail}
+                  placeholder="you@example.com"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </Field.Root>
               <Button
                 className="button button--primary"
                 disabled={submitting}

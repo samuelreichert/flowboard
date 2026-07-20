@@ -259,23 +259,10 @@
 }
 
 @media (max-width: 760px) {
-  .app-sidebar {
-    bottom: 0;
+  .app-sidebar--mobile {
     box-shadow: 18px 0 40px var(--color-shadow);
-    left: 0;
-    max-width: min(86vw, 320px);
-    position: fixed;
-    top: 0;
-    transform: translateX(-104%);
-    transition:
-      background-color 180ms ease,
-      border-color 180ms ease,
-      transform 180ms ease;
-    width: 292px;
-  }
-
-  .app--mobile-sidebar-open .app-sidebar {
-    transform: translateX(0);
+    height: 100%;
+    width: 100%;
   }
 
   .app-sidebar__mobile-close {

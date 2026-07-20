@@ -221,7 +221,7 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   fetchMock.mockClear();
 
   await user.click(screen.getByText('Tagged'));
-  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('combobox', { name: /tags/i }));
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
   await waitFor(() =>
@@ -249,7 +249,7 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   expect(readColumns()[0].cards[0].tagIds).toEqual([fetchTagStorage()[0].id]);
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
-  await user.click(await screen.findByRole('button', { name: 'Design' }));
+  await user.click(await screen.findByRole('combobox', { name: /tags/i }));
   await user.click(screen.getByRole('option', { name: 'Design' }));
   await waitFor(() =>
     expect(
@@ -276,7 +276,7 @@ test('closes the tag dropdown when clicking outside', async () => {
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Tagged');
   await user.click(screen.getByText('Tagged'));
-  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('combobox', { name: /tags/i }));
   expect(screen.getByRole('listbox')).toBeInTheDocument();
 
   await user.click(screen.getByText('Content'));

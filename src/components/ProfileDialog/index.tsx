@@ -1,4 +1,5 @@
 import { Button } from '@base-ui/react/button';
+import { Field } from '@base-ui/react/field';
 import { Camera, Trash2 } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
@@ -135,17 +136,19 @@ const ProfileDialog = ({
             type="file"
           />
         </div>
-        <label className="dialog-field">
-          <span className="dialog-label">{messages.profile.displayName}</span>
-          <input
+        <Field.Root className="dialog-field">
+          <Field.Label className="dialog-label">
+            {messages.profile.displayName}
+          </Field.Label>
+          <Field.Control
             className="dialog-input"
             maxLength={80}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onValueChange={setDisplayName}
             required
             type="text"
             value={displayName}
           />
-        </label>
+        </Field.Root>
         <div className="dialog-field">
           <span className="dialog-label">{messages.profile.email}</span>
           <p className="profile-dialog__email">{profile?.email}</p>

@@ -1,4 +1,5 @@
-import { Button } from '@base-ui/react/button';
+import { Toggle } from '@base-ui/react/toggle';
+import { ToggleGroup } from '@base-ui/react/toggle-group';
 import type { CSSProperties, ReactNode } from 'react';
 
 import './SegmentedControl.css';
@@ -41,27 +42,33 @@ const SegmentedControl = <T extends string>({
   };
 
   return (
-    <fieldset
+    <ToggleGroup
       aria-label={ariaLabel}
       className={['segmented-control', className].filter(Boolean).join(' ')}
       data-selected-value={value}
+      onValueChange={(nextValues) => {
+        const nextValue = nextValues[0];
+
+        if (nextValue) {
+          onValueChange(nextValue as T);
+        }
+      }}
       style={style}
+      value={[value]}
     >
       {options.map((option) => (
-        <Button
+        <Toggle
           aria-label={option.ariaLabel ?? option.label}
-          aria-pressed={value === option.value}
           className="segmented-control__button"
           key={option.value}
-          onClick={() => onValueChange(option.value)}
           title={option.title ?? option.label}
-          type="button"
+          value={option.value}
         >
           {option.icon}
           <span>{option.label}</span>
-        </Button>
+        </Toggle>
       ))}
-    </fieldset>
+    </ToggleGroup>
   );
 };
 

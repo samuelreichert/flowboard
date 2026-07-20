@@ -95,13 +95,13 @@
   outline: 0;
 }
 
-.segmented-control__button[aria-pressed='true'] {
+.segmented-control__button[data-pressed] {
   background-color: transparent;
   color: var(--color-text);
 }
 
-.segmented-control__button[aria-pressed='true']:hover,
-.segmented-control__button[aria-pressed='true']:focus-visible {
+.segmented-control__button[data-pressed]:hover,
+.segmented-control__button[data-pressed]:focus-visible {
   background-color: transparent;
 }
 
