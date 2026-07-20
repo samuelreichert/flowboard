@@ -1,5 +1,7 @@
 import { CheckCircle2 } from 'lucide-react';
 
+import './CompletionOverlay.css';
+
 type CompletionOverlayProps = {
   description: string;
   title: string;
