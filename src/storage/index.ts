@@ -14,15 +14,8 @@ import {
   normalizeBoardStateForColumns,
 } from '../board/validation';
 import { getBoardCache, updateBoardCache } from './memoryCache';
-import {
-  hydrateRemoteBoardState,
-  persistRemoteBoardState,
-} from './remotePersistence';
 
 export { DEFAULT_BACKGROUND, DEFAULT_CARD_PRIORITY, isSafeImageUrl };
-
-const persistBoardState = (state = getBoardCache()) =>
-  persistRemoteBoardState(state, updateBoardCache);
 
 const updateColumnsCache = (data: BoardColumn[]) => {
   const boardCache = getBoardCache();
@@ -58,37 +51,31 @@ export const fetchCompletedWorkCyclesStorage = (): CompletedWorkCycle[] =>
   getBoardCache().completedWorkCycles;
 
 export const updateStorage = (data: BoardColumn[]) => {
-  const normalizedState = updateColumnsCache(data);
-
-  void persistBoardState(normalizedState);
+  updateColumnsCache(data);
 };
 
 export const updateStorageLocal = (data: BoardColumn[]) =>
   updateColumnsCache(data);
 
 export const updateBackgroundStorage = (background: BoardBackground) => {
-  const normalizedState = updateBoardCache({
+  updateBoardCache({
     ...getBoardCache(),
     background,
   });
-
-  void persistBoardState(normalizedState);
 };
 
 export const updateTagStorage = (tags: BoardTag[]) => {
-  const normalizedState = updateBoardCache({
+  updateBoardCache({
     ...getBoardCache(),
     tags,
   });
-
-  void persistBoardState(normalizedState);
 };
 
 export const updateActiveWorkCycleStorage = (
   activeWorkCycle: BoardActiveWorkCycle
 ) => {
   const boardCache = getBoardCache();
-  const normalizedState = updateBoardCache({
+  updateBoardCache({
     ...boardCache,
     activeWorkCycle: normalizeActiveWorkCycle(
       activeWorkCycle,
@@ -96,29 +83,17 @@ export const updateActiveWorkCycleStorage = (
       new Date().toISOString()
     ),
   });
-
-  void persistBoardState(normalizedState);
 };
 
 export const updateCompletedWorkCyclesStorage = (
   completedWorkCycles: CompletedWorkCycle[]
 ) => {
-  const normalizedState = updateBoardCache({
+  updateBoardCache({
     ...getBoardCache(),
     completedWorkCycles,
   });
-
-  void persistBoardState(normalizedState);
 };
 
 export const updateBoardStateStorage = (state: BoardState) => {
-  const normalizedState = updateBoardCache(state);
-
-  void persistBoardState(normalizedState);
+  updateBoardCache(state);
 };
-
-export const hydrateStorageFromDatabase =
-  async (): Promise<BoardState | null> =>
-    hydrateRemoteBoardState({
-      updateCache: updateBoardCache,
-    });

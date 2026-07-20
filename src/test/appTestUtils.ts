@@ -700,32 +700,6 @@ const mockFlowboardApi = () => {
         });
       }
 
-      if (url.endsWith('/api/boards/default')) {
-        return jsonResponse({
-          board: {
-            id: 'test-board',
-            title: 'Flowboard',
-            updatedAt: CREATED_AT,
-          },
-          state: mockServerBoardState,
-        });
-      }
-
-      if (url.includes('/api/boards/') && init?.method === 'PUT') {
-        const state = JSON.parse(String(init.body)) as BoardState;
-
-        updateMockServerBoardState(state);
-
-        return jsonResponse({
-          board: {
-            id: 'test-board',
-            title: 'Flowboard',
-            updatedAt: CREATED_AT,
-          },
-          state,
-        });
-      }
-
       return jsonResponse({ error: 'Not found.' }, { status: 404 });
     })
   );

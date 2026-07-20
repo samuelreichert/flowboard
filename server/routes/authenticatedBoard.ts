@@ -1,10 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import {
-  isBoardBackground,
-  isBoardState,
-  normalizeBoardState,
-} from '../../src/board/validation.js';
+import { isBoardBackground } from '../../src/board/validation.js';
 import { CARD_PRIORITIES } from '../../src/board/cardPriority.js';
 import { ensureProfile } from '../auth/profileService.js';
 import type { PrincipalResolver } from '../auth/principal.js';
@@ -25,7 +21,6 @@ import {
   listProjects,
   loadActiveCardDetail,
   loadArchivedCardDetail,
-  loadBoard,
   loadCompletedHistoryPage,
   loadMainBoardBootstrap,
   moveActiveColumn,
@@ -36,7 +31,6 @@ import {
   updateActiveCard,
   updateBoardSettings,
   updateWorkCycleSettings,
-  writeBoardState,
   type ActiveCardCreateInput,
   type ActiveCardMoveInput,
   type ActiveCardUpdateInput,
@@ -55,7 +49,6 @@ import {
 } from '../http/apiErrors.js';
 import { readRequestBody, sendJson } from '../http/json.js';
 
-const BOARD_PATH_PATTERN = /^\/api\/boards\/([^/]+)$/;
 const ACTIVE_CARD_COLLECTION_PATH = '/api/board/cards';
 const ACTIVE_CARD_MOVE_PATH_PATTERN = /^\/api\/board\/cards\/([^/]+)\/move$/;
 const ACTIVE_CARD_TAG_PATH_PATTERN =
@@ -379,15 +372,13 @@ export const handleAuthenticatedBoardApiRequest = async (
     pathname !== WORK_CYCLE_COMPLETE_PATH &&
     pathname !== COMPLETED_HISTORY_PATH &&
     pathname !== '/api/projects' &&
-    pathname !== '/api/boards/default' &&
     !ACTIVE_CARD_MOVE_PATH_PATTERN.test(pathname) &&
     !ACTIVE_CARD_TAG_PATH_PATTERN.test(pathname) &&
     !ACTIVE_CARD_DETAIL_PATH_PATTERN.test(pathname) &&
     !ACTIVE_COLUMN_MOVE_PATH_PATTERN.test(pathname) &&
     !ACTIVE_COLUMN_DETAIL_PATH_PATTERN.test(pathname) &&
     !ARCHIVED_CARD_DETAIL_PATH_PATTERN.test(pathname) &&
-    !BOARD_TAG_DETAIL_PATH_PATTERN.test(pathname) &&
-    !BOARD_PATH_PATTERN.test(pathname)
+    !BOARD_TAG_DETAIL_PATH_PATTERN.test(pathname)
   ) {
     return false;
   }
@@ -860,63 +851,5 @@ export const handleAuthenticatedBoardApiRequest = async (
     return true;
   }
 
-  if (pathname === '/api/boards/default') {
-    if (request.method !== 'GET') {
-      sendBadRequest(response, 'Unsupported board API method.');
-      return true;
-    }
-
-    const board = await loadBoard(prisma, user.id, null);
-    sendJson(response, 200, board);
-    return true;
-  }
-
-  const boardId = pathname.match(BOARD_PATH_PATTERN)?.[1] ?? null;
-
-  if (!boardId) {
-    return false;
-  }
-
-  if (request.method === 'GET') {
-    const board = await loadBoard(prisma, user.id, boardId);
-
-    if (!board) {
-      sendNotFound(response);
-      return true;
-    }
-
-    sendJson(response, 200, board);
-    return true;
-  }
-
-  if (request.method === 'PUT') {
-    let body: unknown;
-
-    try {
-      body = JSON.parse(await readRequestBody(request));
-    } catch {
-      sendBadRequest(response, 'Invalid JSON payload.');
-      return true;
-    }
-
-    const state = normalizeBoardState(body);
-
-    if (!isBoardState(state)) {
-      sendBadRequest(response, 'Invalid board state.');
-      return true;
-    }
-
-    const board = await writeBoardState(prisma, user.id, boardId, state);
-
-    if (!board) {
-      sendNotFound(response);
-      return true;
-    }
-
-    sendJson(response, 200, board);
-    return true;
-  }
-
-  sendBadRequest(response, 'Unsupported board API method.');
-  return true;
+  return false;
 };

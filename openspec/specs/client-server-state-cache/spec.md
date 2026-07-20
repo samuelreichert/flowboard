@@ -4,9 +4,7 @@
 
 Defines the client-side server-state cache used for authenticated Flowboard
 reads so reloads are faster without making browser storage a board database.
-
 ## Requirements
-
 ### Requirement: Client provides a shared server-state query cache
 
 The system SHALL provide one shared TanStack Query client for authenticated
@@ -117,29 +115,6 @@ query only when a card detail view is requested.
 - **WHEN** the active-card detail query returns not found for the requested card
 - **THEN** the client uses the existing missing active-card route behavior
   without revealing whether the card belongs to another user
-
-### Requirement: Client preserves unsurfaced data during legacy full-board saves
-
-The system SHALL prevent summary-first board state from overwriting persisted
-data that the bootstrap query intentionally did not load while legacy
-full-board saves are still in use.
-
-#### Scenario: Legacy save follows summary bootstrap
-
-- **WHEN** an authenticated board edit triggers the legacy full-board save path
-  after the board was loaded from bootstrap summaries
-- **THEN** the client preserves rich active-card content that has not been
-  detail-hydrated
-- **AND** it preserves completed work history that was not included in bootstrap
-- **AND** it does not submit empty placeholder content or empty history as if
-  those values were user edits
-
-#### Scenario: Legacy safety snapshot is needed
-
-- **WHEN** the client cannot prove it has complete rich content and history for
-  a legacy full-board save
-- **THEN** it loads or reuses a complete legacy board snapshot before submitting
-  the merged full-board save
 
 ### Requirement: Client persists only small authenticated query results
 
@@ -449,3 +424,31 @@ clear-board actions once the clear-board resource command is available.
   complete legacy board snapshot
 - **AND** does not submit placeholder rich card content or empty history as a
   full-board save
+
+### Requirement: Client has no legacy full-board persistence bridge
+
+The system SHALL keep authenticated board reads and writes on TanStack Query
+bootstrap, detail, history, and resource mutation paths without using
+complete-board network persistence.
+
+#### Scenario: Authenticated app starts
+
+- **WHEN** the authenticated app initializes its board surface
+- **THEN** it hydrates state from the board bootstrap query and related detail
+  queries
+- **AND** it does not call a legacy complete-board read helper
+
+#### Scenario: Authenticated board changes
+
+- **WHEN** the user creates, edits, moves, deletes, completes, clears, or
+  reconfigures board resources
+- **THEN** the client submits the matching resource mutation
+- **AND** it does not call a legacy complete-board save helper
+
+#### Scenario: Browser storage updates
+
+- **WHEN** in-memory or browser-backed board state is updated after resource
+  cache changes
+- **THEN** the storage layer does not mirror that update through a full-board
+  remote persistence request
+

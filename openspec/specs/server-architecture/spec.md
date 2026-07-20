@@ -3,9 +3,7 @@
 ## Purpose
 
 TBD - created by archiving change split-and-typescript-server. Update Purpose after archive.
-
 ## Requirements
-
 ### Requirement: Server is compiled from TypeScript
 
 The system SHALL define the optional local server in TypeScript and emit runnable Node ESM for local development and local production serving.
@@ -63,8 +61,9 @@ The system SHALL provide browser-safe board-state types, validation, and normali
 ### Requirement: Server exposes one durable board API contract
 
 The system SHALL provide canonical durable board/project API behavior through
-Prisma-backed routes and SHALL NOT expose anonymous local-only board endpoint
-families as the product API.
+Prisma-backed bootstrap, detail, history, and resource mutation routes and SHALL
+NOT expose anonymous local-only or legacy full-board endpoint families as the
+product API.
 
 #### Scenario: Authenticated board is read from API
 
@@ -74,13 +73,16 @@ families as the product API.
 #### Scenario: Local development board is read from API
 
 - **WHEN** the app is running with SQLite local development principal mode enabled
-- **AND** a client requests board data through `/api/boards/default`
-- **THEN** the server resolves the local development principal and responds with board data scoped to that principal
+- **AND** a client requests board data through `GET /api/board/bootstrap`
+- **THEN** the server resolves the local development principal and responds
+  with bootstrap data scoped to that principal
 
 #### Scenario: Authenticated board is written to API
 
-- **WHEN** an authenticated client submits a valid board-domain change through the production API
-- **THEN** the server verifies ownership, persists the change through Prisma, and responds with the saved result
+- **WHEN** an authenticated client submits a valid board-domain resource change
+  through the production API
+- **THEN** the server verifies ownership, persists the change through Prisma,
+  and responds with the saved result
 
 #### Scenario: Invalid board payload is rejected
 
@@ -96,6 +98,14 @@ families as the product API.
 
 - **WHEN** a client requests `/api/board` or `/api/local/boards/default`
 - **THEN** the server does not treat the request as a supported durable board API contract
+
+#### Scenario: Legacy full-board endpoints are not durable API
+
+- **WHEN** a client requests `GET /api/boards/default`, `GET /api/boards/:id`,
+  or `PUT /api/boards/:id`
+- **THEN** the server does not treat the request as a supported durable board
+  API contract
+- **AND** the request does not read or write user board data
 
 ### Requirement: Server refactor preserves static and development serving
 
@@ -133,3 +143,4 @@ development mode is explicitly allowed by server configuration.
 - **WHEN** the server is running in production mode
 - **AND** a durable board request has no valid Supabase credentials
 - **THEN** the server rejects the request instead of resolving a local development principal
+

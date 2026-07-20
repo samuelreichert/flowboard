@@ -64,22 +64,6 @@ const createBoardState = (): BoardState => ({
   tags: [{ id: 'tag-1', name: 'Launch' }],
 });
 
-const createBoardResponse = (state: BoardState) =>
-  new Response(
-    JSON.stringify({
-      board: {
-        id: 'local-board',
-        title: 'Flowboard',
-        updatedAt: '2026-06-15T09:00:00.000Z',
-      },
-      state,
-    }),
-    {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200,
-    }
-  );
-
 beforeEach(() => {
   localStorage.clear();
   vi.resetModules();
@@ -87,56 +71,32 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 
-test('failed API hydration does not read legacy local board storage', async () => {
-  const columns = createColumns();
-  localStorage.setItem('columnsList', JSON.stringify(columns));
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-
-  const { fetchStorage, hydrateStorageFromDatabase } = await import('./index');
-
-  await expect(hydrateStorageFromDatabase()).resolves.toBeNull();
-  expect(fetchStorage()).toEqual([]);
-});
-
-test('local database hydration preserves work-cycle metadata and history', async () => {
-  const state = createBoardState();
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createBoardResponse(state)));
-
-  const { fetchBoardState, hydrateStorageFromDatabase } =
-    await import('./index');
-
-  await expect(hydrateStorageFromDatabase()).resolves.toEqual(state);
-  expect(fetchBoardState()).toEqual(state);
-});
-
-test('local database writes use the canonical Prisma board API', async () => {
-  const state = createBoardState();
-  const savedState = {
-    ...state,
-    activeWorkCycle: {
-      ...state.activeWorkCycle,
-      completedColumnId: null,
-    },
-    columns: createColumns(),
-  };
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce(createBoardResponse(state))
-    .mockResolvedValue(createBoardResponse(savedState));
+test('local cache updates do not issue full-board network persistence', async () => {
+  const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 
-  const { hydrateStorageFromDatabase, updateStorage } = await import('./index');
+  const {
+    updateActiveWorkCycleStorage,
+    updateBackgroundStorage,
+    updateBoardStateStorage,
+    updateCompletedWorkCyclesStorage,
+    updateStorage,
+    updateTagStorage,
+  } = await import('./index');
 
-  await hydrateStorageFromDatabase();
+  const state = createBoardState();
+
+  updateBoardStateStorage(state);
   updateStorage(createColumns());
-
-  await new Promise((resolve) => window.setTimeout(resolve, 0));
-
-  expect(fetchMock).toHaveBeenLastCalledWith('/api/boards/local-board', {
-    body: JSON.stringify(savedState),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'PUT',
+  updateBackgroundStorage({ type: 'color', value: '#000000' });
+  updateTagStorage([{ id: 'tag-2', name: 'Research' }]);
+  updateActiveWorkCycleStorage({
+    completedColumnId: null,
+    startDate: '2026-06-20T09:00:00.000Z',
   });
+  updateCompletedWorkCyclesStorage([]);
+
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test('local column storage normalizes reordered board order', async () => {

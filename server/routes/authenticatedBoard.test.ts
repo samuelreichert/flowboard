@@ -444,7 +444,7 @@ describe('handleAuthenticatedBoardApiRequest', () => {
   test('rejects unauthenticated durable board requests', async () => {
     const response = createResponse();
     const handled = await handleAuthenticatedBoardApiRequest(
-      createRequest({ method: 'GET', url: '/api/boards/default' }),
+      createRequest({ method: 'GET', url: '/api/board/bootstrap' }),
       response,
       createPrisma(),
       {
@@ -460,6 +460,39 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         message: 'Authentication is required.',
       },
     });
+  });
+
+  test('does not handle legacy full-board routes as product API', async () => {
+    const cases = [
+      { method: 'GET', url: '/api/boards/default' },
+      { method: 'GET', url: '/api/boards/board-1' },
+      { body: '{}', method: 'PUT', url: '/api/boards/board-1' },
+    ];
+
+    for (const item of cases) {
+      const response = createResponse();
+      const prisma = createPrisma();
+      const resolver = {
+        resolveRequest: vi.fn().mockResolvedValue({
+          avatarUrl: null,
+          displayName: null,
+          email: 'user@example.com',
+          id: 'user-1',
+          source: 'supabase',
+        }),
+      } satisfies PrincipalResolver;
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest(item),
+        response,
+        prisma,
+        resolver
+      );
+
+      expect(handled).toBe(false);
+      expect(resolver.resolveRequest).not.toHaveBeenCalled();
+      expect(prisma.board.findFirst).not.toHaveBeenCalled();
+      expect(prisma.board.update).not.toHaveBeenCalled();
+    }
   });
 
   test('serves lean main board bootstrap for authenticated users', async () => {
@@ -1263,8 +1296,8 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     const handled = await handleAuthenticatedBoardApiRequest(
       createRequest({
         body: '{not-json',
-        method: 'PUT',
-        url: '/api/boards/board-1',
+        method: 'POST',
+        url: '/api/board/cards',
       }),
       response,
       createPrisma(),
@@ -1284,18 +1317,18 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     expect(JSON.parse(response.body)).toEqual({
       error: {
         code: 'bad_request',
-        message: 'Invalid JSON payload.',
+        message: 'Invalid card payload.',
       },
     });
   });
 
-  test('accepts a resolved local development principal before validating board mutations', async () => {
+  test('accepts a resolved local development principal before validating resource mutations', async () => {
     const response = createResponse();
     const handled = await handleAuthenticatedBoardApiRequest(
       createRequest({
         body: '{not-json',
-        method: 'PUT',
-        url: '/api/boards/board-1',
+        method: 'POST',
+        url: '/api/board/cards',
       }),
       response,
       createPrisma(),
@@ -1307,7 +1340,7 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     expect(handled).toBe(true);
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.body).error.message).toBe(
-      'Invalid JSON payload.'
+      'Invalid card payload.'
     );
   });
 });
