@@ -2,10 +2,14 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 import { PrismaClient as PostgresPrismaClient } from '../generated/prisma/postgres/client.js';
-import { PrismaClient as SqlitePrismaClient } from '../generated/prisma/sqlite/client.js';
+import {
+  Prisma as SqlitePrisma,
+  PrismaClient as SqlitePrismaClient,
+} from '../generated/prisma/sqlite/client.js';
 import type { ServerConfig } from '../config.js';
 
 export type FlowboardPrismaClient = SqlitePrismaClient;
+export type FlowboardPrismaTransactionClient = SqlitePrisma.TransactionClient;
 
 export const createFlowboardPrismaClient = (
   config: Pick<ServerConfig, 'databaseProvider' | 'databaseUrl'>

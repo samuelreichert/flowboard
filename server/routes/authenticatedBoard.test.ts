@@ -852,8 +852,12 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       const prisma = createMutationPrisma();
 
       vi.mocked(prisma.boardWorkCycle.upsert).mockResolvedValue({
+        boardId: 'board-1',
         completedColumnId: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        id: 'work-cycle-1',
         startDate: new Date('2026-07-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-07-01T00:00:00.000Z'),
       });
 
       const handled = await handleAuthenticatedBoardApiRequest(
@@ -915,8 +919,12 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     const prisma = createMutationPrisma();
 
     vi.mocked(prisma.boardWorkCycle.upsert).mockResolvedValue({
+      boardId: 'board-1',
       completedColumnId: null,
+      createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      id: 'work-cycle-1',
       startDate: new Date('2026-07-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-01T00:00:00.000Z'),
     });
 
     const handled = await handleAuthenticatedBoardApiRequest(
