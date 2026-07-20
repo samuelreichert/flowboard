@@ -35,4 +35,4 @@
 - [x] 5.1 Run focused unit and integration tests for account menu, tags, segmented controls, editor toolbar, profile/auth/composer fields, and app-shell navigation.
 - [x] 5.2 Run `rtk npm run typecheck`, `rtk npm run test:run`, and `rtk npx react-doctor@latest --verbose --scope changed`.
 - [ ] 5.3 Verify desktop and mobile light/dark views for segmented controls, tag popup open/focused/long-content states, tooltip positioning, and modal drawer focus/dismissal behavior.
-- [ ] 5.4 Open the implementation PR against the dependency-update PR, then retarget or rebase it after that parent PR merges.
+- [x] 5.4 Open the implementation PR against the dependency-update PR, then retarget or rebase it after that parent PR merges.
