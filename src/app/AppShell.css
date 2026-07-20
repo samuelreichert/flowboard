@@ -18,21 +18,6 @@
   grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
 }
 
-.app__persistence-status {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  bottom: 18px;
-  box-shadow: 0 10px 28px var(--color-shadow);
-  color: var(--color-text);
-  font-size: 13px;
-  max-width: min(360px, calc(100vw - 36px));
-  padding: 10px 12px;
-  position: fixed;
-  right: 18px;
-  z-index: 20;
-}
-
 .app__title,
 .dialog-title {
   color: var(--color-text);

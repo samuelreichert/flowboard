@@ -147,6 +147,14 @@ const enMessages = {
         'Changes are not durably saved yet. Check your connection and try again.',
       profileSaveFailure: 'Unable to save profile.',
     },
+    toast: {
+      boardUnavailable: 'Board unavailable',
+      changesNotSaved: 'Changes not saved',
+      dismiss: 'Dismiss notification',
+      loadingBoard: 'Loading board',
+      notifications: 'Notifications',
+      savingChanges: 'Saving changes',
+    },
     workspace: {
       boardAriaLabel: 'Flowboard board',
       boardWorkspace: 'Board workspace',
@@ -464,6 +472,14 @@ const ptBrMessages: Messages = {
       unsaved:
         'As alterações ainda não foram salvas de forma durável. Verifique sua conexão e tente novamente.',
       profileSaveFailure: 'Não foi possível salvar o perfil.',
+    },
+    toast: {
+      boardUnavailable: 'Quadro indisponível',
+      changesNotSaved: 'Alterações não salvas',
+      dismiss: 'Fechar notificação',
+      loadingBoard: 'Carregando quadro',
+      notifications: 'Notificações',
+      savingChanges: 'Salvando alterações',
     },
     workspace: {
       boardAriaLabel: 'Quadro do Flowboard',

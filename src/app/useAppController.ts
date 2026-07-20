@@ -1,7 +1,8 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 
 import { isSupabaseConfigured } from '../auth/supabase';
 import { LOCAL_PROFILE_IDENTITY } from '../auth/profileDisplay';
+import { notifyPersistenceFailure } from '../components/ToastNotifications';
 import { getMessages } from '../localization';
 import { appReducer, initAppState } from './appReducer';
 import useBoardActions from './useBoardActions';
@@ -40,9 +41,6 @@ const useAppController = () => {
   } = state;
   const messages = getMessages(resolvedLanguage);
   const authenticatedUserIdRef = useRef<string | null | undefined>(undefined);
-  const [cardPersistenceMessage, setCardPersistenceMessage] = useState<
-    string | null
-  >(null);
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
   const cardMutations = useFlowboardCardMutations({
@@ -50,23 +48,20 @@ const useAppController = () => {
       authState.status === 'signedIn'
         ? authState.session.access_token
         : undefined,
-    onMutationError: () =>
-      setCardPersistenceMessage(messages.app.persistence.unsaved),
-    onMutationSuccess: () => setCardPersistenceMessage(null),
+    onMutationError: () => notifyPersistenceFailure(messages.app),
   });
   const boardMutations = useFlowboardBoardMutations({
     accessToken:
       authState.status === 'signedIn'
         ? authState.session.access_token
         : undefined,
-    onMutationError: () =>
-      setCardPersistenceMessage(messages.app.persistence.unsaved),
-    onMutationSuccess: () => setCardPersistenceMessage(null),
+    onMutationError: () => notifyPersistenceFailure(messages.app),
   });
-  const {
-    authenticatedBoardLoading,
-    persistenceMessage,
-  } = useAuthenticatedBoardSync(authState, dispatch, messages.app.persistence);
+  const { authenticatedBoardLoading } = useAuthenticatedBoardSync(
+    authState,
+    dispatch,
+    messages.app
+  );
   const {
     authenticatedProfile,
     clearProfileError,
@@ -239,7 +234,6 @@ const useAppController = () => {
     openProfileDialog,
     openSettings,
     openTagManager,
-    persistenceMessage: cardPersistenceMessage ?? persistenceMessage,
     profileDialogOpen,
     profileError,
     profileIdentity,

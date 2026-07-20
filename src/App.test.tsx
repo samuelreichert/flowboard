@@ -31,6 +31,9 @@ test('renders the Flowboard app shell and quiet board heading', () => {
     )
   ).toBeInTheDocument();
   expect(screen.queryByText(/trello/i)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('region', { name: /notifications/i })
+  ).toBeInTheDocument();
 });
 
 test('resolves root and sidebar navigation through canonical routes', async () => {
