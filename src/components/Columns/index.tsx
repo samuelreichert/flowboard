@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import { moveColumn } from '../../board/columns';
@@ -42,7 +42,9 @@ type ColumnsProps = {
   onCardColumnsChange: (columns: BoardColumn[]) => void;
   onColumnsChange: (columns: BoardColumn[]) => void;
   onManageColumnsOpenChange: (open: boolean) => void;
+  onPreferredColumnChange: (columnId: string) => void;
   onTagsChange: (tags: BoardTag[]) => void;
+  preferredColumnId: string;
   tags: BoardTag[];
 };
 
@@ -57,7 +59,7 @@ const getColumnPlacement = (nextColumns: BoardColumn[], columnId: string) => {
   const previousColumn = orderedColumns[columnIndex - 1];
 
   return {
-    afterColumnId: nextColumn ? null : previousColumn?.id ?? null,
+    afterColumnId: nextColumn ? null : (previousColumn?.id ?? null),
     beforeColumnId: nextColumn?.id ?? null,
   };
 };
@@ -74,11 +76,15 @@ const Columns = ({
   onCardColumnsChange,
   onColumnsChange,
   onManageColumnsOpenChange,
+  onPreferredColumnChange,
   onTagsChange,
+  preferredColumnId,
   tags,
 }: ColumnsProps) => {
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
+  const addColumnOpenedFromManagerRef = useRef(false);
+  const returnToManagerAfterAddRef = useRef(false);
 
   const moveCard = useCallback(
     ({
@@ -111,6 +117,38 @@ const Columns = ({
 
     onColumnsChange(createColumn(columns, { id, title }));
     boardMutations.createColumn({ id, title });
+
+    if (addColumnOpenedFromManagerRef.current) {
+      returnToManagerAfterAddRef.current = true;
+    }
+  };
+
+  const onAddColumnOpenChange = (open: boolean) => {
+    setAddColumnOpen(open);
+
+    if (open) {
+      return;
+    }
+
+    if (returnToManagerAfterAddRef.current) {
+      onManageColumnsOpenChange(true);
+    }
+
+    addColumnOpenedFromManagerRef.current = false;
+    returnToManagerAfterAddRef.current = false;
+  };
+
+  const openAddColumn = () => {
+    addColumnOpenedFromManagerRef.current = false;
+    returnToManagerAfterAddRef.current = false;
+    setAddColumnOpen(true);
+  };
+
+  const openAddColumnFromManager = () => {
+    onManageColumnsOpenChange(false);
+    addColumnOpenedFromManagerRef.current = true;
+    returnToManagerAfterAddRef.current = false;
+    setAddColumnOpen(true);
   };
 
   const onRenameColumn = (columnId: string, title: string) => {
@@ -190,7 +228,9 @@ const Columns = ({
       .find((column) => column.id === sourceColumnId)
       ?.cards.find((card) => card.id === cardId);
 
-    onCardColumnsChange(editCard(latestColumns, sourceColumnId, cardId, values));
+    onCardColumnsChange(
+      editCard(latestColumns, sourceColumnId, cardId, values)
+    );
 
     if (values.changedFields) {
       const {
@@ -265,7 +305,7 @@ const Columns = ({
           editCard={onEditCard}
           moveColumn={onMoveColumn}
           onActiveCardClose={onActiveCardClose}
-          onAddColumnClick={() => setAddColumnOpen(true)}
+          onAddColumnClick={openAddColumn}
           onTagsChange={onTagsChange}
           renameColumn={onRenameColumn}
           tags={tags}
@@ -273,9 +313,11 @@ const Columns = ({
         <div className="card-composer-dock">
           <CardComposer
             columns={sortedColumns}
-            onAddColumnClick={() => setAddColumnOpen(true)}
+            onAddColumnClick={openAddColumn}
+            onPreferredColumnChange={onPreferredColumnChange}
             onSave={onSaveCard}
             onTagsChange={onTagsChange}
+            preferredColumnId={preferredColumnId}
             tags={tags}
           />
         </div>
@@ -284,13 +326,13 @@ const Columns = ({
         columns={sortedColumns}
         deleteColumn={onDeleteColumn}
         moveColumn={onMoveColumn}
-        onAddColumnClick={() => setAddColumnOpen(true)}
+        onAddColumnClick={openAddColumnFromManager}
         onOpenChange={onManageColumnsOpenChange}
         open={manageColumnsOpen}
         renameColumn={onRenameColumn}
       />
       <AddColumnDialog
-        onOpenChange={setAddColumnOpen}
+        onOpenChange={onAddColumnOpenChange}
         onSave={onSaveColumn}
         open={addColumnOpen}
       />

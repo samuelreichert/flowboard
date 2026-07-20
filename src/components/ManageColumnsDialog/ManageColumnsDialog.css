@@ -53,6 +53,10 @@
   opacity: 0.48;
 }
 
+.column-manager__menu-positioner {
+  z-index: 42;
+}
+
 .column-manager__delete {
   color: var(--color-danger);
 }
@@ -73,7 +77,7 @@
 
   .column-manager__actions {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .column-manager__actions .icon-button {

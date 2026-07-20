@@ -1,10 +1,11 @@
 import { Button } from '@base-ui/react/button';
-import { Plus } from 'lucide-react';
+import { Columns3, Plus } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { ColumnMoveDirection } from '../../board/columns';
 import Column from '../Column';
 import type { CardDialogSaveValues } from '../CardDialog';
+import { EmptyState } from '../EmptyState';
 import type { BoardColumn, BoardTag } from '../../types';
 
 type ColumnListProps = {
@@ -41,6 +42,28 @@ const ColumnList = ({
   tags,
 }: ColumnListProps) => {
   const { messages } = useLocalization();
+
+  if (columns.length === 0) {
+    return (
+      <div className="columns-list columns-list--empty">
+        <EmptyState
+          className="columns-empty-state"
+          icon={<Columns3 size={22} />}
+          title={messages.board.emptyBoardTitle}
+        >
+          {messages.board.emptyBoardDescription}
+        </EmptyState>
+        <Button
+          className="button button--primary columns-empty-state__action"
+          onClick={onAddColumnClick}
+          type="button"
+        >
+          <Plus size={15} />
+          <span>{messages.board.createFirstColumn}</span>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="columns-list">

@@ -52,7 +52,11 @@ test('closes a create dialog with Escape without saving', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /add another column/i }));
+  await user.click(
+    screen.getByRole('button', {
+      name: /add another column|create first column/i,
+    })
+  );
   await user.type(screen.getByLabelText('Column title'), 'Todo');
   await user.keyboard('{Escape}');
 
