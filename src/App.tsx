@@ -4,7 +4,6 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router';
-import { useEffect } from 'react';
 
 import { LocalizationProvider, useLocalization } from './LocalizationProvider';
 import AuthGate from './app/AuthGate';
@@ -56,17 +55,10 @@ const RoutedApp = () => {
   const navigate = useNavigate();
   const route = parseAppRoute(location.pathname);
   const currentView = getViewForRoute(route);
-  const { loadCompleteBoardState } = controller;
   const nextDestination =
     route.type === 'auth-callback' || route.type === 'sign-in'
       ? getNextSearchDestination(location.search)
       : getLocationDestination(location);
-
-  useEffect(() => {
-    if (currentView === 'history') {
-      loadCompleteBoardState();
-    }
-  }, [currentView, loadCompleteBoardState]);
 
   if (route.type === 'root') {
     return <Navigate replace to={APP_ROUTES.board} />;
@@ -179,7 +171,6 @@ const RoutedApp = () => {
           canCompleteWork={controller.canCompleteWork}
           columns={controller.columns}
           completeWorkDisabledReason={controller.completeWorkDisabledReason}
-          completedWorkCycles={controller.completedWorkCycles}
           completionPulse={controller.completionPulse}
           currentView={currentView}
           manageColumnsOpen={controller.manageColumnsOpen}

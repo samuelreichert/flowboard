@@ -2,6 +2,8 @@ import type {
   ActiveCardDetailResponse,
   BoardBootstrapResponse,
   CardMutationCard,
+  CompleteWorkCycleMutationResponse,
+  CompletedHistoryResponse,
   DeleteColumnMutationResponse,
   DeleteTagMutationResponse,
 } from '../storage/authenticatedApi';
@@ -268,5 +270,43 @@ export const updateBootstrapWorkCycle = (
     ...bootstrap,
     board: withBoardVersion(bootstrap, boardVersion),
     workCycle,
+  };
+};
+
+export const applyCompletedWorkCycleToBootstrap = (
+  bootstrap: BoardBootstrapResponse | undefined,
+  result: CompleteWorkCycleMutationResponse
+) => {
+  if (!bootstrap) {
+    return bootstrap;
+  }
+
+  const completedCardIds = new Set(result.cardIds);
+
+  return {
+    ...bootstrap,
+    board: withBoardVersion(bootstrap, result.boardVersion),
+    cards: bootstrap.cards.filter((card) => !completedCardIds.has(card.id)),
+    workCycle: result.workCycle,
+  };
+};
+
+export const mergeCompletedHistoryCycle = (
+  history: CompletedHistoryResponse | undefined,
+  result: CompleteWorkCycleMutationResponse
+) => {
+  if (!history) {
+    return history;
+  }
+
+  const existingCycleIds = new Set(history.cycles.map((cycle) => cycle.id));
+
+  return {
+    ...history,
+    cycles: existingCycleIds.has(result.cycle.id)
+      ? history.cycles.map((cycle) =>
+          cycle.id === result.cycle.id ? result.cycle : cycle
+        )
+      : [result.cycle, ...history.cycles],
   };
 };

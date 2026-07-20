@@ -35,7 +35,9 @@ test('fetchBoardBootstrap requests the lean bootstrap endpoint', async () => {
       startDate: '2026-07-17T10:00:00.000Z',
     },
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -59,7 +61,9 @@ test('fetchActiveCardDetail requests encoded active card detail endpoint', async
     tagIds: [],
     title: 'Card title',
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -77,7 +81,10 @@ test('fetchActiveCardDetail requests encoded active card detail endpoint', async
 });
 
 test('fetchBoardBootstrap rejects unsuccessful bootstrap responses', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createJsonResponse({}, 500)));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(createJsonResponse({}, 500))
+  );
 
   const { fetchBoardBootstrap } = await import('./authenticatedApi');
 
@@ -99,7 +106,9 @@ test('createActiveCard posts to the card collection endpoint', async () => {
       title: 'Card title',
     },
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -148,7 +157,9 @@ test('updateActiveCard patches encoded card endpoint with partial payload', asyn
       title: 'Updated title',
     },
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -235,7 +246,9 @@ test('column mutations call resource endpoints', async () => {
     column: { id: 'doing', title: 'Doing' },
     columns: [{ id: 'doing', title: 'Doing' }],
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -263,18 +276,14 @@ test('column mutations call resource endpoints', async () => {
     },
     method: 'POST',
   });
-  expect(fetchMock).toHaveBeenNthCalledWith(
-    2,
-    '/api/board/columns/doing%2F1',
-    {
-      body: JSON.stringify({ title: 'Doing now' }),
-      headers: {
-        Authorization: 'Bearer token-1',
-        'Content-Type': 'application/json',
-      },
-      method: 'PATCH',
-    }
-  );
+  expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/board/columns/doing%2F1', {
+    body: JSON.stringify({ title: 'Doing now' }),
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'PATCH',
+  });
   expect(fetchMock).toHaveBeenNthCalledWith(
     3,
     '/api/board/columns/doing%2F1/move',
@@ -287,17 +296,13 @@ test('column mutations call resource endpoints', async () => {
       method: 'PATCH',
     }
   );
-  expect(fetchMock).toHaveBeenNthCalledWith(
-    4,
-    '/api/board/columns/doing%2F1',
-    {
-      headers: {
-        Authorization: 'Bearer token-1',
-        'Content-Type': 'application/json',
-      },
-      method: 'DELETE',
-    }
-  );
+  expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/board/columns/doing%2F1', {
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'DELETE',
+  });
 });
 
 test('tag and card-tag mutations call resource endpoints', async () => {
@@ -306,7 +311,9 @@ test('tag and card-tag mutations call resource endpoints', async () => {
     tag: { id: 'tag/1', name: 'Design' },
     tags: [{ id: 'tag/1', name: 'Design' }],
   };
-  const fetchMock = vi.fn().mockImplementation(() => createJsonResponse(payload));
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
 
   vi.stubGlobal('fetch', fetchMock);
 
@@ -376,9 +383,8 @@ test('settings mutations call resource endpoints', async () => {
 
   vi.stubGlobal('fetch', fetchMock);
 
-  const { updateBoardSettings, updateWorkCycleSettings } = await import(
-    './authenticatedApi'
-  );
+  const { updateBoardSettings, updateWorkCycleSettings } =
+    await import('./authenticatedApi');
 
   await updateBoardSettings(
     { background: { type: 'color', value: '#ffffff' } },
@@ -408,12 +414,132 @@ test('settings mutations call resource endpoints', async () => {
   );
 });
 
-test('card mutations reject unsuccessful responses', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createJsonResponse({}, 500)));
+test('work-cycle completion and history helpers call focused endpoints', async () => {
+  const completionPayload = {
+    boardVersion: 2,
+    cardIds: ['card-1'],
+    columnId: 'done',
+    cycle: {
+      cards: [
+        {
+          archivedAt: '2026-07-18T10:00:00.000Z',
+          createdAt: '2026-07-17T10:00:00.000Z',
+          hasContent: true,
+          id: 'card-1',
+          priority: 'medium',
+          tagIds: ['tag-1'],
+          tagSnapshots: [{ id: 'tag-1', name: 'Backend' }],
+          title: 'Done card',
+        },
+      ],
+      completedColumnId: 'done',
+      completedColumnTitle: 'Done',
+      endDate: '2026-07-18T10:00:00.000Z',
+      id: 'cycle-1',
+      startDate: '2026-07-17T10:00:00.000Z',
+    },
+    workCycle: {
+      completedColumnId: 'done',
+      startDate: '2026-07-18T10:00:00.000Z',
+    },
+  };
+  const historyPayload = {
+    cycles: [completionPayload.cycle],
+    pageInfo: {
+      hasMore: true,
+      nextCursor: 'cursor-1',
+    },
+  };
+  const detailPayload = {
+    ...completionPayload.cycle.cards[0],
+    content: 'Archived content',
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(createJsonResponse(completionPayload))
+    .mockResolvedValueOnce(createJsonResponse(historyPayload))
+    .mockResolvedValueOnce(createJsonResponse(detailPayload));
 
-  const { createActiveCard, deleteActiveCard } = await import(
-    './authenticatedApi'
+  vi.stubGlobal('fetch', fetchMock);
+
+  const { completeWorkCycle, fetchArchivedCardDetail, fetchCompletedHistory } =
+    await import('./authenticatedApi');
+
+  await expect(completeWorkCycle('token-1')).resolves.toEqual(
+    completionPayload
   );
+  await expect(
+    fetchCompletedHistory({
+      accessToken: 'token-1',
+      cursor: 'cursor/1',
+      limit: 10,
+    })
+  ).resolves.toEqual(historyPayload);
+  await expect(
+    fetchArchivedCardDetail('cycle/1', 'card/1', 'token-1')
+  ).resolves.toEqual(detailPayload);
+
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    1,
+    '/api/board/work-cycle/complete',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    }
+  );
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    2,
+    '/api/board/work-cycles/history?limit=10&cursor=cursor%2F1',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    3,
+    '/api/board/work-cycles/cycle%2F1/cards/card%2F1',
+    {
+      headers: {
+        Authorization: 'Bearer token-1',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+});
+
+test('work-cycle history helpers reject unsuccessful responses', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(createJsonResponse({}, 500))
+  );
+
+  const { completeWorkCycle, fetchArchivedCardDetail, fetchCompletedHistory } =
+    await import('./authenticatedApi');
+
+  await expect(completeWorkCycle()).rejects.toThrow(
+    'Unable to complete work cycle.'
+  );
+  await expect(fetchCompletedHistory()).rejects.toThrow(
+    'Unable to load completed work history.'
+  );
+  await expect(fetchArchivedCardDetail('cycle-1', 'card-1')).rejects.toThrow(
+    'Unable to load archived card detail.'
+  );
+});
+
+test('card mutations reject unsuccessful responses', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(createJsonResponse({}, 500))
+  );
+
+  const { createActiveCard, deleteActiveCard } =
+    await import('./authenticatedApi');
 
   await expect(
     createActiveCard({

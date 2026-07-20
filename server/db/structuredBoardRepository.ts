@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 
 import { CARD_PRIORITIES } from '../../src/board/cardPriority.js';
@@ -199,6 +200,42 @@ export type WorkCycleSettingsUpdateInput = {
   completedColumnId: string | null;
 };
 
+export const COMPLETED_HISTORY_DEFAULT_LIMIT = 20;
+export const COMPLETED_HISTORY_MAX_LIMIT = 50;
+
+export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'> & {
+  hasContent: boolean;
+};
+
+export type CompletedHistoryCycleSummary = Omit<CompletedWorkCycle, 'cards'> & {
+  cards: CompletedHistoryCardSummary[];
+};
+
+export type CompletedHistoryPageInfo = {
+  hasMore: boolean;
+  nextCursor: string | null;
+};
+
+export type CompletedHistoryPage = {
+  cycles: CompletedHistoryCycleSummary[];
+  pageInfo: CompletedHistoryPageInfo;
+};
+
+export type CompletedHistoryPageInput = {
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type CompleteWorkCycleResult = {
+  boardVersion: number;
+  cardIds: string[];
+  columnId: string;
+  cycle: CompletedHistoryCycleSummary;
+  workCycle: BoardActiveWorkCycle;
+};
+
+export type ArchivedCardDetail = ArchivedBoardCard;
+
 const createId = () => randomUUID();
 
 const toDate = (value: string) => new Date(value);
@@ -329,7 +366,9 @@ export const loadBoard = async (
   };
 };
 
-const getTagIdsByCard = (cardTags: Array<{ cardId: string; tagId: string }>) => {
+const getTagIdsByCard = (
+  cardTags: Array<{ cardId: string; tagId: string }>
+) => {
   const tagIdsByCard = new Map<string, string[]>();
 
   for (const cardTag of cardTags) {
@@ -418,6 +457,108 @@ const toBootstrapCard = (
   tagIds,
   title: card.title,
 });
+
+const toArchivedTagSnapshot = (tag: {
+  id: string;
+  name: string;
+  originalTagId?: string | null;
+}): BoardTag => ({
+  id: tag.originalTagId ?? tag.id,
+  name: tag.name,
+});
+
+const toCompletedHistoryCardSummary = (card: {
+  archivedAt: Date;
+  content?: string;
+  createdAt: Date;
+  id: string;
+  priority: string;
+  tagSnapshots: Array<{
+    id: string;
+    name: string;
+    originalTagId?: string | null;
+  }>;
+  title: string;
+}): CompletedHistoryCardSummary => ({
+  archivedAt: toIso(card.archivedAt),
+  createdAt: toIso(card.createdAt),
+  hasContent: Boolean(card.content),
+  id: card.id,
+  priority: isCardPriority(card.priority) ? card.priority : 'medium',
+  tagIds: card.tagSnapshots
+    .map((tag) => tag.originalTagId)
+    .filter((tagId): tagId is string => Boolean(tagId)),
+  tagSnapshots: card.tagSnapshots.map(toArchivedTagSnapshot),
+  title: card.title,
+});
+
+const toCompletedHistoryCycleSummary = (cycle: {
+  cards: Array<{
+    archivedAt: Date;
+    content?: string;
+    createdAt: Date;
+    id: string;
+    priority: string;
+    tagSnapshots: Array<{
+      id: string;
+      name: string;
+      originalTagId?: string | null;
+    }>;
+    title: string;
+  }>;
+  completedColumnId: string | null;
+  completedColumnTitle: string | null;
+  endDate: Date;
+  id: string;
+  startDate: Date;
+}): CompletedHistoryCycleSummary => ({
+  cards: cycle.cards.map(toCompletedHistoryCardSummary),
+  completedColumnId: cycle.completedColumnId,
+  completedColumnTitle: cycle.completedColumnTitle,
+  endDate: toIso(cycle.endDate),
+  id: cycle.id,
+  startDate: toIso(cycle.startDate),
+});
+
+type CompletedHistoryCursor = {
+  endDate: string;
+  id: string;
+};
+
+const encodeCompletedHistoryCursor = (
+  cycle: Pick<CompletedHistoryCycleSummary, 'endDate' | 'id'>
+) =>
+  Buffer.from(
+    JSON.stringify({ endDate: cycle.endDate, id: cycle.id }),
+    'utf8'
+  ).toString('base64url');
+
+export const decodeCompletedHistoryCursor = (
+  cursor: string
+): CompletedHistoryCursor | null => {
+  try {
+    const value = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8')
+    ) as unknown;
+
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      !('endDate' in value) ||
+      !('id' in value) ||
+      typeof value.endDate !== 'string' ||
+      typeof value.id !== 'string' ||
+      Number.isNaN(Date.parse(value.endDate)) ||
+      value.id.trim().length === 0
+    ) {
+      return null;
+    }
+
+    return { endDate: value.endDate, id: value.id };
+  } catch {
+    return null;
+  }
+};
 
 const toActiveCardMutationCard = (
   card: {
@@ -862,11 +1003,10 @@ export const moveActiveCard = async (
       sourceColumnId,
       card.id
     );
-    const destinationCardIds = (
+    const destinationCardIds =
       sourceColumnId === input.columnId
         ? sourceCardIds
-        : await getColumnCardIdsExcept(transaction, input.columnId, card.id)
-    );
+        : await getColumnCardIdsExcept(transaction, input.columnId, card.id);
     const targetIndex = placementCardId
       ? destinationCardIds.findIndex((id) => id === placementCardId)
       : destinationCardIds.length;
@@ -1152,7 +1292,9 @@ export const deleteActiveColumn = async (
         },
       },
     });
-    await transaction.card.deleteMany({ where: { boardId: board.id, columnId } });
+    await transaction.card.deleteMany({
+      where: { boardId: board.id, columnId },
+    });
     await transaction.boardColumn.delete({ where: { id: columnId } });
     await updateBoardColumnOrder(transaction, remainingColumnIds);
 
@@ -1484,6 +1626,306 @@ export const updateWorkCycleSettings = async (
       completedColumnId: saved.workCycle.completedColumnId,
       startDate: toIso(saved.workCycle.startDate),
     },
+  };
+};
+
+export const completeActiveWorkCycle = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  completedAt = new Date()
+): Promise<CompleteWorkCycleResult | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const workCycle = await prisma.boardWorkCycle.findUnique({
+    select: {
+      completedColumnId: true,
+      startDate: true,
+    },
+    where: { boardId: board.id },
+  });
+
+  if (!workCycle?.completedColumnId) {
+    return null;
+  }
+
+  const [completedColumn, activeCards] = await Promise.all([
+    prisma.boardColumn.findFirst({
+      select: {
+        id: true,
+        title: true,
+      },
+      where: {
+        boardId: board.id,
+        id: workCycle.completedColumnId,
+      },
+    }),
+    prisma.card.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        content: true,
+        createdAt: true,
+        id: true,
+        priority: true,
+        sortOrder: true,
+        title: true,
+      },
+      where: {
+        boardId: board.id,
+        columnId: workCycle.completedColumnId,
+      },
+    }),
+  ]);
+
+  if (!completedColumn || activeCards.length === 0) {
+    return null;
+  }
+
+  const activeCardIds = activeCards.map((card) => card.id);
+  const activeCardTags = await prisma.cardTag.findMany({
+    include: {
+      tag: {
+        select: {
+          id: true,
+          name: true,
+          sortOrder: true,
+        },
+      },
+    },
+    where: {
+      cardId: { in: activeCardIds },
+      tag: {
+        boardId: board.id,
+      },
+    },
+  });
+  const tagsByCardId = new Map<
+    string,
+    Array<{ id: string; name: string; sortOrder: number }>
+  >();
+
+  for (const cardTag of activeCardTags) {
+    tagsByCardId.set(cardTag.cardId, [
+      ...(tagsByCardId.get(cardTag.cardId) ?? []),
+      cardTag.tag,
+    ]);
+  }
+
+  for (const [cardId, tags] of tagsByCardId) {
+    tagsByCardId.set(
+      cardId,
+      tags.sort((first, second) => first.sortOrder - second.sortOrder)
+    );
+  }
+
+  const cycleId = createId();
+  const archivedCycle = {
+    cards: activeCards.map((card): CompletedHistoryCardSummary => {
+      const tagSnapshots = (tagsByCardId.get(card.id) ?? []).map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+      }));
+
+      return {
+        archivedAt: toIso(completedAt),
+        createdAt: toIso(card.createdAt),
+        hasContent: Boolean(card.content),
+        id: card.id,
+        priority: isCardPriority(card.priority) ? card.priority : 'medium',
+        tagIds: tagSnapshots.map((tag) => tag.id),
+        tagSnapshots,
+        title: card.title,
+      };
+    }),
+    completedColumnId: completedColumn.id,
+    completedColumnTitle: completedColumn.title,
+    endDate: toIso(completedAt),
+    id: cycleId,
+    startDate: toIso(workCycle.startDate),
+  };
+
+  const saved = await prisma.$transaction(
+    async (transaction) => {
+      await transaction.completedWorkCycle.create({
+        data: {
+          boardId: board.id,
+          completedColumnId: completedColumn.id,
+          completedColumnTitle: completedColumn.title,
+          endDate: completedAt,
+          id: cycleId,
+          startDate: workCycle.startDate,
+        },
+      });
+      await transaction.completedWorkCycleCard.createMany({
+        data: activeCards.map((card) => ({
+          archivedAt: completedAt,
+          content: card.content,
+          createdAt: card.createdAt,
+          cycleId,
+          id: card.id,
+          originalCardId: card.id,
+          priority: isCardPriority(card.priority) ? card.priority : 'medium',
+          sortOrder: card.sortOrder,
+          title: card.title,
+        })),
+      });
+
+      const archivedTagRows = activeCards.flatMap((card) =>
+        (tagsByCardId.get(card.id) ?? []).map((tag, sortOrder) => ({
+          archivedCardId: card.id,
+          id: createId(),
+          name: tag.name,
+          originalTagId: tag.id,
+          sortOrder,
+        }))
+      );
+
+      if (archivedTagRows.length > 0) {
+        await transaction.completedWorkCycleCardTag.createMany({
+          data: archivedTagRows,
+        });
+      }
+
+      await transaction.cardTag.deleteMany({
+        where: {
+          cardId: { in: activeCardIds },
+        },
+      });
+      await transaction.card.deleteMany({
+        where: {
+          boardId: board.id,
+          id: { in: activeCardIds },
+        },
+      });
+
+      const [nextWorkCycle, updatedBoard] = await Promise.all([
+        transaction.boardWorkCycle.update({
+          data: { startDate: completedAt },
+          where: { boardId: board.id },
+        }),
+        transaction.board.update({
+          data: { version: { increment: 1 } },
+          where: { id: board.id },
+        }),
+      ]);
+
+      return {
+        boardVersion: updatedBoard.version,
+        workCycle: nextWorkCycle,
+      };
+    },
+    { timeout: BOARD_WRITE_TRANSACTION_TIMEOUT_MS }
+  );
+
+  return {
+    boardVersion: saved.boardVersion,
+    cardIds: activeCardIds,
+    columnId: completedColumn.id,
+    cycle: archivedCycle,
+    workCycle: {
+      completedColumnId: saved.workCycle.completedColumnId,
+      startDate: toIso(saved.workCycle.startDate),
+    },
+  };
+};
+
+export const loadCompletedHistoryPage = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  input: CompletedHistoryPageInput = {}
+): Promise<CompletedHistoryPage | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const limit = Math.min(
+    Math.max(input.limit ?? COMPLETED_HISTORY_DEFAULT_LIMIT, 1),
+    COMPLETED_HISTORY_MAX_LIMIT
+  );
+  const decodedCursor = input.cursor
+    ? decodeCompletedHistoryCursor(input.cursor)
+    : null;
+
+  if (input.cursor && !decodedCursor) {
+    return null;
+  }
+
+  const cycles = await prisma.completedWorkCycle.findMany({
+    include: {
+      cards: {
+        include: {
+          tagSnapshots: {
+            orderBy: [{ sortOrder: 'asc' }],
+          },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { archivedAt: 'asc' }],
+      },
+    },
+    orderBy: [{ endDate: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+    where: {
+      boardId: board.id,
+      ...(decodedCursor
+        ? {
+            OR: [
+              { endDate: { lt: toDate(decodedCursor.endDate) } },
+              {
+                endDate: toDate(decodedCursor.endDate),
+                id: { lt: decodedCursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+  });
+  const pageCycles = cycles.slice(0, limit).map(toCompletedHistoryCycleSummary);
+  const hasMore = cycles.length > limit;
+  const nextCursor =
+    hasMore && pageCycles.length > 0
+      ? encodeCompletedHistoryCursor(pageCycles[pageCycles.length - 1])
+      : null;
+
+  return {
+    cycles: pageCycles,
+    pageInfo: {
+      hasMore,
+      nextCursor,
+    },
+  };
+};
+
+export const loadArchivedCardDetail = async (
+  prisma: FlowboardPrismaClient,
+  ownerId: string,
+  cycleId: string,
+  cardId: string
+): Promise<ArchivedCardDetail | null> => {
+  const board = await ensureDefaultBoard(prisma, ownerId);
+  const card = await prisma.completedWorkCycleCard.findFirst({
+    include: {
+      tagSnapshots: {
+        orderBy: [{ sortOrder: 'asc' }],
+      },
+    },
+    where: {
+      id: cardId,
+      cycle: {
+        boardId: board.id,
+        id: cycleId,
+      },
+    },
+  });
+
+  if (!card) {
+    return null;
+  }
+
+  return {
+    archivedAt: toIso(card.archivedAt),
+    content: card.content,
+    createdAt: toIso(card.createdAt),
+    id: card.id,
+    priority: isCardPriority(card.priority) ? card.priority : 'medium',
+    tagIds: card.tagSnapshots
+      .map((tag) => tag.originalTagId)
+      .filter((tagId): tagId is string => Boolean(tagId)),
+    tagSnapshots: card.tagSnapshots.map(toArchivedTagSnapshot),
+    title: card.title,
   };
 };
 

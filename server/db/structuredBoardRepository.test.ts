@@ -10,6 +10,7 @@ import { ensureProfile } from '../auth/profileService.js';
 import { PrismaClient } from '../generated/prisma/sqlite/client.js';
 import {
   assignActiveCardTag,
+  completeActiveWorkCycle,
   createActiveColumn,
   createActiveCard,
   createBoardTag,
@@ -17,8 +18,10 @@ import {
   deleteActiveCard,
   deleteBoardTag,
   ensureDefaultBoard,
+  loadArchivedCardDetail,
   loadActiveCardDetail,
   loadBoard,
+  loadCompletedHistoryPage,
   loadMainBoardBootstrap,
   moveActiveColumn,
   moveActiveCard,
@@ -726,5 +729,296 @@ describe('structured board repository', () => {
     expect(loaded?.state.completedWorkCycles).toEqual(
       sampleState.completedWorkCycles
     );
+  });
+
+  test('completes active work by archiving completed-column cards transactionally', async () => {
+    const prisma = createTestPrisma();
+    const state: BoardState = {
+      ...sampleState,
+      columns: [
+        sampleState.columns[0],
+        {
+          ...sampleState.columns[1],
+          cards: [
+            {
+              content: 'Ready to archive',
+              createdAt: '2026-07-04T00:00:00.000Z',
+              id: 'done-card-1',
+              priority: 'high',
+              tagIds: ['tag-1'],
+              title: 'Ship resource completion',
+            },
+            {
+              content: '',
+              createdAt: '2026-07-04T01:00:00.000Z',
+              id: 'done-card-2',
+              priority: 'low',
+              tagIds: [],
+              title: 'Empty content archive',
+            },
+          ],
+        },
+      ],
+    };
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', state);
+    const previousBoard = await prisma.board.findUniqueOrThrow({
+      where: { id: board.id },
+    });
+
+    const result = await completeActiveWorkCycle(
+      prisma,
+      'user-1',
+      new Date('2026-07-05T00:00:00.000Z')
+    );
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result).toEqual({
+      boardVersion: previousBoard.version + 1,
+      cardIds: ['done-card-1', 'done-card-2'],
+      columnId: 'done',
+      cycle: {
+        cards: [
+          {
+            archivedAt: '2026-07-05T00:00:00.000Z',
+            createdAt: '2026-07-04T00:00:00.000Z',
+            hasContent: true,
+            id: 'done-card-1',
+            priority: 'high',
+            tagIds: ['tag-1'],
+            tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+            title: 'Ship resource completion',
+          },
+          {
+            archivedAt: '2026-07-05T00:00:00.000Z',
+            createdAt: '2026-07-04T01:00:00.000Z',
+            hasContent: false,
+            id: 'done-card-2',
+            priority: 'low',
+            tagIds: [],
+            tagSnapshots: [],
+            title: 'Empty content archive',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: '2026-07-05T00:00:00.000Z',
+        id: expect.any(String),
+        startDate: '2026-07-01T00:00:00.000Z',
+      },
+      workCycle: {
+        completedColumnId: 'done',
+        startDate: '2026-07-05T00:00:00.000Z',
+      },
+    });
+    expect(loaded?.state.columns[0].cards.map((card) => card.id)).toEqual([
+      'card-1',
+    ]);
+    expect(loaded?.state.columns[1].cards).toEqual([]);
+    expect(loaded?.state.activeWorkCycle).toEqual(result?.workCycle);
+    expect(loaded?.state.completedWorkCycles[0]).toMatchObject({
+      cards: [
+        {
+          content: 'Ready to archive',
+          id: 'done-card-1',
+          tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+        },
+        {
+          content: '',
+          id: 'done-card-2',
+        },
+      ],
+      completedColumnId: 'done',
+      completedColumnTitle: 'Done',
+    });
+    expect(loaded?.state.completedWorkCycles[1]).toEqual(
+      sampleState.completedWorkCycles[0]
+    );
+    await expect(prisma.card.count()).resolves.toBe(1);
+    await expect(prisma.cardTag.count()).resolves.toBe(1);
+    await expect(prisma.completedWorkCycle.count()).resolves.toBe(2);
+    await expect(prisma.completedWorkCycleCard.count()).resolves.toBe(3);
+  });
+
+  test('rejects completion without a valid non-empty completed column', async () => {
+    const cases: Array<{ name: string; state: BoardState }> = [
+      {
+        name: 'unset column',
+        state: {
+          ...sampleState,
+          activeWorkCycle: {
+            ...sampleState.activeWorkCycle,
+            completedColumnId: null,
+          },
+        },
+      },
+      {
+        name: 'missing column',
+        state: {
+          ...sampleState,
+          activeWorkCycle: {
+            ...sampleState.activeWorkCycle,
+            completedColumnId: 'missing',
+          },
+        },
+      },
+      {
+        name: 'empty column',
+        state: sampleState,
+      },
+    ];
+
+    for (const item of cases) {
+      const prisma = createTestPrisma();
+
+      await ensureProfile(prisma, {
+        avatarUrl: null,
+        displayName: null,
+        email: `${item.name}@example.com`,
+        id: item.name,
+      });
+      const board = await ensureDefaultBoard(prisma, item.name, item.state);
+      const previousBoard = await prisma.board.findUniqueOrThrow({
+        where: { id: board.id },
+      });
+
+      await expect(
+        completeActiveWorkCycle(
+          prisma,
+          item.name,
+          new Date('2026-07-05T00:00:00.000Z')
+        )
+      ).resolves.toBeNull();
+      await expect(
+        prisma.board.findUniqueOrThrow({ where: { id: board.id } })
+      ).resolves.toMatchObject({ version: previousBoard.version });
+      await expect(prisma.completedWorkCycle.count()).resolves.toBe(1);
+      await expect(prisma.card.count()).resolves.toBe(1);
+    }
+  });
+
+  test('loads paged completed-history summaries without rich content', async () => {
+    const prisma = createTestPrisma();
+    const state: BoardState = {
+      ...sampleState,
+      completedWorkCycles: [
+        sampleState.completedWorkCycles[0],
+        {
+          cards: [
+            {
+              archivedAt: '2026-07-04T00:00:00.000Z',
+              content: 'Second rich note',
+              createdAt: '2026-07-03T00:00:00.000Z',
+              id: 'archived-card-2',
+              priority: 'high',
+              tagIds: ['tag-1'],
+              tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+              title: 'Second archived card',
+            },
+          ],
+          completedColumnId: 'done',
+          completedColumnTitle: 'Done',
+          endDate: '2026-07-04T00:00:00.000Z',
+          id: 'cycle-2',
+          startDate: '2026-07-03T00:00:00.000Z',
+        },
+      ],
+    };
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    await ensureDefaultBoard(prisma, 'user-1', state);
+
+    const firstPage = await loadCompletedHistoryPage(prisma, 'user-1', {
+      limit: 1,
+    });
+    const secondPage = await loadCompletedHistoryPage(prisma, 'user-1', {
+      cursor: firstPage?.pageInfo.nextCursor,
+      limit: 1,
+    });
+
+    expect(firstPage).toEqual({
+      cycles: [
+        {
+          cards: [
+            {
+              archivedAt: '2026-07-04T00:00:00.000Z',
+              createdAt: '2026-07-03T00:00:00.000Z',
+              hasContent: true,
+              id: 'archived-card-2',
+              priority: 'high',
+              tagIds: ['tag-1'],
+              tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+              title: 'Second archived card',
+            },
+          ],
+          completedColumnId: 'done',
+          completedColumnTitle: 'Done',
+          endDate: '2026-07-04T00:00:00.000Z',
+          id: 'cycle-2',
+          startDate: '2026-07-03T00:00:00.000Z',
+        },
+      ],
+      pageInfo: {
+        hasMore: true,
+        nextCursor: expect.any(String),
+      },
+    });
+    expect(firstPage?.cycles[0].cards[0]).not.toHaveProperty('content');
+    expect(secondPage?.cycles[0].id).toBe('cycle-1');
+    expect(secondPage?.pageInfo).toEqual({
+      hasMore: false,
+      nextCursor: null,
+    });
+    await expect(
+      loadCompletedHistoryPage(prisma, 'user-1', { cursor: 'not-valid' })
+    ).resolves.toBeNull();
+  });
+
+  test('loads archived-card detail scoped to the owning board', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'one@example.com',
+      id: 'user-1',
+    });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'two@example.com',
+      id: 'user-2',
+    });
+    await ensureDefaultBoard(prisma, 'user-1', sampleState);
+
+    await expect(
+      loadArchivedCardDetail(prisma, 'user-1', 'cycle-1', 'archived-card-1')
+    ).resolves.toEqual({
+      archivedAt: '2026-07-03T00:00:00.000Z',
+      content: 'Archived note',
+      createdAt: '2026-07-02T00:00:00.000Z',
+      id: 'archived-card-1',
+      priority: 'medium',
+      tagIds: ['tag-1'],
+      tagSnapshots: [{ id: 'tag-1', name: 'Architecture' }],
+      title: 'Archived card',
+    });
+    await expect(
+      loadArchivedCardDetail(prisma, 'user-1', 'cycle-1', 'missing')
+    ).resolves.toBeNull();
+    await expect(
+      loadArchivedCardDetail(prisma, 'user-2', 'cycle-1', 'archived-card-1')
+    ).resolves.toBeNull();
   });
 });

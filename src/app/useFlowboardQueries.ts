@@ -1,11 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import {
+  fetchArchivedCardDetail,
   fetchActiveCardDetail,
   fetchAuthenticatedProfile,
   fetchBoardBootstrap,
+  fetchCompletedHistory,
 } from '../storage/authenticatedApi';
 import { queryKeys } from './queryKeys';
+
+export const COMPLETED_HISTORY_PAGE_LIMIT = 20;
 
 export const useAuthenticatedProfileQuery = (accessToken?: string) =>
   useQuery({
@@ -37,4 +41,43 @@ export const useActiveCardDetailQuery = (
     queryKey: cardId
       ? queryKeys.board.card(cardId)
       : [...queryKeys.board.card('pending')],
+  });
+
+export const useCompletedHistoryQuery = ({
+  accessToken,
+  enabled,
+  limit = COMPLETED_HISTORY_PAGE_LIMIT,
+}: {
+  accessToken?: string;
+  enabled: boolean;
+  limit?: number;
+}) =>
+  useInfiniteQuery({
+    enabled,
+    getNextPageParam: (lastPage) => lastPage.pageInfo.nextCursor,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      fetchCompletedHistory({ accessToken, cursor: pageParam, limit }),
+    queryKey: queryKeys.board.history(limit),
+  });
+
+export const useArchivedCardDetailQuery = ({
+  accessToken,
+  cardId,
+  cycleId,
+  enabled = true,
+}: {
+  accessToken?: string;
+  cardId: string | null;
+  cycleId: string | null;
+  enabled?: boolean;
+}) =>
+  useQuery({
+    enabled: Boolean(cycleId && cardId && enabled),
+    queryFn: () =>
+      fetchArchivedCardDetail(cycleId ?? '', cardId ?? '', accessToken),
+    queryKey:
+      cycleId && cardId
+        ? queryKeys.board.archivedCard(cycleId, cardId)
+        : queryKeys.board.archivedCard('pending-cycle', 'pending-card'),
   });
