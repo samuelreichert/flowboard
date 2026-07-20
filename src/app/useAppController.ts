@@ -65,7 +65,6 @@ const useAppController = () => {
   });
   const {
     authenticatedBoardLoading,
-    loadCompleteBoardState,
     persistenceMessage,
   } = useAuthenticatedBoardSync(authState, dispatch, messages.app.persistence);
   const {
@@ -229,7 +228,6 @@ const useAppController = () => {
     currentView,
     deleteTag,
     languagePreference,
-    loadCompleteBoardState,
     manageColumnsOpen,
     mobileSidebarOpen,
     openBoard,
