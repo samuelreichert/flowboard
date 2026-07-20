@@ -157,6 +157,7 @@ const enMessages = {
       completeWorkNeedsColumn:
         'Choose a completed column in settings before completing work',
       history: 'History',
+      newCycleReady: 'New cycle is ready',
       workCompleted: 'Work completed',
       workspace: 'Workspace',
     },
@@ -474,6 +475,7 @@ const ptBrMessages: Messages = {
       completeWorkNeedsColumn:
         'Escolha uma coluna concluída nas configurações antes de concluir o trabalho',
       history: 'Histórico',
+      newCycleReady: 'Novo ciclo pronto',
       workCompleted: 'Trabalho concluído',
       workspace: 'Área de trabalho',
     },

@@ -57,44 +57,6 @@
   white-space: nowrap;
 }
 
-.complete-work-pulse {
-  align-items: center;
-  animation: complete-work-float 900ms ease both;
-  background-color: var(--color-surface-raised);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  box-shadow:
-    0 16px 34px var(--color-shadow),
-    0 2px 8px var(--color-shadow-soft);
-  color: var(--color-primary);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 700;
-  gap: 7px;
-  padding: 8px 12px;
-  position: absolute;
-  right: 10px;
-  top: 4px;
-  z-index: 5;
-}
-
-@keyframes complete-work-float {
-  0% {
-    opacity: 0;
-    transform: translateY(8px) rotate(-2deg) scale(0.96);
-  }
-
-  28% {
-    opacity: 1;
-    transform: translateY(0) rotate(1deg) scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(-18px) rotate(0deg) scale(0.98);
-  }
-}
-
 @media (max-width: 760px) {
   .app-workspace {
     padding: 14px 0 0;

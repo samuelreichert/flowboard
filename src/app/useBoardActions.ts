@@ -19,6 +19,8 @@ import type { BoardActiveWorkCycle, BoardColumn, BoardTag } from '../types';
 import type { AppAction } from './appTypes';
 import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 
+const COMPLETION_ACKNOWLEDGEMENT_DURATION_MS = 2800;
+
 const useBoardActions = ({
   activeWorkCycle,
   boardMutations,
@@ -32,12 +34,12 @@ const useBoardActions = ({
   openSettings: () => void;
   tags: BoardTag[];
 }) => {
-  const completionPulseTimeoutRef = useRef<number | null>(null);
+  const completionAcknowledgementTimeoutRef = useRef<number | null>(null);
 
   useEffect(
     () => () => {
-      if (completionPulseTimeoutRef.current !== null) {
-        window.clearTimeout(completionPulseTimeoutRef.current);
+      if (completionAcknowledgementTimeoutRef.current !== null) {
+        window.clearTimeout(completionAcknowledgementTimeoutRef.current);
       }
     },
     []
@@ -155,13 +157,17 @@ const useBoardActions = ({
     updateBoardStateStorage(nextState);
     dispatch({ state: nextState, type: 'boardStateChanged' });
     boardMutations.completeWorkCycle();
-    dispatch({ active: true, type: 'completionPulseChanged' });
-    if (completionPulseTimeoutRef.current !== null) {
-      window.clearTimeout(completionPulseTimeoutRef.current);
+    dispatch({ active: true, type: 'completionAcknowledgementChanged' });
+    if (completionAcknowledgementTimeoutRef.current !== null) {
+      window.clearTimeout(completionAcknowledgementTimeoutRef.current);
     }
-    completionPulseTimeoutRef.current = window.setTimeout(
-      () => dispatch({ active: false, type: 'completionPulseChanged' }),
-      900
+    completionAcknowledgementTimeoutRef.current = window.setTimeout(
+      () =>
+        dispatch({
+          active: false,
+          type: 'completionAcknowledgementChanged',
+        }),
+      COMPLETION_ACKNOWLEDGEMENT_DURATION_MS
     );
   };
 

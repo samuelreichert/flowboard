@@ -37,7 +37,7 @@ beforeEach(resetAppTestEnvironment);
 
 test('completes work after confirmation and moves done cards to history', async () => {
   const user = userEvent.setup();
-  render(<App />);
+  const { container } = render(<App />);
   const fetchMock = vi.mocked(fetch);
 
   await addColumn(user, 'Todo');
@@ -59,6 +59,9 @@ test('completes work after confirmation and moves done cards to history', async 
   await user.click(screen.getByRole('button', { name: /complete work/i }));
   await user.click(screen.getByRole('button', { name: /^complete work$/i }));
 
+  expect(screen.getByText('Work completed')).toBeInTheDocument();
+  expect(screen.getByText('New cycle is ready')).toBeInTheDocument();
+  expect(container.querySelector('.completion-overlay')).toBeInTheDocument();
   expect(
     fetchMock.mock.calls.some(
       ([url]) => String(url) === '/api/board/work-cycle/complete'

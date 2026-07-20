@@ -16,11 +16,11 @@ export const initAppState = (): AppState => {
   return {
     activeWorkCycle: boardState.activeWorkCycle,
     clearBoardOpen: false,
+    completionAcknowledgement: false,
     columns: boardState.columns,
     columnCount: boardState.columns.length,
     completeWorkOpen: false,
     completedWorkCycles: boardState.completedWorkCycles,
-    completionPulse: false,
     currentView: 'board',
     languagePreference,
     manageColumnsOpen: false,
@@ -71,8 +71,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, clearBoardOpen: action.open };
     case 'completeWorkOpenChanged':
       return { ...state, completeWorkOpen: action.open };
-    case 'completionPulseChanged':
-      return { ...state, completionPulse: action.active };
+    case 'completionAcknowledgementChanged':
+      return { ...state, completionAcknowledgement: action.active };
     case 'currentViewChanged':
       return { ...state, currentView: action.view };
     case 'languagePreferenceChanged':

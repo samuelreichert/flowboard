@@ -15,9 +15,9 @@ export type AppState = {
   clearBoardOpen: boolean;
   columns: BoardColumn[];
   columnCount: number;
+  completionAcknowledgement: boolean;
   completeWorkOpen: boolean;
   completedWorkCycles: CompletedWorkCycle[];
-  completionPulse: boolean;
   currentView: AppView;
   languagePreference: LanguagePreference;
   manageColumnsOpen: boolean;
@@ -40,7 +40,7 @@ export type AppAction =
   | { type: 'boardStateSynced'; state: BoardState }
   | { type: 'clearBoardOpenChanged'; open: boolean }
   | { type: 'completeWorkOpenChanged'; open: boolean }
-  | { type: 'completionPulseChanged'; active: boolean }
+  | { type: 'completionAcknowledgementChanged'; active: boolean }
   | { type: 'currentViewChanged'; view: AppView }
   | { type: 'languagePreferenceChanged'; preference: LanguagePreference }
   | { type: 'manageColumnsOpenChanged'; open: boolean }
