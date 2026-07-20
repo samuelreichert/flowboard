@@ -64,8 +64,6 @@ export const cardComposerReducer = (
       return {
         ...state,
         creatingTag: false,
-        newTagName: '',
-        tagError: '',
         tagsOpen: false,
       };
     case 'tagCreateStarted':

@@ -1,9 +1,7 @@
-import { Button } from '@base-ui/react/button';
-import { Popover } from '@base-ui/react/popover';
-import { Check, Plus } from 'lucide-react';
-import type { KeyboardEvent } from 'react';
+import { Plus } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import TagMultiSelect from '../TagMultiSelect';
 import type { BoardTag } from '../../types';
 
 type TagPickerProps = {
@@ -13,8 +11,8 @@ type TagPickerProps = {
   onNewTagNameChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
   onStartCreatingTag: () => void;
-  onTagToggle: (tagId: string) => void;
-  selectedTagIdSet: Set<string>;
+  onValueChange: (tagIds: string[]) => void;
+  selectedTagIds: string[];
   tagError: string;
   tagSummary: string;
   tags: BoardTag[];
@@ -28,8 +26,8 @@ const TagPicker = ({
   onNewTagNameChange,
   onOpenChange,
   onStartCreatingTag,
-  onTagToggle,
-  selectedTagIdSet,
+  onValueChange,
+  selectedTagIds,
   tagError,
   tagSummary,
   tags,
@@ -37,95 +35,39 @@ const TagPicker = ({
 }: TagPickerProps) => {
   const { messages } = useLocalization();
 
-  const onTagCreateKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onCreateTag();
-    }
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onOpenChange(false);
-    }
-  };
-
   return (
-    <Popover.Root modal={false} onOpenChange={onOpenChange} open={tagsOpen}>
-      <Popover.Trigger
-        aria-label={messages.card.tags}
-        className="card-composer__tag-trigger"
-        render={<Button />}
-      >
-        <Plus size={18} />
-        {tagSummary && <span>{tagSummary}</span>}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner
-          align="start"
-          className="card-composer__select-positioner"
-          sideOffset={6}
-        >
-          <Popover.Popup
-            className="card-composer__popup card-composer__tags"
-            initialFocus={false}
-            role="listbox"
-          >
-            {tags.length > 0 ? (
-              tags.map((tag) => {
-                const selected = selectedTagIdSet.has(tag.id);
-
-                return (
-                  <Button
-                    aria-selected={selected}
-                    className="card-composer__option"
-                    key={tag.id}
-                    onClick={() => onTagToggle(tag.id)}
-                    role="option"
-                    type="button"
-                  >
-                    <span>{tag.name}</span>
-                    {selected && <Check size={15} />}
-                  </Button>
-                );
-              })
-            ) : (
-              <div className="card-composer__empty-tags">
-                {messages.composer.noTagsYet}
-              </div>
-            )}
-            <div className="card-composer__tag-create">
-              {creatingTag ? (
-                <>
-                  <input
-                    aria-invalid={Boolean(tagError)}
-                    aria-label={messages.composer.newTagName}
-                    autoFocus
-                    maxLength={60}
-                    onChange={(event) => onNewTagNameChange(event.target.value)}
-                    onKeyDown={onTagCreateKeyDown}
-                    placeholder={messages.composer.newTagName}
-                    type="text"
-                    value={newTagName}
-                  />
-                  {tagError && (
-                    <p className="card-composer__tag-error">{tagError}</p>
-                  )}
-                </>
-              ) : (
-                <Button
-                  className="card-composer__tag-create-button"
-                  onClick={onStartCreatingTag}
-                  type="button"
-                >
-                  <Plus size={15} />
-                  {messages.composer.createTag}
-                </Button>
-              )}
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+    <TagMultiSelect
+      ariaLabel={messages.card.tags}
+      createButtonClassName="card-composer__tag-create-button"
+      createClassName="card-composer__tag-create"
+      creatingTag={creatingTag}
+      emptyState={
+        <div className="card-composer__empty-tags">
+          {messages.composer.noTagsYet}
+        </div>
+      }
+      errorClassName="card-composer__tag-error"
+      newTagName={newTagName}
+      onCreateTag={onCreateTag}
+      onNewTagNameChange={onNewTagNameChange}
+      onOpenChange={onOpenChange}
+      onStartCreatingTag={onStartCreatingTag}
+      onValueChange={onValueChange}
+      open={tagsOpen}
+      optionClassName="card-composer__option"
+      popupClassName="card-composer__popup card-composer__tags"
+      positionerClassName="card-composer__select-positioner"
+      selectedTagIds={selectedTagIds}
+      tagError={tagError}
+      tags={tags}
+      trigger={
+        <>
+          <Plus size={18} />
+          {tagSummary && <span>{tagSummary}</span>}
+        </>
+      }
+      triggerClassName="card-composer__tag-trigger"
+    />
   );
 };
 

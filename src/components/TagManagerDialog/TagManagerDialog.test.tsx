@@ -94,7 +94,7 @@ test('confirms removing tags that are assigned to cards', async () => {
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Tagged');
   await user.click(screen.getByText('Tagged'));
-  await user.click(screen.getByRole('button', { name: /no tags/i }));
+  await user.click(screen.getByRole('combobox', { name: /tags/i }));
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
   await user.click(screen.getByRole('button', { name: /close card/i }));

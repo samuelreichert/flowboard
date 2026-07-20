@@ -9,7 +9,7 @@ import {
 import type { BoardTag, CardPriority } from '../../types';
 import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
 import { formatCreatedAt } from './formatters';
-import { getTagSummary, toggleSelectedTagId } from './tagSelection';
+import { getTagSummary } from './tagSelection';
 import type { CardDialogProps } from './types';
 import { useCardDialogAutosave } from './useCardDialogAutosave';
 
@@ -178,9 +178,7 @@ const useCardDialogController = ({
     saveExistingCard({ priority: value });
   };
 
-  const toggleTag = (tagId: string) => {
-    const nextTagIds = toggleSelectedTagId(localSelectedTagIds, tagId);
-
+  const onSelectedTagIdsChange = (nextTagIds: string[]) => {
     setLocalSelectedTagIds(nextTagIds);
     currentValuesRef.current.selectedTagIds = nextTagIds;
     dispatch({ type: 'fieldsChanged', values: { selectedTagIds: nextTagIds } });
@@ -317,7 +315,7 @@ const useCardDialogController = ({
     title,
     titleEditing,
     titleInputRef,
-    toggleTag,
+    onSelectedTagIdsChange,
   };
 };
 

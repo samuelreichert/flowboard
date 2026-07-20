@@ -29,6 +29,7 @@ import type { AppView } from './appTypes';
 import './AppSidebar.css';
 
 type AppSidebarProps = {
+  className?: string;
   currentView: AppView;
   onBoardClick: () => void;
   onCloseMobileSidebar: () => void;
@@ -47,6 +48,7 @@ type AppSidebarProps = {
 };
 
 const AppSidebar = ({
+  className,
   currentView,
   onBoardClick,
   onCloseMobileSidebar,
@@ -98,11 +100,6 @@ const AppSidebar = ({
   const displayName = getProfileDisplayName(profile);
   const subtitle = getProfileSubtitle(profile);
   const opensSettingsDirectly = !showProfile && !showSignOut;
-  const runAccountMenuAction = (action: () => void) => {
-    setAccountMenuOpen(false);
-    action();
-  };
-
   return (
     <Sidebar
       ariaLabel={messages.app.navigation.flowboardNavigation}
@@ -110,6 +107,7 @@ const AppSidebar = ({
         iconSrc: getThemeIconSrc(resolvedTheme),
         text: 'Flowboard',
       }}
+      className={className}
       closeIcon={<X size={18} />}
       closeLabel={messages.app.navigation.closeNavigation}
       collapseIcon={<PanelLeftClose size={18} />}
@@ -163,11 +161,9 @@ const AppSidebar = ({
                 <Menu.Popup className="menu-popup app-sidebar__account-menu">
                   {showProfile && (
                     <>
-                      <button
+                      <Menu.Item
                         className="menu-item app-sidebar__account-menu-profile"
-                        onClick={() => runAccountMenuAction(onProfileClick)}
-                        role="menuitem"
-                        type="button"
+                        onClick={onProfileClick}
                       >
                         <ProfileAvatar profile={profile} size="sm" />
                         <span className="app-sidebar__account-text">
@@ -179,29 +175,25 @@ const AppSidebar = ({
                           </span>
                         </span>
                         <ChevronRight size={16} />
-                      </button>
-                      <hr className="menu-separator" />
+                      </Menu.Item>
+                      <Menu.Separator className="menu-separator" />
                     </>
                   )}
-                  <button
+                  <Menu.Item
                     className="menu-item"
-                    onClick={() => runAccountMenuAction(onSettingsClick)}
-                    role="menuitem"
-                    type="button"
+                    onClick={onSettingsClick}
                   >
                     <Settings size={15} />
                     {messages.app.navigation.settings}
-                  </button>
+                  </Menu.Item>
                   {showSignOut && (
-                    <button
+                    <Menu.Item
                       className="menu-item menu-item--danger"
-                      onClick={() => runAccountMenuAction(onSignOut)}
-                      role="menuitem"
-                      type="button"
+                      onClick={onSignOut}
                     >
                       <LogOut size={15} />
                       {messages.app.navigation.signOut}
-                    </button>
+                    </Menu.Item>
                   )}
                 </Menu.Popup>
               </Menu.Positioner>

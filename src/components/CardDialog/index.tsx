@@ -57,7 +57,7 @@ const CardDialogContent = (props: CardDialogProps) => {
     title,
     titleEditing,
     titleInputRef,
-    toggleTag,
+    onSelectedTagIdsChange,
   } = useCardDialogController(props);
 
   return (
@@ -121,8 +121,8 @@ const CardDialogContent = (props: CardDialogProps) => {
             onCreateTag={createTag}
             onCreateTagClick={startCreatingTag}
             onNewTagNameChange={onNewTagNameChange}
-            onTagToggle={toggleTag}
             onTagsOpenChange={onTagsOpenChange}
+            onValueChange={onSelectedTagIdsChange}
             selectedTagIds={selectedTagIds}
             tagError={tagError}
             tagSummary={tagSummary}

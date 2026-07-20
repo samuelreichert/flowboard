@@ -82,10 +82,6 @@ const CardComposer = ({
       selectedTagIds.filter((tagId) => tags.some((tag) => tag.id === tagId)),
     [selectedTagIds, tags]
   );
-  const selectedTagIdSet = useMemo(
-    () => new Set(selectedAvailableTagIds),
-    [selectedAvailableTagIds]
-  );
   const selectedTags = selectedAvailableTagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
     .filter((tag): tag is BoardTag => Boolean(tag));
@@ -109,16 +105,6 @@ const CardComposer = ({
   }, [draft]);
 
   const closeTags = () => dispatch({ type: 'tagsClosed' });
-
-  const toggleTag = (tagId: string) => {
-    const tagIds = selectedTagIdSet.has(tagId)
-      ? selectedAvailableTagIds.filter(
-          (selectedTagId) => selectedTagId !== tagId
-        )
-      : [...selectedAvailableTagIds, tagId];
-
-    dispatch({ tagIds, type: 'selectedTagIdsChanged' });
-  };
 
   const createTag = () => {
     const error = getTagNameError(tags, newTagName);
@@ -205,11 +191,6 @@ const CardComposer = ({
         onSubmitShortcut={submitDraft}
         textareaRef={textareaRef}
       />
-      {error && (
-        <p className="card-composer__error" id={errorId}>
-          {error}
-        </p>
-      )}
       <ComposerMetaControls
         canSubmit={canSubmit}
         columns={columns}
@@ -229,7 +210,9 @@ const CardComposer = ({
           dispatch({ columnId, type: 'preferredColumnChanged' });
         }}
         onStartCreatingTag={() => dispatch({ type: 'tagCreateStarted' })}
-        onTagToggle={toggleTag}
+        onSelectedTagIdsChange={(tagIds) =>
+          dispatch({ tagIds, type: 'selectedTagIdsChanged' })
+        }
         onTagsOpenChange={(open) =>
           open ? dispatch({ type: 'tagsOpened' }) : closeTags()
         }
@@ -239,7 +222,7 @@ const CardComposer = ({
           value: nextPriority,
         }))}
         selectedColumnId={selectedColumnId}
-        selectedTagIdSet={selectedTagIdSet}
+        selectedTagIds={selectedAvailableTagIds}
         tagError={tagError}
         tagSummary={tagSummary}
         tags={tags}

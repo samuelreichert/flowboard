@@ -39,8 +39,6 @@ export const cardDialogReducer = (
       return {
         ...state,
         creatingTag: false,
-        newTagName: '',
-        tagError: '',
         tagsOpen: false,
       };
   }

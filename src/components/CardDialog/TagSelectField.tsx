@@ -1,11 +1,9 @@
-import { Button } from '@base-ui/react/button';
-import { Field } from '@base-ui/react/field';
-import { Popover } from '@base-ui/react/popover';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
-import { InlineEmptyState } from '../EmptyState';
 import type { BoardTag } from '../../types';
+import { InlineEmptyState } from '../EmptyState';
+import TagMultiSelect from '../TagMultiSelect';
 
 type TagSelectFieldProps = {
   creatingTag: boolean;
@@ -13,8 +11,8 @@ type TagSelectFieldProps = {
   onCreateTag: () => void;
   onCreateTagClick: () => void;
   onNewTagNameChange: (value: string) => void;
-  onTagToggle: (tagId: string) => void;
   onTagsOpenChange: (open: boolean) => void;
+  onValueChange: (tagIds: string[]) => void;
   selectedTagIds: string[];
   tagError: string;
   tagSummary: string;
@@ -28,8 +26,8 @@ const TagSelectField = ({
   onCreateTag,
   onCreateTagClick,
   onNewTagNameChange,
-  onTagToggle,
   onTagsOpenChange,
+  onValueChange,
   selectedTagIds,
   tagError,
   tagSummary,
@@ -37,104 +35,42 @@ const TagSelectField = ({
   tagsOpen,
 }: TagSelectFieldProps) => {
   const { messages } = useLocalization();
-  const selectedTagIdSet = new Set(selectedTagIds);
 
   return (
     <div className="dialog-field">
       <span className="dialog-label">{messages.card.tags}</span>
-      <Popover.Root
-        modal={false}
+      <TagMultiSelect
+        ariaLabel={messages.card.tags}
+        createButtonClassName="tag-select__create-button"
+        createClassName="tag-select__create"
+        creatingTag={creatingTag}
+        emptyState={
+          <InlineEmptyState variant="dropdown">
+            {messages.composer.noTagsYet}
+          </InlineEmptyState>
+        }
+        errorClassName="tag-select__error"
+        newTagName={newTagName}
+        onCreateTag={onCreateTag}
+        onNewTagNameChange={onNewTagNameChange}
         onOpenChange={onTagsOpenChange}
+        onStartCreatingTag={onCreateTagClick}
+        onValueChange={onValueChange}
         open={tagsOpen}
-      >
-        <Popover.Trigger
-          className="dialog-input tag-select__trigger"
-          render={<Button />}
-        >
-          <span>{tagSummary}</span>
-          <ChevronDown size={17} />
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Positioner
-            align="start"
-            className="tag-select__positioner"
-            sideOffset={5}
-          >
-            <Popover.Popup
-              className="tag-select__dropdown"
-              initialFocus={false}
-              role="listbox"
-            >
-              {tags.length > 0 ? (
-                tags.map((tag) => {
-                  const selected = selectedTagIdSet.has(tag.id);
-
-                  return (
-                    <Button
-                      aria-selected={selected}
-                      className="tag-select__option"
-                      key={tag.id}
-                      onClick={() => onTagToggle(tag.id)}
-                      role="option"
-                      type="button"
-                    >
-                      <span>{tag.name}</span>
-                      {selected && <Check size={15} />}
-                    </Button>
-                  );
-                })
-              ) : (
-                <InlineEmptyState variant="dropdown">
-                  {messages.composer.noTagsYet}
-                </InlineEmptyState>
-              )}
-              <div className="tag-select__create">
-                {creatingTag ? (
-                  <Field.Root invalid={Boolean(tagError)}>
-                    <Field.Control
-                      aria-label={messages.composer.newTagName}
-                      autoFocus
-                      maxLength={60}
-                      onChange={(event) =>
-                        onNewTagNameChange(event.currentTarget.value)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          onCreateTag();
-                        }
-
-                        if (event.key === 'Escape') {
-                          event.preventDefault();
-                          onTagsOpenChange(false);
-                        }
-                      }}
-                      placeholder={messages.composer.newTagName}
-                      type="text"
-                      value={newTagName}
-                    />
-                    <Field.Error
-                      className="tag-select__error"
-                      match={Boolean(tagError)}
-                    >
-                      {tagError}
-                    </Field.Error>
-                  </Field.Root>
-                ) : (
-                  <Button
-                    className="tag-select__create-button"
-                    onClick={onCreateTagClick}
-                    type="button"
-                  >
-                    <Plus size={15} />
-                    {messages.composer.createTag}
-                  </Button>
-                )}
-              </div>
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
+        optionClassName="tag-select__option"
+        popupClassName="tag-select__dropdown"
+        positionerClassName="tag-select__positioner"
+        selectedTagIds={selectedTagIds}
+        tagError={tagError}
+        tags={tags}
+        trigger={
+          <>
+            <span>{tagSummary}</span>
+            <ChevronDown size={17} />
+          </>
+        }
+        triggerClassName="dialog-input tag-select__trigger"
+      />
     </div>
   );
 };
