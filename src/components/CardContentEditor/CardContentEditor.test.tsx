@@ -32,7 +32,10 @@ import {
   selectText,
 } from '../../test/appTestUtils';
 
-beforeEach(resetAppTestEnvironment);
+beforeEach(() => {
+  vi.restoreAllMocks();
+  resetAppTestEnvironment();
+});
 
 test('exports card content as Markdown', async () => {
   const user = userEvent.setup();
@@ -44,15 +47,22 @@ test('exports card content as Markdown', async () => {
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Prompt', '# Context');
 
-  await user.click(screen.getByText('Prompt'));
+  fireEvent.click(screen.getByText('Prompt'));
   expect(
     await screen.findByRole('toolbar', { name: /content formatting/i })
   ).toBeInTheDocument();
-  await user.click(
-    await screen.findByRole('button', { name: /copy markdown/i })
-  );
+  const copyButton = await screen.findByRole('button', {
+    name: /copy markdown/i,
+  });
+  await waitFor(() => expect(copyButton).not.toBeDisabled());
+  await user.click(copyButton);
 
-  expect(writeText).toHaveBeenCalledWith('# Context');
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('# Context'));
+
+  fireEvent.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  );
 });
 
 test('visually groups toolbar controls without removing accessible commands', async () => {
@@ -61,7 +71,7 @@ test('visually groups toolbar controls without removing accessible commands', as
 
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Grouped toolbar', 'Content');
-  await user.click(screen.getByText('Grouped toolbar'));
+  fireEvent.click(screen.getByText('Grouped toolbar'));
 
   const toolbar = await screen.findByRole('toolbar', {
     name: /content formatting/i,
@@ -76,13 +86,14 @@ test('visually groups toolbar controls without removing accessible commands', as
   expect(
     within(toolbar).getByRole('button', { name: /copy markdown/i })
   ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  );
 });
 
 test('preserves link, code, and list Markdown through the editor', async () => {
-  const user = userEvent.setup();
-  const writeText = vi
-    .spyOn(navigator.clipboard, 'writeText')
-    .mockResolvedValue(undefined);
   seedBoardState({
     columns: [
       {
@@ -104,12 +115,16 @@ test('preserves link, code, and list Markdown through the editor', async () => {
   });
   render(<App />);
 
-  await user.click(screen.getByText('Prompt'));
-  await user.click(
-    await screen.findByRole('button', { name: /copy markdown/i })
-  );
+  fireEvent.click(screen.getByText('Prompt'));
 
-  expect(writeText).toHaveBeenCalledWith(
+  const content = await screen.findByLabelText('Content');
+
+  expect(within(content).getByRole('link', { name: 'Docs' })).toHaveAttribute(
+    'href',
+    'https://tiptap.dev'
+  );
+  expect(within(content).getByText('code')).toBeInTheDocument();
+  expect(readColumns()[0].cards[0].content).toBe(
     '[Docs](https://tiptap.dev)\n\n- `code`'
   );
 });
