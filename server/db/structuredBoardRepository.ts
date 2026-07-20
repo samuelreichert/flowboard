@@ -13,7 +13,10 @@ import type {
   BoardTag,
   CompletedWorkCycle,
 } from '../../src/board/types.js';
-import type { FlowboardPrismaClient } from './prismaClient.js';
+import type {
+  FlowboardPrismaClient,
+  FlowboardPrismaTransactionClient,
+} from './prismaClient.js';
 
 const DEFAULT_PROJECT_NAME = 'Personal';
 const DEFAULT_BOARD_TITLE = 'Flowboard';
@@ -588,7 +591,7 @@ const toActiveCardMutationCard = (
 });
 
 const replaceCardTags = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   cardId: string,
   tagIds: string[]
 ) => {
@@ -602,7 +605,7 @@ const replaceCardTags = async (
 };
 
 const getColumnCards = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   columnId: string
 ) =>
   transaction.card.findMany({
@@ -612,7 +615,7 @@ const getColumnCards = async (
   });
 
 const getBoardColumns = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   boardId: string
 ) =>
   transaction.boardColumn.findMany({
@@ -622,7 +625,7 @@ const getBoardColumns = async (
   });
 
 const getBoardTags = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   boardId: string
 ) =>
   transaction.tag.findMany({
@@ -652,7 +655,7 @@ const hasDuplicateTagName = (
   );
 
 const getColumnCardIdsExcept = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   columnId: string,
   excludedCardId: string
 ) => {
@@ -669,7 +672,7 @@ const getColumnCardIdsExcept = async (
 };
 
 const updateColumnCardOrder = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   columnId: string,
   cardIds: string[]
 ) => {
@@ -684,7 +687,7 @@ const updateColumnCardOrder = async (
 };
 
 const updateBoardColumnOrder = async (
-  transaction: FlowboardPrismaClient,
+  transaction: FlowboardPrismaTransactionClient,
   columnIds: string[]
 ) => {
   await Promise.all(
