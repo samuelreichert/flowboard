@@ -4,8 +4,10 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router';
+import { Drawer } from '@base-ui/react/drawer';
+import { useRef } from 'react';
 
-import { LocalizationProvider, useLocalization } from './LocalizationProvider';
+import { LocalizationProvider } from './LocalizationProvider';
 import AuthGate from './app/AuthGate';
 import AppDialogs from './app/AppDialogs';
 import AppSidebar from './app/AppSidebar';
@@ -30,27 +32,9 @@ import './App.css';
 import './components/Primitives/Primitives.css';
 import './app/AppShell.css';
 
-type MobileNavigationBackdropProps = {
-  onClose: () => void;
-};
-
-const MobileNavigationBackdrop = ({
-  onClose,
-}: MobileNavigationBackdropProps) => {
-  const { messages } = useLocalization();
-
-  return (
-    <button
-      aria-label={messages.app.navigation.closeNavigation}
-      className="app__mobile-backdrop"
-      onClick={onClose}
-      type="button"
-    />
-  );
-};
-
 const RoutedApp = () => {
   const controller = useAppController();
+  const mobileNavigationTriggerRef = useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const route = parseAppRoute(location.pathname);
@@ -109,7 +93,10 @@ const RoutedApp = () => {
     );
   }
 
-  const closeMobileSidebar = () => controller.closeMobileSidebar();
+  const closeMobileSidebar = () => {
+    controller.closeMobileSidebar();
+    window.setTimeout(() => mobileNavigationTriggerRef.current?.focus(), 0);
+  };
   const navigateTo = (path: string) => {
     navigate(path);
     closeMobileSidebar();
@@ -135,8 +122,8 @@ const RoutedApp = () => {
         data-language={controller.resolvedLanguage}
         data-language-preference={controller.languagePreference}
       >
-        <MobileNavigationBackdrop onClose={closeMobileSidebar} />
         <AppSidebar
+          className="app-sidebar--desktop"
           currentView={currentView}
           onBoardClick={() => navigateTo(APP_ROUTES.board)}
           onCloseMobileSidebar={closeMobileSidebar}
@@ -156,6 +143,43 @@ const RoutedApp = () => {
           showProfile={controller.authState.status === 'signedIn'}
           showSignOut={controller.authState.status === 'signedIn'}
         />
+        <Drawer.Root
+          onOpenChange={(open) =>
+            open ? controller.openMobileSidebar() : closeMobileSidebar()
+          }
+          open={controller.mobileSidebarOpen}
+        >
+          <Drawer.Portal>
+            <Drawer.Backdrop className="app__mobile-drawer-backdrop" />
+            <Drawer.Viewport className="app__mobile-drawer-viewport">
+              <Drawer.Popup className="app__mobile-drawer-popup">
+                <Drawer.Title className="sr-only">Flowboard navigation</Drawer.Title>
+                <AppSidebar
+                  className="app-sidebar--mobile"
+                  currentView={currentView}
+                  onBoardClick={() => navigateTo(APP_ROUTES.board)}
+                  onCloseMobileSidebar={closeMobileSidebar}
+                  onHistoryClick={() => navigateTo(APP_ROUTES.history)}
+                  onManageColumnsClick={() => {
+                    navigate(APP_ROUTES.board);
+                    controller.openManageColumns();
+                    closeMobileSidebar();
+                  }}
+                  onManageTagsClick={() => navigateTo(APP_ROUTES.tags)}
+                  onProfileClick={controller.openProfileDialog}
+                  onSettingsClick={() => navigateTo(APP_ROUTES.settings)}
+                  onSignOut={controller.signOut}
+                  onToggleSidebar={controller.toggleSidebar}
+                  profile={controller.profileIdentity}
+                  resolvedTheme={controller.resolvedTheme}
+                  sidebarExpanded={controller.sidebarExpanded}
+                  showProfile={controller.authState.status === 'signedIn'}
+                  showSignOut={controller.authState.status === 'signedIn'}
+                />
+              </Drawer.Popup>
+            </Drawer.Viewport>
+          </Drawer.Portal>
+        </Drawer.Root>
         {controller.persistenceMessage && (
           <div className="app__persistence-status" role="status">
             {controller.persistenceMessage}
@@ -181,6 +205,7 @@ const RoutedApp = () => {
           onCompleteWorkClick={controller.openCompleteWorkConfirmation}
           onManageColumnsOpenChange={controller.setManageColumnsOpen}
           onOpenMobileSidebar={controller.openMobileSidebar}
+          mobileNavigationTriggerRef={mobileNavigationTriggerRef}
           onTagsChange={controller.updateTags}
           storageVersion={controller.storageVersion}
           tags={controller.tags}

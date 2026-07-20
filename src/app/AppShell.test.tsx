@@ -51,12 +51,47 @@ test('opens and closes the mobile navigation drawer', async () => {
   render(<App />);
 
   await user.click(screen.getByRole('button', { name: /open navigation/i }));
-  expect(screen.getByRole('main')).toHaveClass('app--mobile-sidebar-open');
+  expect(screen.getByRole('main', { hidden: true })).toHaveClass(
+    'app--mobile-sidebar-open'
+  );
 
   await user.click(
     screen.getAllByRole('button', { name: /close navigation/i })[0]
   );
   expect(screen.getByRole('main')).not.toHaveClass('app--mobile-sidebar-open');
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /open navigation/i })).toHaveFocus()
+  );
+});
+
+test('dismisses the mobile navigation drawer with Escape', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /open navigation/i }));
+  expect(screen.getByRole('dialog', { name: /flowboard navigation/i })).toBeInTheDocument();
+
+  await user.keyboard('{Escape}');
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: /flowboard navigation/i })
+    ).not.toBeInTheDocument()
+  );
+});
+
+test('dismisses the mobile navigation drawer when its backdrop is pressed', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /open navigation/i }));
+  await user.click(document.querySelector('.app__mobile-drawer-backdrop')!);
+
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: /flowboard navigation/i })
+    ).not.toBeInTheDocument()
+  );
 });
 
 test('changes and persists the app theme preference from settings', async () => {
@@ -79,6 +114,24 @@ test('changes and persists the app theme preference from settings', async () => 
     document.querySelector<HTMLLinkElement>('#flowboard-favicon')?.href
   ).toMatch(/\/icon-dark\.svg$/);
   expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
+});
+
+test('keeps one theme segment selected when activated from the keyboard', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await openBoardSettings(user);
+  const darkTheme = screen.getByRole('button', { name: /use dark theme/i });
+
+  await user.click(darkTheme);
+  darkTheme.focus();
+  await user.keyboard('{Space}');
+
+  expect(darkTheme).toHaveAttribute('data-pressed');
+  expect(screen.getByRole('group', { name: /theme preference/i })).toHaveAttribute(
+    'data-selected-value',
+    'dark'
+  );
 });
 
 test('opens settings directly from the local-mode sidebar footer', async () => {

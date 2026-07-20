@@ -20,6 +20,7 @@ type SidebarBrand = {
 type SidebarProps = {
   ariaLabel: string;
   brand: SidebarBrand;
+  className?: string;
   closeIcon: ReactNode;
   closeLabel: string;
   collapseIcon: ReactNode;
@@ -38,6 +39,7 @@ type SidebarProps = {
 const Sidebar = ({
   ariaLabel,
   brand,
+  className,
   closeIcon,
   closeLabel,
   collapseIcon,
@@ -54,7 +56,7 @@ const Sidebar = ({
 }: SidebarProps) => (
   <aside
     aria-label={ariaLabel}
-    className="app-sidebar"
+    className={['app-sidebar', className].filter(Boolean).join(' ')}
     data-expanded={expanded}
   >
     <div className="app-sidebar__header">
