@@ -48,11 +48,17 @@ The system SHALL allow users to reorder columns from the Manage columns dialog w
 - **THEN** the system moves that column to the last board position
 - **AND** the board displays the column as the right-most column
 
-#### Scenario: Reorder controls are disabled at dialog edges
+#### Scenario: Primary reorder controls are visible
 
-- **WHEN** a column is first or last in the dialog list
-- **THEN** movement controls that would move the column past that edge remain visible
-- **AND** those unavailable controls are disabled
+- **WHEN** the Manage columns dialog lists one or more columns
+- **THEN** Move up and Move down remain visible row actions
+- **AND** unavailable visible movement controls are disabled at dialog edges
+
+#### Scenario: Secondary reorder controls are available from row actions
+
+- **WHEN** the Manage columns dialog lists one or more columns
+- **THEN** Move to top and Move to bottom remain available from each row through a secondary action surface
+- **AND** unavailable secondary movement commands are disabled at dialog edges
 
 ### Requirement: User performs column actions in the management dialog
 
@@ -73,6 +79,18 @@ The system SHALL provide rename, delete, and add-column entry points from the Ma
 - **WHEN** the user activates the add-column entry point in Manage columns
 - **THEN** the system opens the add-column flow
 - **AND** the existing board-level Add another column affordance remains available
+
+#### Scenario: User returns to Manage columns after adding a column
+
+- **WHEN** the user adds a column from the Manage columns dialog
+- **THEN** the system returns to the Manage columns dialog after the column is created
+- **AND** the newly created column appears in the dialog list
+
+#### Scenario: Destructive column action is lower emphasis
+
+- **WHEN** the Manage columns dialog lists columns
+- **THEN** the delete action remains available for each column without appearing as an equal-weight default row action
+- **AND** activating delete still uses the existing confirmation flow
 
 ### Requirement: User moves columns from column action menus
 

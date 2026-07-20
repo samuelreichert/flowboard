@@ -32,23 +32,68 @@ import {
 
 beforeEach(resetAppTestEnvironment);
 
-test('renders column creation as a placeholder in the columns list', () => {
+test('guides empty-board setup from the board and composer', async () => {
+  const user = userEvent.setup();
   render(<App />);
 
-  const addColumn = screen.getByRole('button', {
+  expect(screen.getByText('Set up your first column')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Create a column to give the composer somewhere to place new cards.'
+    )
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /add column first/i }));
+  expect(screen.getByLabelText('Column title')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /close dialog/i }));
+
+  await user.click(
+    screen.getByRole('button', { name: /create first column/i })
+  );
+  expect(screen.getByLabelText('Column title')).toBeInTheDocument();
+});
+
+test('renders column creation as a placeholder once columns exist', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+
+  const addColumnButton = screen.getByRole('button', {
     name: /add another column/i,
   });
 
-  expect(addColumn).toHaveClass('add-column-placeholder');
-  expect(addColumn.parentElement).toHaveClass('columns-list');
+  expect(addColumnButton).toHaveClass('add-column-placeholder');
+  expect(addColumnButton.parentElement).toHaveClass('columns-list');
   expect(document.querySelector('.board-toolbar')).not.toBeInTheDocument();
+});
+
+test('keeps the add-column affordance reachable after multiple columns', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Doing');
+  await addColumn(user, 'Done');
+
+  const columnsList = document.querySelector('.columns-list');
+  const addColumnButton = screen.getByRole('button', {
+    name: /add another column/i,
+  });
+
+  expect(columnsList).toContainElement(addColumnButton);
+  expect(columnsList).not.toHaveClass('columns-list--empty');
 });
 
 test('rejects blank and duplicate column titles', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(screen.getByRole('button', { name: /add another column/i }));
+  await user.click(
+    screen.getByRole('button', {
+      name: /add another column|create first column/i,
+    })
+  );
   expect(screen.getByPlaceholderText('Ready for review')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /add column/i }));
   expect(screen.getByText('Enter a column title.')).toBeInTheDocument();
@@ -149,4 +194,85 @@ test('keeps rename column dialog open when the title is blank', async () => {
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByText('Enter a column title.')).toBeInTheDocument();
   expect(readColumns()[0].title).toBe('Todo');
+});
+
+test('reorders columns from the Manage Columns dialog action hierarchy', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Doing');
+  await addColumn(user, 'Done');
+
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+
+  expect(
+    screen.queryByRole('button', { name: /move todo to top/i })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /move todo up/i })).toBeDisabled();
+
+  await user.click(screen.getByRole('button', { name: /move doing up/i }));
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'Doing',
+    'Todo',
+    'Done',
+  ]);
+
+  await user.click(
+    screen.getByRole('button', { name: /more actions for todo/i })
+  );
+  await user.click(
+    await screen.findByRole('menuitem', { name: /move todo to bottom/i })
+  );
+
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'Doing',
+    'Done',
+    'Todo',
+  ]);
+});
+
+test('preserves Manage Columns add, rename, and delete workflows', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+
+  await user.click(screen.getByRole('button', { name: /^add column$/i }));
+  await user.type(screen.getByLabelText('Column title'), 'Review');
+  await user.click(screen.getByRole('button', { name: /^add column$/i }));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('dialog', { name: /manage columns/i })
+    ).toBeInTheDocument()
+  );
+  expect(readColumns().map((column) => column.title)).toEqual([
+    'Todo',
+    'Review',
+  ]);
+
+  await user.click(screen.getByRole('button', { name: /rename todo column/i }));
+  await user.clear(screen.getByLabelText('Column title'));
+  await user.type(screen.getByLabelText('Column title'), 'Ready');
+  await user.click(screen.getByRole('button', { name: /close dialog/i }));
+  expect(readColumns()[0].title).toBe('Ready');
+
+  await user.click(
+    screen.getByRole('button', { name: /more actions for ready/i })
+  );
+  expect(
+    (
+      await screen.findByRole('menuitem', { name: /delete ready column/i })
+    ).closest('.dialog-viewport')
+  ).toBeInTheDocument();
+  await user.click(
+    screen.getByRole('menuitem', { name: /delete ready column/i })
+  );
+  expect(
+    screen.getByRole('alertdialog', { name: /delete this column/i })
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /^delete column$/i }));
+
+  expect(readColumns().map((column) => column.title)).toEqual(['Review']);
 });

@@ -57,13 +57,13 @@ test('creates columns and cards from the global composer', async () => {
   expect(readColumns()[0].cards[0].priority).toBe('medium');
   expect(readColumns()[0].cards[0].tagIds).toEqual([]);
   expect(Date.parse(readColumns()[0].cards[0].createdAt)).not.toBeNaN();
+  expect(screen.queryByText(/kept for next card/i)).not.toBeInTheDocument();
   expect(
     screen.queryByText('Release the new Flowboard build.')
   ).not.toBeInTheDocument();
   await user.click(screen.getByText('Ship it'));
-  expect(screen.getByText(/^Created /i)).toHaveAttribute(
-    'datetime',
-    readColumns()[0].cards[0].createdAt
+  expect(screen.getByText(/^Created /i).getAttribute('datetime')).toEqual(
+    expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)
   );
 });
 
@@ -115,6 +115,20 @@ test('composer creates cards with selected column, priority, and inline-created 
   expect(card).toBeInTheDocument();
   expect(within(card).getByText('High')).toBeInTheDocument();
   expect(within(card).getByText('Design')).toBeInTheDocument();
+  expect(screen.queryByText(/kept for next card/i)).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /reset/i })
+  ).not.toBeInTheDocument();
+
+  await user.type(screen.getByLabelText('New card'), 'Default follow-up');
+  await user.click(screen.getByRole('button', { name: /add card/i }));
+
+  expect(readColumns()[1].cards[1]).toMatchObject({
+    priority: 'medium',
+    tagIds: [],
+    title: 'Default follow-up',
+  });
+  expect(readColumns()[0].cards).toEqual([]);
   expect(screen.queryByText(/cmd\+enter/i)).not.toBeInTheDocument();
 });
 

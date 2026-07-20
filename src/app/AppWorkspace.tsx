@@ -1,6 +1,6 @@
 import { Button } from '@base-ui/react/button';
 import { CheckCircle2, Menu as MenuIcon } from 'lucide-react';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
@@ -70,6 +70,8 @@ const AppWorkspace = ({
   });
   const completedWorkCycles =
     historyQuery.data?.pages.flatMap((page) => page.cycles) ?? [];
+  const [composerPreferredColumnId, setComposerPreferredColumnId] =
+    useState('');
   const workspaceTitle =
     currentView === 'history'
       ? messages.app.workspace.history
@@ -141,9 +143,11 @@ const AppWorkspace = ({
             manageColumnsOpen={manageColumnsOpen}
             onActiveCardClose={onActiveCardClose}
             onCardColumnsChange={onCardColumnsChange}
+            onPreferredColumnChange={setComposerPreferredColumnId}
             onManageColumnsOpenChange={onManageColumnsOpenChange}
             onColumnsChange={onColumnsChange}
             onTagsChange={onTagsChange}
+            preferredColumnId={composerPreferredColumnId}
             tags={tags}
           />
         </section>

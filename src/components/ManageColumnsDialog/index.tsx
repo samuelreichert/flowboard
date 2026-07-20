@@ -1,9 +1,11 @@
 import { Button } from '@base-ui/react/button';
+import { Menu } from '@base-ui/react/menu';
 import {
   ArrowDown,
   ArrowUp,
   ChevronsDown,
   ChevronsUp,
+  Ellipsis,
   Pencil,
   Plus,
   Trash2,
@@ -45,6 +47,8 @@ const ManageColumnsDialog = ({
     useState<BoardColumn | null>(null);
   const [deleteColumnTarget, setDeleteColumnTarget] =
     useState<BoardColumn | null>(null);
+  const [menuPortalContainer, setMenuPortalContainer] =
+    useState<HTMLDivElement | null>(null);
 
   const startAddColumn = () => {
     onOpenChange(false);
@@ -60,6 +64,7 @@ const ManageColumnsDialog = ({
         open={open}
         popupClassName="dialog-popup--column-management"
         title={messages.board.manageColumns}
+        viewportRef={setMenuPortalContainer}
       >
         <div className="column-manager">
           {columns.length > 0 ? (
@@ -80,17 +85,6 @@ const ManageColumnsDialog = ({
                     </div>
                     <div className="column-manager__actions">
                       <Button
-                        aria-label={messages.board.moveColumnToTop(
-                          column.title
-                        )}
-                        className="icon-button"
-                        disabled={isFirst}
-                        onClick={() => moveColumn(column.id, 'first')}
-                        type="button"
-                      >
-                        <ChevronsUp size={16} />
-                      </Button>
-                      <Button
                         aria-label={messages.board.moveColumnUp(column.title)}
                         className="icon-button"
                         disabled={isFirst}
@@ -109,17 +103,6 @@ const ManageColumnsDialog = ({
                         <ArrowDown size={16} />
                       </Button>
                       <Button
-                        aria-label={messages.board.moveColumnToBottom(
-                          column.title
-                        )}
-                        className="icon-button"
-                        disabled={isLast}
-                        onClick={() => moveColumn(column.id, 'last')}
-                        type="button"
-                      >
-                        <ChevronsDown size={16} />
-                      </Button>
-                      <Button
                         aria-label={messages.board.renameColumnAction(
                           column.title
                         )}
@@ -129,16 +112,53 @@ const ManageColumnsDialog = ({
                       >
                         <Pencil size={16} />
                       </Button>
-                      <Button
-                        aria-label={messages.board.deleteColumnAction(
-                          column.title
-                        )}
-                        className="icon-button column-manager__delete"
-                        onClick={() => setDeleteColumnTarget(column)}
-                        type="button"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      <Menu.Root>
+                        <Menu.Trigger
+                          aria-label={messages.board.moreColumnActions(
+                            column.title
+                          )}
+                          className="icon-button"
+                          render={<Button />}
+                        >
+                          <Ellipsis size={16} />
+                        </Menu.Trigger>
+                        <Menu.Portal container={menuPortalContainer}>
+                          <Menu.Positioner
+                            className="column-manager__menu-positioner"
+                            sideOffset={4}
+                          >
+                            <Menu.Popup className="menu-popup">
+                              <Menu.Item
+                                className="menu-item"
+                                disabled={isFirst}
+                                onClick={() => moveColumn(column.id, 'first')}
+                              >
+                                <ChevronsUp size={15} />
+                                {messages.board.moveColumnToTop(column.title)}
+                              </Menu.Item>
+                              <Menu.Item
+                                className="menu-item"
+                                disabled={isLast}
+                                onClick={() => moveColumn(column.id, 'last')}
+                              >
+                                <ChevronsDown size={15} />
+                                {messages.board.moveColumnToBottom(
+                                  column.title
+                                )}
+                              </Menu.Item>
+                              <Menu.Item
+                                className="menu-item menu-item--danger"
+                                onClick={() => setDeleteColumnTarget(column)}
+                              >
+                                <Trash2 size={15} />
+                                {messages.board.deleteColumnAction(
+                                  column.title
+                                )}
+                              </Menu.Item>
+                            </Menu.Popup>
+                          </Menu.Positioner>
+                        </Menu.Portal>
+                      </Menu.Root>
                     </div>
                   </div>
                 );

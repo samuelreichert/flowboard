@@ -81,6 +81,22 @@ test('changes and persists the app theme preference from settings', async () => 
   expect(localStorage.getItem('flowboardThemePreference')).toBe('dark');
 });
 
+test('opens settings directly from the local-mode sidebar footer', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  expect(
+    screen.queryByRole('button', { name: /open account menu/i })
+  ).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /^settings$/i }));
+
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('dialog', { name: /^settings$/i })
+  ).toBeInTheDocument();
+});
+
 test('uses Brazilian Portuguese automatically from the browser language', () => {
   Object.defineProperty(navigator, 'languages', {
     configurable: true,

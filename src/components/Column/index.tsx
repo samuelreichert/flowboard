@@ -121,7 +121,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'first')}
                   >
                     <ChevronsLeft size={15} />
-                    {messages.board.moveColumnToTop(column.title)}
+                    {messages.board.moveColumnToStart}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -129,7 +129,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'previous')}
                   >
                     <ChevronLeft size={15} />
-                    {messages.board.moveColumnUp(column.title)}
+                    {messages.board.moveColumnLeft}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -137,7 +137,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'next')}
                   >
                     <ChevronRight size={15} />
-                    {messages.board.moveColumnDown(column.title)}
+                    {messages.board.moveColumnRight}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"
@@ -145,7 +145,7 @@ const Column = ({
                     onClick={() => moveColumn(column.id, 'last')}
                   >
                     <ChevronsRight size={15} />
-                    {messages.board.moveColumnToBottom(column.title)}
+                    {messages.board.moveColumnToEnd}
                   </Menu.Item>
                   <Menu.Item
                     className="menu-item"

@@ -730,7 +730,11 @@ export const addColumn = async (
   user: ReturnType<typeof userEvent.setup>,
   title: string
 ) => {
-  await user.click(screen.getByRole('button', { name: /add another column/i }));
+  await user.click(
+    screen.getByRole('button', {
+      name: /add another column|create first column/i,
+    })
+  );
   await user.type(screen.getByLabelText('Column title'), title);
   await user.click(screen.getByRole('button', { name: /add column/i }));
   await waitFor(() =>
@@ -867,14 +871,25 @@ export const openTagManager = async (
 export const openBoardSettings = async (
   user: ReturnType<typeof userEvent.setup>
 ) => {
-  await user.click(
-    screen.getByRole('button', {
-      name: /open account menu|abrir menu da conta/i,
-    })
-  );
-  await user.click(
-    await screen.findByRole('menuitem', { name: /^settings$|^configurações$/i })
-  );
+  const directSettings = screen.queryByRole('button', {
+    name: /^settings$|^configurações$/i,
+  });
+
+  if (directSettings) {
+    await user.click(directSettings);
+  } else {
+    await user.click(
+      screen.getByRole('button', {
+        name: /open account menu|abrir menu da conta/i,
+      })
+    );
+    await user.click(
+      await screen.findByRole('menuitem', {
+        name: /^settings$|^configurações$/i,
+      })
+    );
+  }
+
   await screen.findByRole('dialog', { name: /^settings$|^configurações$/i });
 };
 

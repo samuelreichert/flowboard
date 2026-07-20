@@ -92,6 +92,8 @@ export const cardComposerReducer = (
         draft: '',
         error: '',
         newTagName: '',
+        priority: DEFAULT_CARD_PRIORITY,
+        selectedTagIds: [],
         tagError: '',
         tagsOpen: false,
       };

@@ -73,6 +73,31 @@ test('shows and edits card details in the modal', async () => {
   expect(readColumns()[0].cards[0].content).toContain('Ready to ship');
 });
 
+test('keeps card-level actions reachable with long card content', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(
+    user,
+    'Todo',
+    'Long read',
+    Array.from({ length: 24 }, (_, index) => `Paragraph ${index + 1}`).join(
+      '\n\n'
+    )
+  );
+
+  await user.click(screen.getByText('Long read'));
+
+  const deleteButton = screen.getByRole('button', { name: /delete card/i });
+  expect(deleteButton.closest('.dialog-actions--sticky')).not.toBeNull();
+
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  expect(
+    screen.queryByRole('dialog', { name: /card/i })
+  ).not.toBeInTheDocument();
+});
+
 test('opens card details from the card title, metadata, and background', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -310,7 +335,8 @@ test('updates card title without sending rich content or legacy board saves', as
   expect(JSON.parse(String(titlePatch?.body))).toEqual({ title: 'Renamed' });
   expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });

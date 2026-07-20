@@ -97,6 +97,7 @@ const AppSidebar = ({
   ];
   const displayName = getProfileDisplayName(profile);
   const subtitle = getProfileSubtitle(profile);
+  const opensSettingsDirectly = !showProfile && !showSignOut;
   const runAccountMenuAction = (action: () => void) => {
     setAccountMenuOpen(false);
     action();
@@ -124,73 +125,89 @@ const AppSidebar = ({
       expandLabel={messages.app.navigation.expandSidebar}
       expanded={sidebarExpanded}
       footer={
-        <Menu.Root open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
-          <Menu.Trigger
-            aria-label={messages.app.navigation.openAccountMenu}
+        opensSettingsDirectly ? (
+          <Button
+            aria-label={messages.app.navigation.settings}
             className="app-sidebar__account-trigger"
-            render={<Button />}
+            onClick={onSettingsClick}
             title={displayName}
+            type="button"
           >
             <ProfileAvatar profile={profile} size="sm" />
             <span className="app-sidebar__account-text">
               <span className="app-sidebar__account-name">{displayName}</span>
               <span className="app-sidebar__account-email">{subtitle}</span>
             </span>
-          </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner
-              align="start"
-              className="app-sidebar__account-menu-positioner"
-              side="top"
-              sideOffset={8}
+          </Button>
+        ) : (
+          <Menu.Root open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
+            <Menu.Trigger
+              aria-label={messages.app.navigation.openAccountMenu}
+              className="app-sidebar__account-trigger"
+              render={<Button />}
+              title={displayName}
             >
-              <Menu.Popup className="menu-popup app-sidebar__account-menu">
-                {showProfile && (
-                  <>
-                    <button
-                      className="menu-item app-sidebar__account-menu-profile"
-                      onClick={() => runAccountMenuAction(onProfileClick)}
-                      role="menuitem"
-                      type="button"
-                    >
-                      <ProfileAvatar profile={profile} size="sm" />
-                      <span className="app-sidebar__account-text">
-                        <span className="app-sidebar__account-name">
-                          {displayName}
+              <ProfileAvatar profile={profile} size="sm" />
+              <span className="app-sidebar__account-text">
+                <span className="app-sidebar__account-name">{displayName}</span>
+                <span className="app-sidebar__account-email">{subtitle}</span>
+              </span>
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner
+                align="start"
+                className="app-sidebar__account-menu-positioner"
+                side="top"
+                sideOffset={8}
+              >
+                <Menu.Popup className="menu-popup app-sidebar__account-menu">
+                  {showProfile && (
+                    <>
+                      <button
+                        className="menu-item app-sidebar__account-menu-profile"
+                        onClick={() => runAccountMenuAction(onProfileClick)}
+                        role="menuitem"
+                        type="button"
+                      >
+                        <ProfileAvatar profile={profile} size="sm" />
+                        <span className="app-sidebar__account-text">
+                          <span className="app-sidebar__account-name">
+                            {displayName}
+                          </span>
+                          <span className="app-sidebar__account-email">
+                            {subtitle}
+                          </span>
                         </span>
-                        <span className="app-sidebar__account-email">
-                          {subtitle}
-                        </span>
-                      </span>
-                      <ChevronRight size={16} />
-                    </button>
-                    <hr className="menu-separator" />
-                  </>
-                )}
-                <button
-                  className="menu-item"
-                  onClick={() => runAccountMenuAction(onSettingsClick)}
-                  role="menuitem"
-                  type="button"
-                >
-                  <Settings size={15} />
-                  {messages.app.navigation.settings}
-                </button>
-                {showSignOut && (
+                        <ChevronRight size={16} />
+                      </button>
+                      <hr className="menu-separator" />
+                    </>
+                  )}
                   <button
-                    className="menu-item menu-item--danger"
-                    onClick={() => runAccountMenuAction(onSignOut)}
+                    className="menu-item"
+                    onClick={() => runAccountMenuAction(onSettingsClick)}
                     role="menuitem"
                     type="button"
                   >
-                    <LogOut size={15} />
-                    {messages.app.navigation.signOut}
+                    <Settings size={15} />
+                    {messages.app.navigation.settings}
                   </button>
-                )}
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
-        </Menu.Root>
+                  {showSignOut && (
+                    <button
+                      className="menu-item menu-item--danger"
+                      onClick={() => runAccountMenuAction(onSignOut)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <LogOut size={15} />
+                      {messages.app.navigation.signOut}
+                    </button>
+                  )}
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        )
       }
       navAriaLabel={messages.app.navigation.primaryNavigation}
       navItems={navItems}

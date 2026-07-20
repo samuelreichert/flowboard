@@ -1,13 +1,14 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import '../ContentDialog/ContentDialog.css';
 import '../IconButton/IconButton.css';
 
 type DialogShellProps = {
   actions?: ReactNode;
+  actionsClassName?: string;
   children: ReactNode;
   closeLabel?: string;
   description?: ReactNode;
@@ -16,10 +17,12 @@ type DialogShellProps = {
   open: boolean;
   popupClassName?: string;
   title: ReactNode;
+  viewportRef?: Ref<HTMLDivElement>;
 };
 
 const DialogShell = ({
   actions,
+  actionsClassName,
   children,
   closeLabel = 'Close dialog',
   description,
@@ -28,11 +31,12 @@ const DialogShell = ({
   open,
   popupClassName,
   title,
+  viewportRef,
 }: DialogShellProps) => (
   <Dialog.Root open={open} onOpenChange={onOpenChange}>
     <Dialog.Portal>
       <Dialog.Backdrop className="dialog-backdrop" />
-      <Dialog.Viewport className="dialog-viewport">
+      <Dialog.Viewport className="dialog-viewport" ref={viewportRef}>
         <Dialog.Popup
           className={['dialog-popup', popupClassName].filter(Boolean).join(' ')}
         >
@@ -58,7 +62,15 @@ const DialogShell = ({
             </Dialog.Close>
           </div>
           {children}
-          {actions && <div className="dialog-actions">{actions}</div>}
+          {actions && (
+            <div
+              className={['dialog-actions', actionsClassName]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {actions}
+            </div>
+          )}
         </Dialog.Popup>
       </Dialog.Viewport>
     </Dialog.Portal>

@@ -1,10 +1,7 @@
-import { Button } from '@base-ui/react/button';
-import { Dialog } from '@base-ui/react/dialog';
-import { X } from 'lucide-react';
-
 import { useLocalization } from '../../LocalizationProvider';
 import ConfirmDialog from '../ConfirmDialog';
 import DialogSelect from '../DialogSelect';
+import DialogShell from '../DialogShell';
 import { CARD_PRIORITIES } from '../../types';
 import CardContentField from './CardContentField';
 import CardDialogFooter from './CardDialogFooter';
@@ -16,7 +13,6 @@ import type {
   CardDialogValues,
 } from './types';
 import useCardDialogController from './useCardDialogController';
-import '../IconButton/IconButton.css';
 
 const CardDialog = (props: CardDialogProps) => {
   const dialogKey = props.open ? props.card.id : 'closed';
@@ -66,96 +62,80 @@ const CardDialogContent = (props: CardDialogProps) => {
 
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={onCardOpenChange}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="dialog-backdrop" />
-          <Dialog.Viewport className="dialog-viewport">
-            <Dialog.Popup
-              className="dialog-popup dialog-popup--card"
-              role="dialog"
-            >
-              <form>
-                <div className="dialog-header">
-                  <Dialog.Title className="dialog-title">
-                    {messages.card.card}
-                  </Dialog.Title>
-                  <Button
-                    aria-label={messages.card.closeCard}
-                    className="icon-button dialog-close"
-                    onClick={() => onCardOpenChange(false)}
-                    type="button"
-                  >
-                    <X size={17} />
-                  </Button>
-                </div>
-                <CardTitleField
-                  card={card}
-                  createdAtLabel={createdAtLabel}
-                  fallbackTitle={lastValidTitle}
-                  onEditClick={editTitle}
-                  onTitleBlur={onTitleBlur}
-                  onTitleChange={onTitleChange}
-                  title={title}
-                  titleEditing={titleEditing}
-                  titleInputRef={titleInputRef}
-                />
-                <DialogSelect
-                  label={messages.card.column}
-                  name="column"
-                  onValueChange={onColumnChange}
-                  options={columns.map((column) => ({
-                    label: column.title,
-                    value: column.id,
-                  }))}
-                  renderValue={(value) =>
-                    columns.find((column) => column.id === value)?.title ??
-                    messages.common.chooseColumn
-                  }
-                  value={selectedColumnId}
-                />
-                <DialogSelect
-                  label={messages.card.priority}
-                  name="priority"
-                  onValueChange={onPriorityChange}
-                  options={CARD_PRIORITIES.map((nextPriority) => ({
-                    label: messages.priority[nextPriority],
-                    value: nextPriority,
-                  }))}
-                  renderValue={(value) =>
-                    value
-                      ? messages.priority[value]
-                      : messages.common.choosePriority
-                  }
-                  value={priority}
-                />
-                <TagSelectField
-                  creatingTag={creatingTag}
-                  newTagName={newTagName}
-                  onCreateTag={createTag}
-                  onCreateTagClick={startCreatingTag}
-                  onNewTagNameChange={onNewTagNameChange}
-                  onTagToggle={toggleTag}
-                  onTagsOpenChange={onTagsOpenChange}
-                  selectedTagIds={selectedTagIds}
-                  tagError={tagError}
-                  tagSummary={tagSummary}
-                  tags={tags}
-                  tagsOpen={tagsOpen}
-                />
-                <CardContentField
-                  card={card}
-                  content={content}
-                  onContentChange={onContentChange}
-                />
-                <CardDialogFooter
-                  error={error}
-                  onDeleteClick={openDeleteConfirmation}
-                />
-              </form>
-            </Dialog.Popup>
-          </Dialog.Viewport>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <DialogShell
+        actions={
+          <CardDialogFooter
+            error={error}
+            onDeleteClick={openDeleteConfirmation}
+          />
+        }
+        actionsClassName="dialog-actions--spread dialog-actions--sticky"
+        closeLabel={messages.card.closeCard}
+        onOpenChange={onCardOpenChange}
+        open={open}
+        popupClassName="dialog-popup--card"
+        title={messages.card.card}
+      >
+        <form>
+          <CardTitleField
+            card={card}
+            createdAtLabel={createdAtLabel}
+            fallbackTitle={lastValidTitle}
+            onEditClick={editTitle}
+            onTitleBlur={onTitleBlur}
+            onTitleChange={onTitleChange}
+            title={title}
+            titleEditing={titleEditing}
+            titleInputRef={titleInputRef}
+          />
+          <DialogSelect
+            label={messages.card.column}
+            name="column"
+            onValueChange={onColumnChange}
+            options={columns.map((column) => ({
+              label: column.title,
+              value: column.id,
+            }))}
+            renderValue={(value) =>
+              columns.find((column) => column.id === value)?.title ??
+              messages.common.chooseColumn
+            }
+            value={selectedColumnId}
+          />
+          <DialogSelect
+            label={messages.card.priority}
+            name="priority"
+            onValueChange={onPriorityChange}
+            options={CARD_PRIORITIES.map((nextPriority) => ({
+              label: messages.priority[nextPriority],
+              value: nextPriority,
+            }))}
+            renderValue={(value) =>
+              value ? messages.priority[value] : messages.common.choosePriority
+            }
+            value={priority}
+          />
+          <TagSelectField
+            creatingTag={creatingTag}
+            newTagName={newTagName}
+            onCreateTag={createTag}
+            onCreateTagClick={startCreatingTag}
+            onNewTagNameChange={onNewTagNameChange}
+            onTagToggle={toggleTag}
+            onTagsOpenChange={onTagsOpenChange}
+            selectedTagIds={selectedTagIds}
+            tagError={tagError}
+            tagSummary={tagSummary}
+            tags={tags}
+            tagsOpen={tagsOpen}
+          />
+          <CardContentField
+            card={card}
+            content={content}
+            onContentChange={onContentChange}
+          />
+        </form>
+      </DialogShell>
       <ConfirmDialog
         confirmLabel={messages.card.deleteCard}
         description={messages.card.deleteDescription(

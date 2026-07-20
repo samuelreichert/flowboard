@@ -5,6 +5,7 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ToolbarSelectOption } from './types';
+import { getEditorPortalContainer } from './editorPortalTarget';
 
 type ToolbarButtonProps = {
   active?: boolean;
@@ -152,7 +153,7 @@ export const ToolbarSelect = <TValue extends string>({
           </Toolbar.Button>
         )}
       </ToolbarHint>
-      <Select.Portal>
+      <Select.Portal container={getEditorPortalContainer()}>
         <Select.Positioner
           align="start"
           className="editor-toolbar__select-positioner"

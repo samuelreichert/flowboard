@@ -24,6 +24,7 @@
 
 .dialog-popup {
   --dialog-control-height: 40px;
+  --dialog-padding: 22px;
 
   background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
@@ -37,13 +38,15 @@
   max-width: min(480px, calc(100vw - 48px));
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 22px;
+  padding: var(--dialog-padding);
   position: relative;
   width: 100%;
   z-index: 32;
 }
 
 .dialog-popup--card {
+  --dialog-padding: 24px;
+
   max-height: min(860px, calc(100vh - 40px));
   max-width: min(720px, calc(100vw - 48px));
   padding: 24px;
@@ -467,6 +470,17 @@
   margin-top: 22px;
 }
 
+.dialog-actions--sticky {
+  background-color: var(--color-surface-raised);
+  border-top: 1px solid var(--color-border);
+  bottom: calc(var(--dialog-padding) * -1);
+  box-shadow: 0 -12px 24px var(--color-surface-raised);
+  margin: 22px calc(var(--dialog-padding) * -1) calc(var(--dialog-padding) * -1);
+  padding: 14px var(--dialog-padding) 18px;
+  position: sticky;
+  z-index: 2;
+}
+
 .dialog-actions--spread {
   align-items: center;
   justify-content: space-between;
@@ -483,8 +497,9 @@
   }
 
   .dialog-popup {
+    --dialog-padding: 18px;
+
     max-height: calc(100dvh - 28px);
-    padding: 18px;
   }
 
   .dialog-popup--card {

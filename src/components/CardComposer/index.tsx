@@ -22,18 +22,29 @@ import './CardComposer.css';
 type CardComposerProps = {
   columns: BoardColumn[];
   onAddColumnClick: () => void;
+  onPreferredColumnChange: (columnId: string) => void;
   onSave: (values: CardDialogValues) => string | void;
   onTagsChange: (tags: BoardTag[]) => void;
+  preferredColumnId: string;
   tags: BoardTag[];
 };
 
 const getFallbackColumnId = (columns: BoardColumn[]) => columns[0]?.id ?? '';
+const getValidPreferredColumnId = (
+  columns: BoardColumn[],
+  preferredColumnId: string
+) =>
+  columns.some((column) => column.id === preferredColumnId)
+    ? preferredColumnId
+    : getFallbackColumnId(columns);
 
 const CardComposer = ({
   columns,
   onAddColumnClick,
+  onPreferredColumnChange,
   onSave,
   onTagsChange,
+  preferredColumnId: externalPreferredColumnId,
   tags,
 }: CardComposerProps) => {
   const { messages } = useLocalization();
@@ -42,7 +53,7 @@ const CardComposer = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [state, dispatch] = useReducer(
     cardComposerReducer,
-    getFallbackColumnId(columns),
+    getValidPreferredColumnId(columns, externalPreferredColumnId),
     createCardComposerState
   );
   const {
@@ -210,12 +221,13 @@ const CardComposer = ({
         onNewTagNameChange={(name) =>
           dispatch({ name, type: 'newTagNameChanged' })
         }
-        onPriorityChange={(nextPriority) =>
-          dispatch({ priority: nextPriority, type: 'priorityChanged' })
-        }
-        onSelectedColumnChange={(columnId) =>
-          dispatch({ columnId, type: 'preferredColumnChanged' })
-        }
+        onPriorityChange={(nextPriority) => {
+          dispatch({ priority: nextPriority, type: 'priorityChanged' });
+        }}
+        onSelectedColumnChange={(columnId) => {
+          onPreferredColumnChange(columnId);
+          dispatch({ columnId, type: 'preferredColumnChanged' });
+        }}
         onStartCreatingTag={() => dispatch({ type: 'tagCreateStarted' })}
         onTagToggle={toggleTag}
         onTagsOpenChange={(open) =>

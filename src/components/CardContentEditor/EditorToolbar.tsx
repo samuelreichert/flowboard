@@ -36,6 +36,7 @@ import {
   ToolbarSelect,
 } from './EditorToolbarControls';
 import EditorUrlPopoverForm from './EditorUrlPopoverForm';
+import { getEditorPortalContainer } from './editorPortalTarget';
 import type {
   AlignValue,
   EditorToolbarState,
@@ -81,7 +82,11 @@ type ContentEditorMessages = Messages['contentEditor'];
 const getHeadingOptions = (
   messages: ContentEditorMessages
 ): ToolbarSelectOption<HeadingValue>[] => [
-  { icon: <Pilcrow size={15} />, label: messages.paragraph, value: 'paragraph' },
+  {
+    icon: <Pilcrow size={15} />,
+    label: messages.paragraph,
+    value: 'paragraph',
+  },
   {
     icon: <Heading1 size={15} />,
     label: messages.heading1,
@@ -125,7 +130,11 @@ const getAlignOptions = (
     label: messages.alignCenter,
     value: 'center',
   },
-  { icon: <AlignRight size={15} />, label: messages.alignRight, value: 'right' },
+  {
+    icon: <AlignRight size={15} />,
+    label: messages.alignRight,
+    value: 'right',
+  },
   {
     icon: <AlignJustify size={15} />,
     label: messages.justify,
@@ -140,6 +149,10 @@ const getDefaultListOption = (
   label: messages.listStyle,
   value: 'none',
 });
+
+const ToolbarSeparator = () => (
+  <Toolbar.Separator className="editor-toolbar__separator" />
+);
 
 export const EditorToolbar = ({
   copyStatus,
@@ -198,6 +211,7 @@ export const EditorToolbar = ({
       >
         <Redo2 size={16} />
       </ToolbarButton>
+      <ToolbarSeparator />
       <ToolbarSelect
         active={toolbarState.headingValue !== 'paragraph'}
         disabled={!editorReady}
@@ -206,6 +220,7 @@ export const EditorToolbar = ({
         options={headingOptions}
         value={toolbarState.headingValue}
       />
+      <ToolbarSeparator />
       <ToolbarButton
         active={toolbarState.isBold}
         disabled={!editorReady}
@@ -230,6 +245,7 @@ export const EditorToolbar = ({
       >
         <Strikethrough size={16} />
       </ToolbarButton>
+      <ToolbarSeparator />
       <ToolbarSelect
         active={toolbarState.listValue !== 'none'}
         disabled={!editorReady}
@@ -247,6 +263,7 @@ export const EditorToolbar = ({
         options={alignOptions}
         value={toolbarState.alignValue}
       />
+      <ToolbarSeparator />
       <ToolbarButton
         active={toolbarState.isBlockquote}
         disabled={!editorReady}
@@ -271,6 +288,7 @@ export const EditorToolbar = ({
       >
         <Code2 size={16} />
       </ToolbarButton>
+      <ToolbarSeparator />
       <Popover.Root
         onOpenChange={onLinkPopoverOpenChange}
         open={linkPopoverOpen}
@@ -295,7 +313,7 @@ export const EditorToolbar = ({
             </Toolbar.Button>
           )}
         </ToolbarHint>
-        <Popover.Portal>
+        <Popover.Portal container={getEditorPortalContainer()}>
           <Popover.Positioner
             align="start"
             className="editor-url-popover__positioner"
@@ -337,7 +355,7 @@ export const EditorToolbar = ({
             </Toolbar.Button>
           )}
         </ToolbarHint>
-        <Popover.Portal>
+        <Popover.Portal container={getEditorPortalContainer()}>
           <Popover.Positioner
             align="start"
             className="editor-url-popover__positioner"
@@ -355,6 +373,7 @@ export const EditorToolbar = ({
           </Popover.Positioner>
         </Popover.Portal>
       </Popover.Root>
+      <ToolbarSeparator />
       <ToolbarHint label={editorMessages.copyMarkdown}>
         {({ hint, hintTriggerProps }) => (
           <Button
