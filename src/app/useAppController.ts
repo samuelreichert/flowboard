@@ -67,12 +67,7 @@ const useAppController = () => {
     authenticatedBoardLoading,
     loadCompleteBoardState,
     persistenceMessage,
-    persistAuthenticatedBoard,
-  } = useAuthenticatedBoardSync(
-    authState,
-    dispatch,
-    messages.app.persistence
-  );
+  } = useAuthenticatedBoardSync(authState, dispatch, messages.app.persistence);
   const {
     authenticatedProfile,
     clearProfileError,
@@ -105,7 +100,6 @@ const useAppController = () => {
     dispatch,
     boardMutations,
     openSettings,
-    persistAuthenticatedBoard,
     tags,
   });
 

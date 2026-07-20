@@ -11,6 +11,7 @@ import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
 import {
   assignActiveCardTag,
+  clearActiveBoard,
   completeActiveWorkCycle,
   COMPLETED_HISTORY_DEFAULT_LIMIT,
   COMPLETED_HISTORY_MAX_LIMIT,
@@ -67,6 +68,7 @@ const ACTIVE_COLUMN_DETAIL_PATH_PATTERN = /^\/api\/board\/columns\/([^/]+)$/;
 const BOARD_TAG_COLLECTION_PATH = '/api/board/tags';
 const BOARD_TAG_DETAIL_PATH_PATTERN = /^\/api\/board\/tags\/([^/]+)$/;
 const BOARD_SETTINGS_PATH = '/api/board/settings';
+const CLEAR_BOARD_PATH = '/api/board/clear';
 const WORK_CYCLE_SETTINGS_PATH = '/api/board/work-cycle/settings';
 const WORK_CYCLE_COMPLETE_PATH = '/api/board/work-cycle/complete';
 const COMPLETED_HISTORY_PATH = '/api/board/work-cycles/history';
@@ -372,6 +374,7 @@ export const handleAuthenticatedBoardApiRequest = async (
     pathname !== ACTIVE_COLUMN_COLLECTION_PATH &&
     pathname !== BOARD_TAG_COLLECTION_PATH &&
     pathname !== BOARD_SETTINGS_PATH &&
+    pathname !== CLEAR_BOARD_PATH &&
     pathname !== WORK_CYCLE_SETTINGS_PATH &&
     pathname !== WORK_CYCLE_COMPLETE_PATH &&
     pathname !== COMPLETED_HISTORY_PATH &&
@@ -405,6 +408,16 @@ export const handleAuthenticatedBoardApiRequest = async (
     }
 
     sendJson(response, 200, await loadMainBoardBootstrap(prisma, user.id));
+    return true;
+  }
+
+  if (pathname === CLEAR_BOARD_PATH) {
+    if (request.method !== 'POST') {
+      sendBadRequest(response, 'Unsupported board API method.');
+      return true;
+    }
+
+    sendJson(response, 200, await clearActiveBoard(prisma, user.id));
     return true;
   }
 

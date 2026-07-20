@@ -1,9 +1,11 @@
 # board-actions-menu Specification
 
 ## Purpose
+
 Defines where board-level actions are exposed and how destructive board actions are protected.
 
 ## Requirements
+
 ### Requirement: Board actions are available from the sidebar
 
 The system SHALL provide board-level actions from the sidebar rather than from a top-right board actions menu.
@@ -32,3 +34,23 @@ The system SHALL preserve the existing clear-board confirmation behavior when cl
 
 - **WHEN** a user selects clear board from the sidebar
 - **THEN** the system asks for confirmation before deleting columns and cards
+
+### Requirement: Clear board persists through clear-board command
+
+The system SHALL persist confirmed clear-board actions through a focused
+clear-board command instead of the legacy full-board save bridge.
+
+#### Scenario: User confirms clear board from the sidebar
+
+- **WHEN** a user selects clear board from the sidebar and confirms the action
+- **THEN** the client submits the clear-board command
+- **AND** the active board becomes empty using the command result
+- **AND** board tags, board background, and completed history remain available
+- **AND** the client does not submit a legacy full-board save for clear board
+
+#### Scenario: User cancels clear board from the sidebar
+
+- **WHEN** a user selects clear board from the sidebar and cancels the
+  confirmation
+- **THEN** the client does not submit the clear-board command
+- **AND** the active board remains unchanged

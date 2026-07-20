@@ -13,6 +13,7 @@ import type {
 } from '../storage/authenticatedApi';
 import {
   assignActiveCardTag,
+  clearBoard,
   completeWorkCycle,
   createActiveColumn,
   createBoardTag,
@@ -29,6 +30,7 @@ vi.mock('../storage/authenticatedApi', async (importOriginal) => {
   return {
     ...actual,
     assignActiveCardTag: vi.fn(),
+    clearBoard: vi.fn(),
     completeWorkCycle: vi.fn(),
     createActiveColumn: vi.fn(),
     createBoardTag: vi.fn(),
@@ -69,6 +71,7 @@ const bootstrap: BoardBootstrapResponse = {
 describe('useFlowboardBoardMutations', () => {
   beforeEach(() => {
     vi.mocked(assignActiveCardTag).mockReset();
+    vi.mocked(clearBoard).mockReset();
     vi.mocked(completeWorkCycle).mockReset();
     vi.mocked(createActiveColumn).mockReset();
     vi.mocked(createBoardTag).mockReset();
@@ -345,5 +348,112 @@ describe('useFlowboardBoardMutations', () => {
         pages: CompletedHistoryResponse[];
       }>(queryKeys.board.history(20))?.pages[0].cycles[0].id
     ).toBe('cycle-1');
+  });
+
+  test('clears board through resource mutation and removes active card details', async () => {
+    const queryClient = createFlowboardQueryClient();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const detail: ActiveCardDetailResponse = {
+      content: 'Rich content',
+      createdAt: '2026-07-17T10:00:00.000Z',
+      id: 'card-1',
+      priority: 'medium',
+      tagIds: ['tag-1'],
+      title: 'First',
+    };
+
+    queryClient.setQueryData(queryKeys.board.bootstrap, bootstrap);
+    queryClient.setQueryData(queryKeys.board.card('card-1'), detail);
+    vi.mocked(clearBoard).mockResolvedValue({
+      boardVersion: 10,
+      cardIds: ['card-1'],
+      columns: [],
+      workCycle: {
+        completedColumnId: null,
+        startDate: '2026-07-17T10:00:00.000Z',
+      },
+    });
+
+    const { result } = renderHook(
+      () => useFlowboardBoardMutations({ accessToken: 'token-1' }),
+      { wrapper }
+    );
+
+    act(() => result.current.clearBoard());
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<BoardBootstrapResponse>(
+          queryKeys.board.bootstrap
+        )?.board.version
+      ).toBe(10)
+    );
+
+    expect(clearBoard).toHaveBeenCalledWith('token-1');
+    expect(
+      queryClient.getQueryData<BoardBootstrapResponse>(
+        queryKeys.board.bootstrap
+      )
+    ).toEqual({
+      ...bootstrap,
+      board: {
+        ...bootstrap.board,
+        version: 10,
+      },
+      cards: [],
+      columns: [],
+      workCycle: {
+        completedColumnId: null,
+        startDate: '2026-07-17T10:00:00.000Z',
+      },
+    });
+    expect(
+      queryClient.getQueryData<ActiveCardDetailResponse>(
+        queryKeys.board.card('card-1')
+      )
+    ).toBeUndefined();
+  });
+
+  test('rolls back optimistic clear-board cache when clear fails', async () => {
+    const queryClient = createFlowboardQueryClient();
+    const onMutationError = vi.fn();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const detail: ActiveCardDetailResponse = {
+      content: 'Rich content',
+      createdAt: '2026-07-17T10:00:00.000Z',
+      id: 'card-1',
+      priority: 'medium',
+      tagIds: ['tag-1'],
+      title: 'First',
+    };
+
+    queryClient.setQueryData(queryKeys.board.bootstrap, bootstrap);
+    queryClient.setQueryData(queryKeys.board.card('card-1'), detail);
+    vi.mocked(clearBoard).mockRejectedValue(new Error('Nope'));
+
+    const { result } = renderHook(
+      () =>
+        useFlowboardBoardMutations({
+          accessToken: 'token-1',
+          onMutationError,
+        }),
+      { wrapper }
+    );
+
+    act(() => result.current.clearBoard());
+    await waitFor(() => expect(onMutationError).toHaveBeenCalled());
+    expect(
+      queryClient.getQueryData<BoardBootstrapResponse>(
+        queryKeys.board.bootstrap
+      )
+    ).toEqual(bootstrap);
+    expect(
+      queryClient.getQueryData<ActiveCardDetailResponse>(
+        queryKeys.board.card('card-1')
+      )
+    ).toEqual(detail);
   });
 });

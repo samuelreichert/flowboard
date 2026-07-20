@@ -10,6 +10,7 @@ import { ensureProfile } from '../auth/profileService.js';
 import { PrismaClient } from '../generated/prisma/sqlite/client.js';
 import {
   assignActiveCardTag,
+  clearActiveBoard,
   completeActiveWorkCycle,
   createActiveColumn,
   createActiveCard,
@@ -609,6 +610,92 @@ describe('structured board repository', () => {
       sampleState.completedWorkCycles
     );
     await expect(prisma.completedWorkCycleCard.count()).resolves.toBe(1);
+  });
+
+  test('clears active board rows while preserving unrelated durable data', async () => {
+    const prisma = createTestPrisma();
+    const state: BoardState = {
+      ...sampleState,
+      columns: [
+        sampleState.columns[0],
+        {
+          ...sampleState.columns[1],
+          cards: [
+            {
+              content: 'Done content',
+              createdAt: '2026-07-02T01:00:00.000Z',
+              id: 'done-card',
+              priority: 'medium',
+              tagIds: ['tag-1'],
+              title: 'Done card',
+            },
+          ],
+        },
+      ],
+    };
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', state);
+    const previousBoard = await prisma.board.findUniqueOrThrow({
+      where: { id: board.id },
+    });
+
+    const result = await clearActiveBoard(prisma, 'user-1');
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result).toEqual({
+      boardVersion: previousBoard.version + 1,
+      cardIds: ['card-1', 'done-card'],
+      columns: [],
+      workCycle: {
+        completedColumnId: null,
+        startDate: '2026-07-01T00:00:00.000Z',
+      },
+    });
+    expect(loaded?.state).toEqual({
+      ...state,
+      activeWorkCycle: {
+        completedColumnId: null,
+        startDate: '2026-07-01T00:00:00.000Z',
+      },
+      columns: [],
+    });
+    await expect(prisma.boardColumn.count()).resolves.toBe(0);
+    await expect(prisma.card.count()).resolves.toBe(0);
+    await expect(prisma.cardTag.count()).resolves.toBe(0);
+    await expect(prisma.tag.count()).resolves.toBe(1);
+    await expect(prisma.completedWorkCycle.count()).resolves.toBe(1);
+    await expect(prisma.completedWorkCycleCard.count()).resolves.toBe(1);
+    await expect(prisma.completedWorkCycleCardTag.count()).resolves.toBe(1);
+    await expect(prisma.project.count()).resolves.toBe(1);
+    await expect(prisma.profile.count()).resolves.toBe(1);
+  });
+
+  test('clears an already empty active board without creating default columns', async () => {
+    const prisma = createTestPrisma();
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'user@example.com',
+      id: 'user-1',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1');
+
+    const result = await clearActiveBoard(prisma, 'user-1');
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(result.columns).toEqual([]);
+    expect(result.cardIds).toEqual([]);
+    expect(result.workCycle.completedColumnId).toBeNull();
+    expect(loaded?.state.columns).toEqual([]);
+    await expect(prisma.boardColumn.count()).resolves.toBe(0);
+    await expect(prisma.card.count()).resolves.toBe(0);
   });
 
   test('creates, renames, and deletes board tags without touching archived tag snapshots', async () => {

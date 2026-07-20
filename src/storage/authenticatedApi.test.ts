@@ -414,6 +414,34 @@ test('settings mutations call resource endpoints', async () => {
   );
 });
 
+test('clearBoard posts to focused clear-board endpoint', async () => {
+  const payload = {
+    boardVersion: 4,
+    cardIds: ['card-1'],
+    columns: [],
+    workCycle: {
+      completedColumnId: null,
+      startDate: '2026-07-17T10:00:00.000Z',
+    },
+  };
+  const fetchMock = vi
+    .fn()
+    .mockImplementation(() => createJsonResponse(payload));
+
+  vi.stubGlobal('fetch', fetchMock);
+
+  const { clearBoard } = await import('./authenticatedApi');
+
+  await expect(clearBoard('token-1')).resolves.toEqual(payload);
+  expect(fetchMock).toHaveBeenCalledWith('/api/board/clear', {
+    headers: {
+      Authorization: 'Bearer token-1',
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+});
+
 test('work-cycle completion and history helpers call focused endpoints', async () => {
   const completionPayload = {
     boardVersion: 2,
@@ -530,6 +558,17 @@ test('work-cycle history helpers reject unsuccessful responses', async () => {
   await expect(fetchArchivedCardDetail('cycle-1', 'card-1')).rejects.toThrow(
     'Unable to load archived card detail.'
   );
+});
+
+test('clearBoard rejects unsuccessful responses', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(createJsonResponse({}, 500))
+  );
+
+  const { clearBoard } = await import('./authenticatedApi');
+
+  await expect(clearBoard()).rejects.toThrow('Unable to clear board.');
 });
 
 test('card mutations reject unsuccessful responses', async () => {

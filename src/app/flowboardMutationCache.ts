@@ -1,6 +1,7 @@
 import type {
   ActiveCardDetailResponse,
   BoardBootstrapResponse,
+  ClearBoardMutationResponse,
   CardMutationCard,
   CompleteWorkCycleMutationResponse,
   CompletedHistoryResponse,
@@ -287,6 +288,23 @@ export const applyCompletedWorkCycleToBootstrap = (
     ...bootstrap,
     board: withBoardVersion(bootstrap, result.boardVersion),
     cards: bootstrap.cards.filter((card) => !completedCardIds.has(card.id)),
+    workCycle: result.workCycle,
+  };
+};
+
+export const applyClearBoardToBootstrap = (
+  bootstrap: BoardBootstrapResponse | undefined,
+  result: ClearBoardMutationResponse
+) => {
+  if (!bootstrap) {
+    return bootstrap;
+  }
+
+  return {
+    ...bootstrap,
+    board: withBoardVersion(bootstrap, result.boardVersion),
+    cards: [],
+    columns: result.columns,
     workCycle: result.workCycle,
   };
 };

@@ -36,17 +36,41 @@ beforeEach(resetAppTestEnvironment);
 test('clears the board only after confirmation', async () => {
   const user = userEvent.setup();
   render(<App />);
+  const fetchMock = vi.mocked(fetch);
 
   await addColumn(user, 'Todo');
+  fetchMock.mockClear();
   await openBoardSettings(user);
   await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /cancel/i }));
   expect(readColumns()).toHaveLength(1);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        String(url).endsWith('/api/board/clear') && init?.method === 'POST'
+    )
+  ).toBe(false);
 
   await openBoardSettings(user);
   await user.click(screen.getByRole('button', { name: /clear board/i }));
   await user.click(screen.getByRole('button', { name: /^clear board$/i }));
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith('/api/board/clear') && init?.method === 'POST'
+      )
+    ).toBe(true)
+  );
   expect(readColumns()).toEqual([]);
+  expect(fetchBoardState().tags).toEqual([]);
+  expect(fetchBoardState().completedWorkCycles).toEqual([]);
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
 });
 
 test('clear board lives in settings only when the board can be cleared', async () => {
@@ -122,7 +146,8 @@ test('configures completed column and preserves it through rename and delete', a
   expect(fetchBoardState().activeWorkCycle.completedColumnId).toBeNull();
   expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });

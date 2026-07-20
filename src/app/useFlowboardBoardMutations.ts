@@ -5,6 +5,7 @@ import type { InfiniteData } from '@tanstack/react-query';
 
 import {
   assignActiveCardTag,
+  clearBoard,
   completeWorkCycle,
   createActiveColumn,
   createBoardTag,
@@ -20,6 +21,7 @@ import {
   type BoardBootstrapResponse,
   type BoardSettingsMutationInput,
   type CardTagMutationResponse,
+  type ClearBoardMutationResponse,
   type CompleteWorkCycleMutationResponse,
   type CompletedHistoryResponse,
   type ColumnMutationResponse,
@@ -34,6 +36,7 @@ import {
   type WorkCycleSettingsMutationInput,
 } from '../storage/authenticatedApi';
 import {
+  applyClearBoardToBootstrap,
   applyCompletedWorkCycleToBootstrap,
   applyDeletedColumn,
   applyDeletedTag,
@@ -838,9 +841,76 @@ export const useFlowboardBoardMutations = ({
     },
   });
 
+  const clearBoardMutation = useMutation<
+    ClearBoardMutationResponse,
+    Error,
+    void,
+    MutationContext
+  >({
+    mutationFn: () => clearBoard(accessToken),
+    onError: (_error, _variables, context) => {
+      onMutationError?.();
+      restoreContext(context);
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
+      const previousBootstrap = getBootstrap();
+      const activeCardIds =
+        previousBootstrap?.cards.map((card) => card.id) ?? [];
+      const previousCardDetails = activeCardIds.map((cardId) => ({
+        cardId,
+        detail: queryClient.getQueryData<ActiveCardDetailResponse>(
+          queryKeys.board.card(cardId)
+        ),
+      }));
+
+      queryClient.setQueryData(queryKeys.board.bootstrap, (current) => {
+        const bootstrap = current as BoardBootstrapResponse | undefined;
+
+        return bootstrap
+          ? {
+              ...bootstrap,
+              cards: [],
+              columns: [],
+              workCycle: {
+                ...bootstrap.workCycle,
+                completedColumnId: null,
+              },
+            }
+          : bootstrap;
+      });
+
+      for (const cardId of activeCardIds) {
+        queryClient.removeQueries({
+          exact: true,
+          queryKey: queryKeys.board.card(cardId),
+        });
+      }
+
+      return { previousBootstrap, previousCardDetails };
+    },
+    onSuccess: (result) => {
+      onMutationSuccess?.();
+      queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
+        applyClearBoardToBootstrap(
+          current as BoardBootstrapResponse | undefined,
+          result
+        )
+      );
+
+      for (const cardId of result.cardIds) {
+        queryClient.removeQueries({
+          exact: true,
+          queryKey: queryKeys.board.card(cardId),
+        });
+      }
+    },
+  });
+
   return useMemo(
     () => ({
       assignCardTag: assignTagMutation.mutate,
+      clearBoard: clearBoardMutation.mutate,
       completeWorkCycle: completeWorkCycleMutation.mutate,
       createColumn: createColumnMutation.mutate,
       createTag: createTagMutation.mutate,
@@ -855,6 +925,7 @@ export const useFlowboardBoardMutations = ({
     }),
     [
       assignTagMutation.mutate,
+      clearBoardMutation.mutate,
       completeWorkCycleMutation.mutate,
       createColumnMutation.mutate,
       createTagMutation.mutate,

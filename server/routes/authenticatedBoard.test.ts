@@ -808,6 +808,109 @@ describe('handleAuthenticatedBoardApiRequest', () => {
     expect(JSON.parse(response.body).card.id).toBe('card-1');
   });
 
+  test('clears active board for authenticated and local development users', async () => {
+    for (const resolver of [
+      authenticatedResolver,
+      {
+        resolveRequest: vi.fn().mockResolvedValue(LOCAL_DEV_PRINCIPAL),
+      } satisfies PrincipalResolver,
+    ]) {
+      const response = createResponse();
+      const prisma = createMutationPrisma();
+
+      vi.mocked(prisma.boardWorkCycle.upsert).mockResolvedValue({
+        completedColumnId: null,
+        startDate: new Date('2026-07-01T00:00:00.000Z'),
+      });
+
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest({
+          method: 'POST',
+          url: '/api/board/clear',
+        }),
+        response,
+        prisma,
+        resolver
+      );
+
+      expect(handled).toBe(true);
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({
+        boardVersion: 8,
+        cardIds: ['card-1'],
+        columns: [],
+        workCycle: {
+          completedColumnId: null,
+          startDate: '2026-07-01T00:00:00.000Z',
+        },
+      });
+      expect(prisma.cardTag.deleteMany).toHaveBeenCalledWith({
+        where: { card: { boardId: 'board-1' } },
+      });
+      expect(prisma.card.deleteMany).toHaveBeenCalledWith({
+        where: { boardId: 'board-1' },
+      });
+      expect(prisma.boardColumn.deleteMany).toHaveBeenCalledWith({
+        where: { boardId: 'board-1' },
+      });
+    }
+  });
+
+  test('rejects unauthenticated clear-board requests without reading board data', async () => {
+    const response = createResponse();
+    const prisma = createMutationPrisma();
+    const handled = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        method: 'POST',
+        url: '/api/board/clear',
+      }),
+      response,
+      prisma,
+      {
+        resolveRequest: vi.fn().mockResolvedValue(null),
+      } satisfies PrincipalResolver
+    );
+
+    expect(handled).toBe(true);
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.body).error.code).toBe('unauthenticated');
+    expect(prisma.board.findFirst).not.toHaveBeenCalled();
+  });
+
+  test('clear-board command ignores client-supplied aggregate body data', async () => {
+    const response = createResponse();
+    const prisma = createMutationPrisma();
+
+    vi.mocked(prisma.boardWorkCycle.upsert).mockResolvedValue({
+      completedColumnId: null,
+      startDate: new Date('2026-07-01T00:00:00.000Z'),
+    });
+
+    const handled = await handleAuthenticatedBoardApiRequest(
+      createRequest({
+        body: JSON.stringify({
+          boardId: 'other-board',
+          columns: [{ id: 'foreign-column' }],
+          ownerId: 'other-user',
+        }),
+        method: 'POST',
+        url: '/api/board/clear',
+      }),
+      response,
+      prisma,
+      authenticatedResolver
+    );
+
+    expect(handled).toBe(true);
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body).columns).toEqual([]);
+    expect(prisma.board.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ ownerId: 'user-1' }),
+      })
+    );
+  });
+
   test('completes work cycles for authenticated users', async () => {
     const response = createResponse();
     const prisma = createWorkCyclePrisma();
