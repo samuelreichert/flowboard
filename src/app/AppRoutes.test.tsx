@@ -47,10 +47,7 @@ test('opens route-owned management surfaces and closes them to board', async () 
   await user.click(screen.getByRole('button', { name: /close tag manager/i }));
   expect(window.location.pathname).toBe('/board');
 
-  await user.click(screen.getByRole('button', { name: /open account menu/i }));
-  await user.click(
-    await screen.findByRole('menuitem', { name: /^settings$/i })
-  );
+  await user.click(screen.getByRole('button', { name: /^settings$/i }));
   expect(window.location.pathname).toBe('/settings');
   expect(screen.getByRole('dialog', { name: /^settings$/i })).toHaveClass(
     'dialog-popup--route-management'
