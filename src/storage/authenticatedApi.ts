@@ -172,9 +172,7 @@ export type WorkCycleSettingsMutationResponse = {
   workCycle: BoardActiveWorkCycle;
 };
 
-export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'> & {
-  hasContent: boolean;
-};
+export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'>;
 
 export type CompletedHistoryCycleSummary = Omit<CompletedWorkCycle, 'cards'> & {
   cards: CompletedHistoryCardSummary[];

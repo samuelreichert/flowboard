@@ -1,11 +1,10 @@
 import { AlignLeft } from 'lucide-react';
-import { useEffect, useReducer, useRef } from 'react';
+import { lazy, Suspense, useReducer, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useCardDragAndDrop } from './useCardDragAndDrop';
 import CardMetadata from '../CardMetadata';
-import CardDialog from '../CardDialog';
 import type { CardDialogSaveValues } from '../CardDialog';
 import { useLocalization } from '../../LocalizationProvider';
 import { createActiveCardPath } from '../../app/routes';
@@ -13,6 +12,8 @@ import { useActiveCardDetailQuery } from '../../app/useFlowboardQueries';
 import type { BoardCard, BoardColumn, BoardTag } from '../../types';
 
 import './Card.css';
+
+const CardDialog = lazy(() => import('../CardDialog'));
 
 type CardProps = {
   activeCardId: string | null;
@@ -134,24 +135,28 @@ const Card = ({
           />
         </button>
       </article>
-      <CardDialog
-        card={dialogCard}
-        columnId={columnId}
-        columns={columns}
-        onDelete={() => deleteCard(columnId, card.id)}
-        onTagsChange={onTagsChange}
-        onOpenChange={(open) => {
-          if (!open && routeDetailsOpen) {
-            onActiveCardClose();
-            return;
-          }
+      {dialogOpen && (
+        <Suspense fallback={null}>
+          <CardDialog
+            card={dialogCard}
+            columnId={columnId}
+            columns={columns}
+            onDelete={() => deleteCard(columnId, card.id)}
+            onTagsChange={onTagsChange}
+            onOpenChange={(open) => {
+              if (!open && routeDetailsOpen) {
+                onActiveCardClose();
+                return;
+              }
 
-          dispatch({ open, type: 'detailsOpenChanged' });
-        }}
-        onSave={(values) => editCard(columnId, card.id, values)}
-        open={dialogOpen}
-        tags={tags}
-      />
+              dispatch({ open, type: 'detailsOpenChanged' });
+            }}
+            onSave={(values) => editCard(columnId, card.id, values)}
+            open={dialogOpen}
+            tags={tags}
+          />
+        </Suspense>
+      )}
     </>
   );
 };
