@@ -214,6 +214,7 @@ const createMutationPrisma = ({
         id: 'todo',
         title: 'Updated',
       }),
+      updateMany: vi.fn(),
     },
     boardWorkCycle: {
       deleteMany: vi.fn(),
@@ -241,6 +242,7 @@ const createMutationPrisma = ({
       findFirst: vi.fn().mockResolvedValue(card),
       findMany: vi.fn().mockResolvedValue([{ id: 'card-1' }]),
       update: vi.fn().mockResolvedValue(card ?? mutationCard),
+      updateMany: vi.fn(),
     },
     cardTag: {
       create: vi.fn(),
@@ -977,7 +979,6 @@ describe('handleAuthenticatedBoardApiRequest', () => {
           {
             archivedAt: expect.any(String),
             createdAt: '2026-07-04T00:00:00.000Z',
-            hasContent: true,
             id: 'card-1',
             priority: 'high',
             tagIds: ['tag-1'],
@@ -1035,7 +1036,6 @@ describe('handleAuthenticatedBoardApiRequest', () => {
             {
               archivedAt: '2026-07-05T00:00:00.000Z',
               createdAt: '2026-07-04T00:00:00.000Z',
-              hasContent: true,
               id: 'card-1',
               priority: 'high',
               tagIds: ['tag-1'],
@@ -1056,6 +1056,11 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       },
     });
     expect(historyBody.cycles[0].cards[0]).not.toHaveProperty('content');
+    const historyQuery = vi.mocked(prisma.completedWorkCycle.findMany).mock
+      .calls[0][0] as {
+      select: { cards: { select: Record<string, unknown> } };
+    };
+    expect(historyQuery.select.cards.select).not.toHaveProperty('content');
     expect(handledDetail).toBe(true);
     expect(detailResponse.statusCode).toBe(200);
     expect(JSON.parse(detailResponse.body)).toEqual({

@@ -35,7 +35,6 @@ const createHistoryPage = (
         {
           archivedAt: '2026-07-18T10:00:00.000Z',
           createdAt: '2026-07-17T10:00:00.000Z',
-          hasContent: true,
           id: `${cycleId}-card`,
           priority: 'medium',
           tagIds: [],

@@ -62,9 +62,9 @@ test('creates columns and cards from the global composer', async () => {
     screen.queryByText('Release the new Flowboard build.')
   ).not.toBeInTheDocument();
   await user.click(screen.getByText('Ship it'));
-  expect(screen.getByText(/^Created /i).getAttribute('datetime')).toEqual(
-    expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)
-  );
+  expect(
+    (await screen.findByText(/^Created /i)).getAttribute('datetime')
+  ).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/));
 });
 
 test('composer validates empty drafts and preserves unsent text during board interactions', async () => {

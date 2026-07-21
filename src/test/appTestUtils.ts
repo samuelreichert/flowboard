@@ -184,10 +184,7 @@ const toTagSummaries = () => mockServerBoardState.tags;
 const toCompletedHistoryResponse = () => ({
   cycles: mockServerBoardState.completedWorkCycles.map((cycle) => ({
     ...cycle,
-    cards: cycle.cards.map(({ content: _content, ...card }) => ({
-      ...card,
-      hasContent: Boolean(_content),
-    })),
+    cards: cycle.cards.map(({ content: _content, ...card }) => card),
   })),
   pageInfo: {
     hasMore: false,
@@ -275,10 +272,7 @@ const mockFlowboardApi = () => {
           columnId: completedColumn.id,
           cycle: {
             ...cycle,
-            cards: cycle.cards.map(({ content: _content, ...card }) => ({
-              ...card,
-              hasContent: Boolean(_content),
-            })),
+            cards: cycle.cards.map(({ content: _content, ...card }) => card),
           },
           workCycle: activeWorkCycle,
         });
@@ -828,8 +822,8 @@ export const selectText = (element: HTMLElement) => {
 export const getBoardCardButton = (title: string) =>
   screen.getByRole('button', { name: `Open ${title}` });
 
-export const expectCardDialogTitle = (title: string) => {
-  const dialog = screen.getByRole('dialog', { name: /card/i });
+export const expectCardDialogTitle = async (title: string) => {
+  const dialog = await screen.findByRole('dialog', { name: /card/i });
 
   expect(
     within(dialog).getByRole('heading', { name: title })

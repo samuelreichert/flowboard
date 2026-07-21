@@ -875,7 +875,6 @@ describe('structured board repository', () => {
           {
             archivedAt: '2026-07-05T00:00:00.000Z',
             createdAt: '2026-07-04T00:00:00.000Z',
-            hasContent: true,
             id: 'done-card-1',
             priority: 'high',
             tagIds: ['tag-1'],
@@ -885,7 +884,6 @@ describe('structured board repository', () => {
           {
             archivedAt: '2026-07-05T00:00:00.000Z',
             createdAt: '2026-07-04T01:00:00.000Z',
-            hasContent: false,
             id: 'done-card-2',
             priority: 'low',
             tagIds: [],
@@ -1041,7 +1039,6 @@ describe('structured board repository', () => {
             {
               archivedAt: '2026-07-04T00:00:00.000Z',
               createdAt: '2026-07-03T00:00:00.000Z',
-              hasContent: true,
               id: 'archived-card-2',
               priority: 'high',
               tagIds: ['tag-1'],

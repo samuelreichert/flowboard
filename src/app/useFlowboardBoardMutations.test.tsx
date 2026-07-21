@@ -293,7 +293,6 @@ describe('useFlowboardBoardMutations', () => {
           {
             archivedAt: '2026-07-18T10:00:00.000Z',
             createdAt: '2026-07-17T10:00:00.000Z',
-            hasContent: true,
             id: 'done-card',
             priority: 'high',
             tagIds: ['tag-1'],

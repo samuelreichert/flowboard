@@ -97,7 +97,7 @@ test('directly opens and closes an active card route', async () => {
 
   render(<App />);
 
-  expectCardDialogTitle('First');
+  await expectCardDialogTitle('First');
   await user.click(screen.getByRole('button', { name: /close card/i }));
   expect(window.location.pathname).toBe('/board');
 });

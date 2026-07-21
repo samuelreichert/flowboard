@@ -452,7 +452,6 @@ test('work-cycle completion and history helpers call focused endpoints', async (
         {
           archivedAt: '2026-07-18T10:00:00.000Z',
           createdAt: '2026-07-17T10:00:00.000Z',
-          hasContent: true,
           id: 'card-1',
           priority: 'medium',
           tagIds: ['tag-1'],
