@@ -70,8 +70,9 @@ const useAuthenticatedBoardSync = (
 
   return {
     authenticatedBoardLoading:
-      shouldLoadBoard &&
-      (bootstrapQuery.isPending || bootstrapQuery.isFetching),
+      authState.status === 'signedIn' &&
+      !bootstrapQuery.data &&
+      !bootstrapQuery.isError,
   };
 };
 
