@@ -36,7 +36,7 @@ const CardContentViewer = ({ ariaLabel, value }: CardContentViewerProps) => {
     }
 
     editor.commands.setContent(normalizeMarkdownForEditor(value), {
-      contentType: 'markdown',
+      contentType: getEditorContentType(value),
       emitUpdate: false,
     });
   }, [editor, value]);

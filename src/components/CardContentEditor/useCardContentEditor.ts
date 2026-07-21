@@ -22,6 +22,7 @@ export const useCardContentEditor = ({
 }: UseCardContentEditorProps) => {
   const { messages } = useLocalization();
   const onChangeRef = useRef(onChange);
+  const lastSyncedValue = useRef(value);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -62,9 +63,22 @@ export const useCardContentEditor = ({
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => {
       const markdown = getEditorMarkdown(currentEditor);
+      lastSyncedValue.current = markdown;
       onChangeRef.current(markdown);
     },
   });
+
+  useEffect(() => {
+    if (!editor || value === lastSyncedValue.current) {
+      return;
+    }
+
+    lastSyncedValue.current = value;
+    editor.commands.setContent(normalizeMarkdownForEditor(value), {
+      contentType: getEditorContentType(value),
+      emitUpdate: false,
+    });
+  }, [editor, value]);
 
   return editor;
 };
