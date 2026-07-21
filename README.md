@@ -1,8 +1,9 @@
 # Flowboard
 
-Flowboard is a focused workflow board for organizing columns, cards,
-priorities, tags, rich notes, and completed work history with durable
-Prisma-backed persistence.
+Flowboard is a focused workflow board built with React, TypeScript, Prisma, and
+Supabase. It supports columns, cards, rich notes, priorities, tags, work-cycle
+history, and durable structured persistence with SQLite locally and Postgres in
+production.
 
 ![Flowboard latest app shell with workflow columns, cards, priorities, and theme controls](public/flowboard-screenshot-latest.jpg)
 
@@ -20,10 +21,12 @@ Prisma-backed persistence.
 - Assign Low, Medium, or High priority to cards.
 - Create reusable board tags and assign them to cards.
 - Track active work cycles and completed work history.
-- Sign in with Supabase Auth for durable user-owned boards.
+- Sign in with Supabase Auth for durable, user-owned boards.
 - Use a responsive app shell with a collapsible sidebar, board actions, and system/light/dark theme controls.
 - Persist board data through structured Prisma tables, using SQLite locally and
   Supabase Postgres in production.
+- Keep browser `localStorage` limited to non-database UI preferences, not board
+  data.
 
 ## Setup
 
@@ -270,7 +273,8 @@ Manual verification checklist:
 
 Flowboard stores durable board data in Prisma-backed databases. Local
 development uses SQLite, and production authenticated deployments use Supabase
-Postgres.
+Postgres. Browser `localStorage` is not a supported board database or board
+import source.
 
 When using `npm run dev` or `npm start` with Prisma SQLite, the complete board
 state is saved locally in structured tables in `data/flowboard.local.db`:
@@ -286,15 +290,19 @@ data/flowboard.local.db
 Authenticated persistence loads durable board data from the authenticated API
 and saves through Prisma-backed structured tables.
 
+The browser may still store non-database UI preferences such as theme or
+language selection locally, but columns, cards, tags, and work history live in
+the Prisma data model.
+
 ## PWA Shell
 
 The production build includes a web app manifest and service worker. After the
 app has loaded successfully once, the service worker caches the app shell and
 bundled assets so Flowboard can reopen offline.
 
-The service worker is for app-shell availability. Board data remains a
-database-backed product concern and is saved only after the Prisma API confirms
-persistence.
+The service worker is for app-shell availability. It does not provide a
+`localStorage` board fallback. Board data remains a database-backed product
+concern and is saved only after the Prisma API confirms persistence.
 
 ## Deploying to Vercel
 
