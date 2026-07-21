@@ -26,6 +26,17 @@ describe('CardContentEditor Markdown helpers', () => {
     ).toBe('<img src="https://example.com/diagram.png" alt="Diagram">');
   });
 
+  test('drops unsafe Markdown image schemes before rendering editor HTML', () => {
+    expect(normalizeMarkdownForEditor('![Unsafe](javascript:alert(1))')).toBe(
+      'Unsafe'
+    );
+    expect(
+      normalizeMarkdownForEditor(
+        '![Vector](data:image/svg+xml;base64,PHN2Zy8+)'
+      )
+    ).toBe('Vector');
+  });
+
   test('renders inline content with escaped text and secure link attributes', () => {
     expect(
       renderInlineHtml([
@@ -49,6 +60,37 @@ describe('CardContentEditor Markdown helpers', () => {
     ).toBe(
       '<strong>Ship &lt;now&gt;</strong><br><a href="https://example.com/?q=&lt;query&gt;" target="_blank" rel="noopener noreferrer">open</a>'
     );
+  });
+
+  test('renders unsafe link schemes as inert text', () => {
+    expect(
+      renderInlineHtml([
+        {
+          marks: [
+            {
+              attrs: { href: 'javascript:alert(1)' },
+              type: 'link',
+            },
+          ],
+          text: 'open',
+          type: 'text',
+        },
+      ])
+    ).toBe('open');
+  });
+
+  test('renders unsafe image schemes as inert alt text', () => {
+    expect(
+      renderInlineHtml([
+        {
+          attrs: {
+            alt: 'Tracking pixel',
+            src: 'http://example.com/pixel.png',
+          },
+          type: 'image',
+        },
+      ])
+    ).toBe('Tracking pixel');
   });
 
   test('renders aligned blocks with escaped attributes', () => {

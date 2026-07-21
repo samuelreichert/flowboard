@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import { getCardContentExtensions } from './extensions';
-import { normalizeMarkdownForEditor } from './markdown';
+import { getEditorContentType, normalizeMarkdownForEditor } from './markdown';
 
 type CardContentViewerProps = {
   ariaLabel: string;
@@ -14,7 +14,7 @@ const CardContentViewer = ({ ariaLabel, value }: CardContentViewerProps) => {
   const { messages } = useLocalization();
   const editor = useEditor({
     content: normalizeMarkdownForEditor(value),
-    contentType: 'markdown',
+    contentType: getEditorContentType(value),
     editable: false,
     editorProps: {
       attributes: {
@@ -36,7 +36,7 @@ const CardContentViewer = ({ ariaLabel, value }: CardContentViewerProps) => {
     }
 
     editor.commands.setContent(normalizeMarkdownForEditor(value), {
-      contentType: 'markdown',
+      contentType: getEditorContentType(value),
       emitUpdate: false,
     });
   }, [editor, value]);

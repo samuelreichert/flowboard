@@ -206,9 +206,7 @@ export type WorkCycleSettingsUpdateInput = {
 export const COMPLETED_HISTORY_DEFAULT_LIMIT = 20;
 export const COMPLETED_HISTORY_MAX_LIMIT = 50;
 
-export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'> & {
-  hasContent: boolean;
-};
+export type CompletedHistoryCardSummary = Omit<ArchivedBoardCard, 'content'>;
 
 export type CompletedHistoryCycleSummary = Omit<CompletedWorkCycle, 'cards'> & {
   cards: CompletedHistoryCardSummary[];
@@ -479,7 +477,6 @@ const toArchivedTagSnapshot = (tag: {
 
 const toCompletedHistoryCardSummary = (card: {
   archivedAt: Date;
-  content?: string;
   createdAt: Date;
   id: string;
   priority: string;
@@ -492,7 +489,6 @@ const toCompletedHistoryCardSummary = (card: {
 }): CompletedHistoryCardSummary => ({
   archivedAt: toIso(card.archivedAt),
   createdAt: toIso(card.createdAt),
-  hasContent: Boolean(card.content),
   id: card.id,
   priority: isCardPriority(card.priority) ? card.priority : 'medium',
   tagIds: card.tagSnapshots
@@ -505,7 +501,6 @@ const toCompletedHistoryCardSummary = (card: {
 const toCompletedHistoryCycleSummary = (cycle: {
   cards: Array<{
     archivedAt: Date;
-    content?: string;
     createdAt: Date;
     id: string;
     priority: string;
@@ -604,23 +599,13 @@ const replaceCardTags = async (
   }
 };
 
-const getColumnCards = async (
-  transaction: FlowboardPrismaTransactionClient,
-  columnId: string
-) =>
-  transaction.card.findMany({
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: { id: true },
-    where: { columnId },
-  });
-
 const getBoardColumns = async (
   transaction: FlowboardPrismaTransactionClient,
   boardId: string
 ) =>
   transaction.boardColumn.findMany({
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: { id: true, title: true },
+    select: { id: true, sortOrder: true, title: true },
     where: { boardId },
   });
 
@@ -653,52 +638,6 @@ const hasDuplicateTagName = (
     (item) =>
       item.id !== excludedId && item.name.toLowerCase() === name.toLowerCase()
   );
-
-const getColumnCardIdsExcept = async (
-  transaction: FlowboardPrismaTransactionClient,
-  columnId: string,
-  excludedCardId: string
-) => {
-  const cards = await getColumnCards(transaction, columnId);
-  const cardIds: string[] = [];
-
-  for (const card of cards) {
-    if (card.id !== excludedCardId) {
-      cardIds.push(card.id);
-    }
-  }
-
-  return cardIds;
-};
-
-const updateColumnCardOrder = async (
-  transaction: FlowboardPrismaTransactionClient,
-  columnId: string,
-  cardIds: string[]
-) => {
-  await Promise.all(
-    cardIds.map((cardId, sortOrder) =>
-      transaction.card.update({
-        data: { sortOrder },
-        where: { id: cardId },
-      })
-    )
-  );
-};
-
-const updateBoardColumnOrder = async (
-  transaction: FlowboardPrismaTransactionClient,
-  columnIds: string[]
-) => {
-  await Promise.all(
-    columnIds.map((columnId, sortOrder) =>
-      transaction.boardColumn.update({
-        data: { sortOrder },
-        where: { id: columnId },
-      })
-    )
-  );
-};
 
 export const loadMainBoardBootstrap = async (
   prisma: FlowboardPrismaClient,
@@ -984,19 +923,19 @@ export const moveActiveCard = async (
 
   const placementCardId = input.beforeCardId ?? input.afterCardId ?? null;
 
-  if (placementCardId) {
-    const placementCard = await prisma.card.findFirst({
-      select: { id: true },
-      where: {
-        boardId: board.id,
-        columnId: input.columnId,
-        id: placementCardId,
-      },
-    });
+  const placementCard = placementCardId
+    ? await prisma.card.findFirst({
+        select: { id: true, sortOrder: true },
+        where: {
+          boardId: board.id,
+          columnId: input.columnId,
+          id: placementCardId,
+        },
+      })
+    : null;
 
-    if (!placementCard) {
-      return null;
-    }
+  if (placementCardId && (!placementCard || placementCard.id === card.id)) {
+    return null;
   }
 
   const tagIds = (
@@ -1008,50 +947,75 @@ export const moveActiveCard = async (
 
   const saved = await prisma.$transaction(async (transaction) => {
     const sourceColumnId = card.columnId;
-    const sourceCardIds = await getColumnCardIdsExcept(
-      transaction,
-      sourceColumnId,
-      card.id
-    );
-    const destinationCardIds =
-      sourceColumnId === input.columnId
-        ? sourceCardIds
-        : await getColumnCardIdsExcept(transaction, input.columnId, card.id);
-    const targetIndex = placementCardId
-      ? destinationCardIds.findIndex((id) => id === placementCardId)
-      : destinationCardIds.length;
+    const lastDestinationCard = placementCard
+      ? null
+      : await transaction.card.findFirst({
+          orderBy: [{ sortOrder: 'desc' }, { createdAt: 'desc' }],
+          select: { id: true, sortOrder: true },
+          where: { columnId: input.columnId },
+        });
+    let destinationSortOrder = placementCard
+      ? placementCard.sortOrder + (input.afterCardId ? 1 : 0)
+      : (lastDestinationCard?.sortOrder ?? -1) + 1;
 
-    if (targetIndex === -1) {
-      return null;
+    if (sourceColumnId === input.columnId) {
+      if (lastDestinationCard?.id === card.id) {
+        destinationSortOrder = card.sortOrder;
+      } else if (destinationSortOrder > card.sortOrder) {
+        destinationSortOrder -= 1;
+      }
     }
 
-    const insertAt = input.afterCardId ? targetIndex + 1 : targetIndex;
-    const nextDestinationCardIds = [...destinationCardIds];
-
-    nextDestinationCardIds.splice(insertAt, 0, card.id);
-
-    const movedCard = await transaction.card.update({
-      data: {
-        columnId: input.columnId,
-        sortOrder: insertAt,
-      },
-      where: { id: card.id },
-    });
-
-    if (sourceColumnId !== input.columnId) {
-      await updateColumnCardOrder(transaction, sourceColumnId, sourceCardIds);
+    if (sourceColumnId === input.columnId) {
+      if (destinationSortOrder < card.sortOrder) {
+        await transaction.card.updateMany({
+          data: { sortOrder: { increment: 1 } },
+          where: {
+            columnId: sourceColumnId,
+            sortOrder: { gte: destinationSortOrder, lt: card.sortOrder },
+          },
+        });
+      } else if (destinationSortOrder > card.sortOrder) {
+        await transaction.card.updateMany({
+          data: { sortOrder: { decrement: 1 } },
+          where: {
+            columnId: sourceColumnId,
+            sortOrder: { gt: card.sortOrder, lte: destinationSortOrder },
+          },
+        });
+      }
+    } else {
+      await Promise.all([
+        transaction.card.updateMany({
+          data: { sortOrder: { decrement: 1 } },
+          where: {
+            columnId: sourceColumnId,
+            sortOrder: { gt: card.sortOrder },
+          },
+        }),
+        transaction.card.updateMany({
+          data: { sortOrder: { increment: 1 } },
+          where: {
+            columnId: input.columnId,
+            sortOrder: { gte: destinationSortOrder },
+          },
+        }),
+      ]);
     }
 
-    await updateColumnCardOrder(
-      transaction,
-      input.columnId,
-      nextDestinationCardIds
-    );
-
-    const updatedBoard = await transaction.board.update({
-      data: { version: { increment: 1 } },
-      where: { id: board.id },
-    });
+    const [movedCard, updatedBoard] = await Promise.all([
+      transaction.card.update({
+        data: {
+          columnId: input.columnId,
+          sortOrder: destinationSortOrder,
+        },
+        where: { id: card.id },
+      }),
+      transaction.board.update({
+        data: { version: { increment: 1 } },
+        where: { id: board.id },
+      }),
+    ]);
 
     return { boardVersion: updatedBoard.version, card: movedCard };
   });
@@ -1079,6 +1043,7 @@ export const deleteActiveCard = async (
     select: {
       columnId: true,
       id: true,
+      sortOrder: true,
     },
     where: {
       boardId: board.id,
@@ -1093,14 +1058,13 @@ export const deleteActiveCard = async (
   const saved = await prisma.$transaction(async (transaction) => {
     await transaction.cardTag.deleteMany({ where: { cardId: card.id } });
     await transaction.card.delete({ where: { id: card.id } });
-
-    const remainingCardIds = await getColumnCardIdsExcept(
-      transaction,
-      card.columnId,
-      card.id
-    );
-
-    await updateColumnCardOrder(transaction, card.columnId, remainingCardIds);
+    await transaction.card.updateMany({
+      data: { sortOrder: { decrement: 1 } },
+      where: {
+        columnId: card.columnId,
+        sortOrder: { gt: card.sortOrder },
+      },
+    });
 
     const updatedBoard = await transaction.board.update({
       data: { version: { increment: 1 } },
@@ -1233,18 +1197,34 @@ export const moveActiveColumn = async (
   }
 
   const insertAt = input.afterColumnId ? targetIndex + 1 : targetIndex;
-  const nextColumnIds = [...remainingColumnIds];
-
-  nextColumnIds.splice(insertAt, 0, columnId);
 
   const saved = await prisma.$transaction(async (transaction) => {
-    const [, updatedBoard] = await Promise.all([
-      updateBoardColumnOrder(transaction, nextColumnIds),
-      transaction.board.update({
-        data: { version: { increment: 1 } },
-        where: { id: board.id },
-      }),
-    ]);
+    if (insertAt < column.sortOrder) {
+      await transaction.boardColumn.updateMany({
+        data: { sortOrder: { increment: 1 } },
+        where: {
+          boardId: board.id,
+          sortOrder: { gte: insertAt, lt: column.sortOrder },
+        },
+      });
+    } else if (insertAt > column.sortOrder) {
+      await transaction.boardColumn.updateMany({
+        data: { sortOrder: { decrement: 1 } },
+        where: {
+          boardId: board.id,
+          sortOrder: { gt: column.sortOrder, lte: insertAt },
+        },
+      });
+    }
+
+    await transaction.boardColumn.update({
+      data: { sortOrder: insertAt },
+      where: { id: columnId },
+    });
+    const updatedBoard = await transaction.board.update({
+      data: { version: { increment: 1 } },
+      where: { id: board.id },
+    });
 
     return {
       boardVersion: updatedBoard.version,
@@ -1283,13 +1263,6 @@ export const deleteActiveColumn = async (
     return null;
   }
 
-  const remainingColumnIds = columns.reduce<string[]>((ids, item) => {
-    if (item.id !== columnId) {
-      ids.push(item.id);
-    }
-
-    return ids;
-  }, []);
   const deletedCardIds = cards.map((card) => card.id);
   const shouldClearCompletedColumn = workCycle?.completedColumnId === columnId;
 
@@ -1306,7 +1279,13 @@ export const deleteActiveColumn = async (
       where: { boardId: board.id, columnId },
     });
     await transaction.boardColumn.delete({ where: { id: columnId } });
-    await updateBoardColumnOrder(transaction, remainingColumnIds);
+    await transaction.boardColumn.updateMany({
+      data: { sortOrder: { decrement: 1 } },
+      where: {
+        boardId: board.id,
+        sortOrder: { gt: column.sortOrder },
+      },
+    });
 
     const nextWorkCycle = shouldClearCompletedColumn
       ? await transaction.boardWorkCycle.update({
@@ -1801,7 +1780,6 @@ export const completeActiveWorkCycle = async (
       return {
         archivedAt: toIso(completedAt),
         createdAt: toIso(card.createdAt),
-        hasContent: Boolean(card.content),
         id: card.id,
         priority: isCardPriority(card.priority) ? card.priority : 'medium',
         tagIds: tagSnapshots.map((tag) => tag.id),
@@ -1920,15 +1898,30 @@ export const loadCompletedHistoryPage = async (
   }
 
   const cycles = await prisma.completedWorkCycle.findMany({
-    include: {
+    select: {
+      completedColumnId: true,
+      completedColumnTitle: true,
       cards: {
-        include: {
+        select: {
+          archivedAt: true,
+          createdAt: true,
+          id: true,
+          priority: true,
           tagSnapshots: {
+            select: {
+              id: true,
+              name: true,
+              originalTagId: true,
+            },
             orderBy: [{ sortOrder: 'asc' }],
           },
+          title: true,
         },
         orderBy: [{ sortOrder: 'asc' }, { archivedAt: 'asc' }],
       },
+      endDate: true,
+      id: true,
+      startDate: true,
     },
     orderBy: [{ endDate: 'desc' }, { id: 'desc' }],
     take: limit + 1,

@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useLocalization } from '../../LocalizationProvider';
 import { getEditorMarkdown, selectImageElement } from './commands';
 import { getCardContentExtensions } from './extensions';
-import { normalizeMarkdownForEditor } from './markdown';
+import { getEditorContentType, normalizeMarkdownForEditor } from './markdown';
 
 type UseCardContentEditorProps = {
   id: string;
@@ -30,7 +30,7 @@ export const useCardContentEditor = ({
 
   const editor = useEditor({
     content: normalizeMarkdownForEditor(value),
-    contentType: 'markdown',
+    contentType: getEditorContentType(value),
     editorProps: {
       attributes: {
         'aria-labelledby': labelId,
@@ -75,7 +75,7 @@ export const useCardContentEditor = ({
 
     lastSyncedValue.current = value;
     editor.commands.setContent(normalizeMarkdownForEditor(value), {
-      contentType: 'markdown',
+      contentType: getEditorContentType(value),
       emitUpdate: false,
     });
   }, [editor, value]);

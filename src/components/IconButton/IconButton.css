@@ -23,15 +23,6 @@
   outline-offset: 2px;
 }
 
-.tooltip-popup {
-  background-color: var(--color-text);
-  border-radius: var(--radius-md);
-  box-shadow: 0 6px 14px var(--color-shadow);
-  color: var(--color-surface);
-  font-size: 12px;
-  padding: 6px 8px;
-}
-
 @media (max-width: 640px) {
   .icon-button {
     height: 40px;

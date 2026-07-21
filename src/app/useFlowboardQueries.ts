@@ -10,8 +10,8 @@ import {
   fetchAuthenticatedProfile,
   fetchBoardBootstrap,
   fetchCompletedHistory,
+  type CompletedHistoryResponse,
 } from '../storage/authenticatedApi';
-import type { CompletedHistoryResponse } from '../storage/authenticatedApi';
 import { queryKeys } from './queryKeys';
 
 export const COMPLETED_HISTORY_PAGE_LIMIT = 20;

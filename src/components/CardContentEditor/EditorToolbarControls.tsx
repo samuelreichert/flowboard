@@ -10,7 +10,7 @@ import { getEditorPortalContainer } from './editorPortalTarget';
 
 type ToolbarButtonProps = {
   active?: boolean;
-  children: ReactNode;
+  children: ReactElement;
   disabled?: boolean;
   label: string;
   onClick: () => void;
@@ -136,6 +136,7 @@ export const ToolbarSelect = <TValue extends string>({
           aria-pressed={active}
           className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
           disabled={disabled}
+          onMouseDown={(event) => event.preventDefault()}
           render={<Select.Trigger />}
         >
           <span

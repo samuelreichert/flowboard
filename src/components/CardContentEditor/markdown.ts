@@ -1,5 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 
+import { isSupportedImageUrl, isSupportedLinkUrl } from './urlSafety';
+
 export type MarkdownHeadingLevel = 1 | 2 | 3 | 4;
 
 export const EMPTY_PARAGRAPH_MARKDOWN = '&nbsp;';
@@ -17,6 +19,10 @@ export const escapeAttribute = (value: unknown) =>
   escapeHtml(String(value ?? ''));
 
 export const renderImageHtml = (alt: string, src: string, title = '') => {
+  if (!isSupportedImageUrl(src)) {
+    return escapeHtml(alt);
+  }
+
   const titleAttribute = title ? ` title="${escapeAttribute(title)}"` : '';
 
   return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}"${titleAttribute}>`;
@@ -34,6 +40,9 @@ export const normalizeMarkdownForEditor = (markdown: string) =>
       (_match, alt: string, src: string, title = '') =>
         renderImageHtml(alt, src, title)
     );
+
+export const getEditorContentType = (value: string) =>
+  /<(?:p|h[1-4])(?:\s|>)/i.test(value) ? 'html' : 'markdown';
 
 export const renderInlineHtml = (content: JSONContent[] = []): string =>
   content.map(renderInlineNodeHtml).join('');
@@ -59,6 +68,10 @@ export const renderInlineNodeHtml = (node: JSONContent): string => {
         }
 
         if (mark.type === 'link') {
+          if (!isSupportedLinkUrl(String(mark.attrs?.href ?? ''))) {
+            return text;
+          }
+
           const href = escapeAttribute(mark.attrs?.href);
           return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
         }
@@ -74,9 +87,10 @@ export const renderInlineNodeHtml = (node: JSONContent): string => {
   }
 
   if (node.type === 'image') {
-    const src = escapeAttribute(node.attrs?.src);
-    const alt = escapeAttribute(node.attrs?.alt);
-    return `<img src="${src}" alt="${alt}">`;
+    return renderImageHtml(
+      String(node.attrs?.alt ?? ''),
+      String(node.attrs?.src ?? '')
+    );
   }
 
   return renderInlineHtml(node.content);

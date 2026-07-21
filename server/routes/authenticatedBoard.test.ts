@@ -214,6 +214,7 @@ const createMutationPrisma = ({
         id: 'todo',
         title: 'Updated',
       }),
+      updateMany: vi.fn(),
     },
     boardWorkCycle: {
       deleteMany: vi.fn(),
@@ -241,6 +242,7 @@ const createMutationPrisma = ({
       findFirst: vi.fn().mockResolvedValue(card),
       findMany: vi.fn().mockResolvedValue([{ id: 'card-1' }]),
       update: vi.fn().mockResolvedValue(card ?? mutationCard),
+      updateMany: vi.fn(),
     },
     cardTag: {
       create: vi.fn(),
@@ -977,7 +979,6 @@ describe('handleAuthenticatedBoardApiRequest', () => {
           {
             archivedAt: expect.any(String),
             createdAt: '2026-07-04T00:00:00.000Z',
-            hasContent: true,
             id: 'card-1',
             priority: 'high',
             tagIds: ['tag-1'],
@@ -1035,7 +1036,6 @@ describe('handleAuthenticatedBoardApiRequest', () => {
             {
               archivedAt: '2026-07-05T00:00:00.000Z',
               createdAt: '2026-07-04T00:00:00.000Z',
-              hasContent: true,
               id: 'card-1',
               priority: 'high',
               tagIds: ['tag-1'],
@@ -1056,6 +1056,11 @@ describe('handleAuthenticatedBoardApiRequest', () => {
       },
     });
     expect(historyBody.cycles[0].cards[0]).not.toHaveProperty('content');
+    const historyQuery = vi.mocked(prisma.completedWorkCycle.findMany).mock
+      .calls[0][0] as {
+      select: { cards: { select: Record<string, unknown> } };
+    };
+    expect(historyQuery.select.cards.select).not.toHaveProperty('content');
     expect(handledDetail).toBe(true);
     expect(detailResponse.statusCode).toBe(200);
     expect(JSON.parse(detailResponse.body)).toEqual({
@@ -1175,6 +1180,38 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         method: 'PATCH',
         url: '/api/board/cards/card-1/move',
       },
+      {
+        body: JSON.stringify({
+          columnId: 'todo',
+          content: '',
+          id: 'card-1',
+          priority: 'medium',
+          tagIds: [],
+          title: 'x'.repeat(161),
+        }),
+        method: 'POST',
+        url: '/api/board/cards',
+      },
+      {
+        body: JSON.stringify({
+          content: 'x'.repeat(100_001),
+          priority: 'medium',
+          tagIds: [],
+          title: 'Card title',
+        }),
+        method: 'PATCH',
+        url: '/api/board/cards/card-1',
+      },
+      {
+        body: JSON.stringify({
+          content: '',
+          priority: 'medium',
+          tagIds: Array.from({ length: 26 }, (_item, index) => `tag-${index}`),
+          title: 'Card title',
+        }),
+        method: 'PATCH',
+        url: '/api/board/cards/card-1',
+      },
     ];
 
     for (const request of invalidRequests) {
@@ -1205,12 +1242,22 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         url: '/api/board/columns',
       },
       {
+        body: JSON.stringify({ id: 'doing', title: 'x'.repeat(81) }),
+        method: 'POST',
+        url: '/api/board/columns',
+      },
+      {
         body: JSON.stringify({ afterColumnId: 'done', beforeColumnId: 'todo' }),
         method: 'PATCH',
         url: '/api/board/columns/done/move',
       },
       {
         body: JSON.stringify({ id: 'tag-2', name: '' }),
+        method: 'POST',
+        url: '/api/board/tags',
+      },
+      {
+        body: JSON.stringify({ id: 'tag-2', name: 'x'.repeat(41) }),
         method: 'POST',
         url: '/api/board/tags',
       },
@@ -1328,6 +1375,42 @@ describe('handleAuthenticatedBoardApiRequest', () => {
         message: 'Invalid card payload.',
       },
     });
+  });
+
+  test('rate limits repeated authenticated board writes by user', async () => {
+    const resolver = {
+      resolveRequest: vi.fn().mockResolvedValue({
+        avatarUrl: null,
+        displayName: null,
+        email: 'limited@example.com',
+        id: 'rate-limit-user',
+        source: 'supabase',
+      }),
+    } satisfies PrincipalResolver;
+
+    for (let index = 0; index < 121; index += 1) {
+      const response = createResponse();
+      const handled = await handleAuthenticatedBoardApiRequest(
+        createRequest({
+          body: JSON.stringify({
+            columnId: 'todo',
+            content: '',
+            id: `card-${index}`,
+            priority: 'medium',
+            tagIds: [],
+            title: 'Card title',
+          }),
+          method: 'POST',
+          url: '/api/board/cards',
+        }),
+        response,
+        createMutationPrisma({ card: null }),
+        resolver
+      );
+
+      expect(handled).toBe(true);
+      expect(response.statusCode).toBe(index < 120 ? 201 : 429);
+    }
   });
 
   test('accepts a resolved local development principal before validating resource mutations', async () => {

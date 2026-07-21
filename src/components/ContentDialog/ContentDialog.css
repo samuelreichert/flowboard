@@ -52,10 +52,6 @@
   padding: 24px;
 }
 
-.dialog-popup--card-confirm {
-  max-width: min(520px, calc(100vw - 48px));
-}
-
 .dialog-popup--route-management {
   max-width: min(540px, calc(100vw - 48px));
 }
@@ -504,10 +500,6 @@
 
   .dialog-popup--card {
     max-height: calc(100dvh - 28px);
-    max-width: 100%;
-  }
-
-  .dialog-popup--card-confirm {
     max-width: 100%;
   }
 

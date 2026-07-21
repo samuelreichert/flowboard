@@ -207,14 +207,6 @@
   margin: 0 0 0 4px;
 }
 
-.app-sidebar__theme-control {
-  --segmented-control-button-gap: 5px;
-  --segmented-control-button-padding: 6px 7px;
-
-  display: grid;
-  width: 100%;
-}
-
 .app--sidebar-collapsed .app-sidebar {
   padding: 10px 8px;
 }
@@ -225,37 +217,14 @@
 
 .app--sidebar-collapsed .app-sidebar__brand,
 .app--sidebar-collapsed .app-sidebar__account-text,
-.app--sidebar-collapsed .app-sidebar__footer-label,
-.app--sidebar-collapsed .app-sidebar__nav-item span,
-.app--sidebar-collapsed
-  .app-sidebar__theme-control
-  .segmented-control__button
-  span {
+.app--sidebar-collapsed .app-sidebar__nav-item span {
   display: none;
 }
 
 .app--sidebar-collapsed .app-sidebar__nav-item,
-.app--sidebar-collapsed .app-sidebar__account-trigger,
-.app--sidebar-collapsed .app-sidebar__theme-control .segmented-control__button {
+.app--sidebar-collapsed .app-sidebar__account-trigger {
   justify-content: center;
   padding: 8px;
-}
-
-.app--sidebar-collapsed .app-sidebar__theme-control {
-  background-color: transparent;
-  border: 0;
-  grid-template-columns: 1fr;
-  padding: 0;
-}
-
-.app--sidebar-collapsed .app-sidebar__theme-control::before {
-  display: none;
-}
-
-.app--sidebar-collapsed
-  .app-sidebar__theme-control
-  .segmented-control__button[aria-pressed='true'] {
-  background-color: var(--color-surface-subtle);
 }
 
 @media (max-width: 760px) {
@@ -277,15 +246,10 @@
   .app-sidebar__account-text,
   .app-sidebar__footer-label,
   .app-sidebar__nav-item span,
-  .app-sidebar__theme-control .segmented-control__button span,
   .app--sidebar-collapsed .app-sidebar__brand,
   .app--sidebar-collapsed .app-sidebar__account-text,
   .app--sidebar-collapsed .app-sidebar__footer-label,
-  .app--sidebar-collapsed .app-sidebar__nav-item span,
-  .app--sidebar-collapsed
-    .app-sidebar__theme-control
-    .segmented-control__button
-    span {
+  .app--sidebar-collapsed .app-sidebar__nav-item span {
     display: inline-flex;
   }
 
@@ -299,11 +263,7 @@
   }
 
   .app-sidebar__nav-item,
-  .app-sidebar__theme-control .segmented-control__button,
-  .app--sidebar-collapsed .app-sidebar__nav-item,
-  .app--sidebar-collapsed
-    .app-sidebar__theme-control
-    .segmented-control__button {
+  .app--sidebar-collapsed .app-sidebar__nav-item {
     justify-content: center;
     padding: 7px 8px;
   }
@@ -313,17 +273,5 @@
   .app--sidebar-collapsed .app-sidebar__nav-item {
     justify-content: flex-start;
     padding: 8px 10px;
-  }
-
-  .app--sidebar-collapsed .app-sidebar__theme-control,
-  .app-sidebar__theme-control {
-    background-color: var(--color-control-bg);
-    border: 1px solid var(--color-border);
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 2px;
-  }
-
-  .app--sidebar-collapsed .app-sidebar__theme-control::before {
-    display: block;
   }
 }

@@ -51,10 +51,12 @@ test('shows and edits card details in the modal', async () => {
     screen.queryByRole('button', { name: /cancel/i })
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: /delete card/i })
+    await screen.findByRole('button', { name: /delete card/i })
   ).toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: /edit card title/i }));
+  await user.click(
+    await screen.findByRole('button', { name: /edit card title/i })
+  );
   const input = screen.getByLabelText('Card title');
   await user.clear(input);
   await user.type(input, 'Approved');
@@ -106,15 +108,15 @@ test('opens card details from the card title, metadata, and background', async (
   await addCard(user, 'Todo', 'Review surfaces', 'First content');
 
   await user.click(screen.getByText('Review surfaces'));
-  expectCardDialogTitle('Review surfaces');
+  await expectCardDialogTitle('Review surfaces');
   await closeCardDialog(user);
 
   await user.click(screen.getAllByText('Medium')[0]);
-  expectCardDialogTitle('Review surfaces');
+  await expectCardDialogTitle('Review surfaces');
   await closeCardDialog(user);
 
   await user.click(getBoardCardButton('Review surfaces'));
-  expectCardDialogTitle('Review surfaces');
+  await expectCardDialogTitle('Review surfaces');
 });
 
 test('keeps card title text selectable without opening details', async () => {

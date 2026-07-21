@@ -1,5 +1,4 @@
 import { Button } from '@base-ui/react/button';
-import { AlignLeft } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { CompletedHistoryCycleSummary } from '../../storage/authenticatedApi';
@@ -62,13 +61,6 @@ const HistoryCycleList = ({
                         <span className="history-card__title">
                           {card.title}
                         </span>
-                        {card.hasContent && (
-                          <AlignLeft
-                            aria-label={messages.card.hasContent}
-                            className="history-card__content-icon"
-                            size={13}
-                          />
-                        )}
                       </div>
                       <CardMetadata
                         hiddenTagCount={Math.max(0, visibleTagNames.length - 2)}

@@ -94,15 +94,21 @@ test('confirms removing tags that are assigned to cards', async () => {
   await addColumn(user, 'Todo');
   await addCard(user, 'Todo', 'Tagged');
   await user.click(screen.getByText('Tagged'));
-  await user.click(screen.getByRole('combobox', { name: /tags/i }));
+  const cardDialog = await screen.findByRole('dialog', { name: /card/i });
+  await user.click(
+    within(cardDialog).getByRole('combobox', { name: /tags/i })
+  );
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
-  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() =>
+    expect(fetchTagStorage().map((tag) => tag.name)).toEqual(['Design'])
+  );
+  await user.click(await screen.findByRole('button', { name: /close card/i }));
 
   await openTagManager(user);
   await user.click(screen.getByRole('button', { name: /remove design tag/i }));
   expect(
-    screen.getByRole('alertdialog', { name: /remove this tag/i })
+    await screen.findByRole('alertdialog', { name: /remove this tag/i })
   ).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /^remove tag$/i }));
 
