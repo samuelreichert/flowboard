@@ -3,14 +3,14 @@ import { Toolbar } from '@base-ui/react/toolbar';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Check, ChevronDown } from 'lucide-react';
 import { useId } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import type { ToolbarSelectOption } from './types';
 import { getEditorPortalContainer } from './editorPortalTarget';
 
 type ToolbarButtonProps = {
   active?: boolean;
-  children: ReactNode;
+  children: ReactElement;
   disabled?: boolean;
   label: string;
   onClick: () => void;
@@ -30,11 +30,11 @@ const ToolbarTooltip = ({
   children,
   label,
 }: {
-  children: ReactNode;
+  children: ReactElement;
   label: string;
 }) => (
-  <Tooltip.Root delay={300}>
-    <Tooltip.Trigger render={children} />
+  <Tooltip.Root>
+    <Tooltip.Trigger delay={300} render={children} />
     <Tooltip.Portal container={getEditorPortalContainer()}>
       <Tooltip.Positioner sideOffset={6}>
         <Tooltip.Popup className="editor-toolbar__hover-label">
@@ -55,8 +55,8 @@ type ToolbarHintProps = {
 
 export function ToolbarHint({ children, label }: ToolbarHintProps) {
   return (
-    <Tooltip.Root delay={300}>
-      <Tooltip.Trigger render={<span />}>
+    <Tooltip.Root>
+      <Tooltip.Trigger delay={300} render={<span />}>
         {children({ hint: null, hintTriggerProps: {} })}
       </Tooltip.Trigger>
       <Tooltip.Portal container={getEditorPortalContainer()}>
@@ -78,26 +78,26 @@ export const ToolbarButton = ({
   onClick,
 }: ToolbarButtonProps) => (
   <ToolbarTooltip label={label}>
-      <Toolbar.Button
-        aria-disabled={disabled}
-        aria-label={label}
-        aria-pressed={active}
-        className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
-        data-disabled={disabled ? '' : undefined}
-        onClick={(event) => {
-          if (disabled) {
-            event.preventDefault();
-            return;
-          }
+    <Toolbar.Button
+      aria-disabled={disabled}
+      aria-label={label}
+      aria-pressed={active}
+      className={`editor-toolbar__button ${active ? 'editor-toolbar__button--active' : ''}`}
+      data-disabled={disabled ? '' : undefined}
+      onClick={(event) => {
+        if (disabled) {
+          event.preventDefault();
+          return;
+        }
 
-          onClick();
-        }}
-        onMouseDown={(event) => event.preventDefault()}
-        tabIndex={disabled ? -1 : undefined}
-        type="button"
-      >
-        {children}
-      </Toolbar.Button>
+        onClick();
+      }}
+      onMouseDown={(event) => event.preventDefault()}
+      tabIndex={disabled ? -1 : undefined}
+      type="button"
+    >
+      {children}
+    </Toolbar.Button>
   </ToolbarTooltip>
 );
 
@@ -130,24 +130,25 @@ export const ToolbarSelect = <TValue extends string>({
         {label}
       </span>
       <ToolbarTooltip label={triggerLabel}>
-          <Toolbar.Button
-            aria-label={`${label}: ${triggerLabel}`}
-            aria-labelledby={selectLabelId}
-            aria-pressed={active}
-            className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
-            disabled={disabled}
-            render={<Select.Trigger />}
+        <Toolbar.Button
+          aria-label={`${label}: ${triggerLabel}`}
+          aria-labelledby={selectLabelId}
+          aria-pressed={active}
+          className={`editor-toolbar__select-trigger ${active ? 'editor-toolbar__button--active' : ''}`}
+          disabled={disabled}
+          onMouseDown={(event) => event.preventDefault()}
+          render={<Select.Trigger />}
+        >
+          <span
+            className="editor-toolbar__select-trigger-icon"
+            title={triggerLabel}
           >
-            <span
-              className="editor-toolbar__select-trigger-icon"
-              title={triggerLabel}
-            >
-              {selectedOption.icon}
-            </span>
-            <Select.Icon className="editor-toolbar__select-icon">
-              <ChevronDown size={14} />
-            </Select.Icon>
-          </Toolbar.Button>
+            {selectedOption.icon}
+          </span>
+          <Select.Icon className="editor-toolbar__select-icon">
+            <ChevronDown size={14} />
+          </Select.Icon>
+        </Toolbar.Button>
       </ToolbarTooltip>
       <Select.Portal container={getEditorPortalContainer()}>
         <Select.Positioner

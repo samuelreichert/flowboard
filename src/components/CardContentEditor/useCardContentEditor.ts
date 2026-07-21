@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useLocalization } from '../../LocalizationProvider';
 import { getEditorMarkdown, selectImageElement } from './commands';
 import { getCardContentExtensions } from './extensions';
-import { normalizeMarkdownForEditor } from './markdown';
+import { getEditorContentType, normalizeMarkdownForEditor } from './markdown';
 
 type UseCardContentEditorProps = {
   id: string;
@@ -22,7 +22,6 @@ export const useCardContentEditor = ({
 }: UseCardContentEditorProps) => {
   const { messages } = useLocalization();
   const onChangeRef = useRef(onChange);
-  const lastSyncedValue = useRef(value);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -30,7 +29,7 @@ export const useCardContentEditor = ({
 
   const editor = useEditor({
     content: normalizeMarkdownForEditor(value),
-    contentType: 'markdown',
+    contentType: getEditorContentType(value),
     editorProps: {
       attributes: {
         'aria-labelledby': labelId,
@@ -63,22 +62,9 @@ export const useCardContentEditor = ({
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => {
       const markdown = getEditorMarkdown(currentEditor);
-      lastSyncedValue.current = markdown;
       onChangeRef.current(markdown);
     },
   });
-
-  useEffect(() => {
-    if (!editor || value === lastSyncedValue.current) {
-      return;
-    }
-
-    lastSyncedValue.current = value;
-    editor.commands.setContent(normalizeMarkdownForEditor(value), {
-      contentType: 'markdown',
-      emitUpdate: false,
-    });
-  }, [editor, value]);
 
   return editor;
 };

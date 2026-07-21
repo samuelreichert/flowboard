@@ -1,4 +1,4 @@
-import type { Editor } from '@tiptap/core';
+import { mergeAttributes, type Editor } from '@tiptap/core';
 import FileHandler from '@tiptap/extension-file-handler';
 import Heading, { type Level } from '@tiptap/extension-heading';
 import Image from '@tiptap/extension-image';
@@ -112,9 +112,35 @@ const RichParagraph = Paragraph.extend({
 
     return h.renderChildren(content);
   },
+  renderHTML: ({ node, HTMLAttributes }) => [
+    'p',
+    mergeAttributes(
+      HTMLAttributes,
+      node.attrs.textAlign
+        ? { style: `text-align: ${node.attrs.textAlign}` }
+        : {}
+    ),
+    0,
+  ],
 });
 
 const RichHeading = Heading.extend({
+  renderHTML: ({ node, HTMLAttributes }) => {
+    const safeLevel = headingLevels.includes(node.attrs.level as Level)
+      ? node.attrs.level
+      : headingLevels[0];
+
+    return [
+      `h${safeLevel}`,
+      mergeAttributes(
+        HTMLAttributes,
+        node.attrs.textAlign
+          ? { style: `text-align: ${node.attrs.textAlign}` }
+          : {}
+      ),
+      0,
+    ];
+  },
   renderMarkdown: (node, h) => {
     const level = node.attrs?.level
       ? parseInt(String(node.attrs.level), 10)

@@ -22,7 +22,11 @@ test('opens the account menu from the keyboard and runs the selected action', as
         onSettingsClick={onSettingsClick}
         onSignOut={vi.fn()}
         onToggleSidebar={vi.fn()}
-        profile={{ email: 'ada@example.com', fullName: 'Ada' }}
+        profile={{
+          avatarUrl: null,
+          displayName: 'Ada',
+          email: 'ada@example.com',
+        }}
         resolvedTheme="light"
         sidebarExpanded
         showProfile

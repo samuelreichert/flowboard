@@ -35,6 +35,9 @@ export const normalizeMarkdownForEditor = (markdown: string) =>
         renderImageHtml(alt, src, title)
     );
 
+export const getEditorContentType = (value: string) =>
+  /<(?:p|h[1-4])(?:\s|>)/i.test(value) ? 'html' : 'markdown';
+
 export const renderInlineHtml = (content: JSONContent[] = []): string =>
   content.map(renderInlineNodeHtml).join('');
 

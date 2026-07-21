@@ -29,7 +29,7 @@ const ComposerInput = ({
   textareaRef,
 }: ComposerInputProps) => {
   const { messages } = useLocalization();
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       onSubmitShortcut();
@@ -56,8 +56,7 @@ const ComposerInput = ({
             : messages.composer.captureCard
         }
         ref={textareaRef}
-        render={<textarea />}
-        rows={1}
+        render={<textarea rows={1} />}
         value={draft}
       />
       {error && (

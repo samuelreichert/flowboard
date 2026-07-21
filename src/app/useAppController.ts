@@ -23,8 +23,6 @@ const useAppController = () => {
     columnCount,
     completionAcknowledgement,
     completeWorkOpen,
-    completedWorkCycles,
-    currentView,
     languagePreference,
     manageColumnsOpen,
     mobileSidebarOpen,
@@ -111,23 +109,8 @@ const useAppController = () => {
     authenticatedUserIdRef.current = authenticatedUserId;
   }, [authState]);
 
-  const openTagManager = () => {
-    dispatch({ open: true, type: 'tagManagerOpenChanged' });
-    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
-  };
-
   const openManageColumns = () => {
     dispatch({ open: true, type: 'manageColumnsOpenChanged' });
-    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
-  };
-
-  const openBoard = () => {
-    dispatch({ view: 'board', type: 'currentViewChanged' });
-    dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
-  };
-
-  const openHistory = () => {
-    dispatch({ view: 'history', type: 'currentViewChanged' });
     dispatch({ open: false, type: 'mobileSidebarOpenChanged' });
   };
 
@@ -218,22 +201,17 @@ const useAppController = () => {
     completeWorkOpen,
     completedCardCount,
     completedColumn,
-    completedWorkCycles,
     confirmCompleteWork,
-    currentView,
     deleteTag,
     languagePreference,
     manageColumnsOpen,
     mobileSidebarOpen,
-    openBoard,
     openClearBoardConfirmation,
     openCompleteWorkConfirmation,
-    openHistory,
     openManageColumns,
     openMobileSidebar,
     openProfileDialog,
     openSettings,
-    openTagManager,
     profileDialogOpen,
     profileError,
     profileIdentity,

@@ -20,8 +20,6 @@ export const initAppState = (): AppState => {
     columns: boardState.columns,
     columnCount: boardState.columns.length,
     completeWorkOpen: false,
-    completedWorkCycles: boardState.completedWorkCycles,
-    currentView: 'board',
     languagePreference,
     manageColumnsOpen: false,
     mobileSidebarOpen: false,
@@ -54,7 +52,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         activeWorkCycle: action.state.activeWorkCycle,
         columns: action.state.columns,
         columnCount: action.state.columns.length,
-        completedWorkCycles: action.state.completedWorkCycles,
         storageVersion: state.storageVersion + 1,
         tags: action.state.tags,
       };
@@ -64,7 +61,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         activeWorkCycle: action.state.activeWorkCycle,
         columns: action.state.columns,
         columnCount: action.state.columns.length,
-        completedWorkCycles: action.state.completedWorkCycles,
         tags: action.state.tags,
       };
     case 'clearBoardOpenChanged':
@@ -73,8 +69,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, completeWorkOpen: action.open };
     case 'completionAcknowledgementChanged':
       return { ...state, completionAcknowledgement: action.active };
-    case 'currentViewChanged':
-      return { ...state, currentView: action.view };
     case 'languagePreferenceChanged':
       return {
         ...state,
@@ -100,7 +94,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         activeWorkCycle: action.state.activeWorkCycle,
         columns: action.state.columns,
         columnCount: action.state.columns.length,
-        completedWorkCycles: action.state.completedWorkCycles,
         storageVersion: state.storageVersion + 1,
         tags: action.state.tags,
       };
