@@ -1,9 +1,4 @@
-import {
-  getInternalDestination,
-  isProtectedAppRoute,
-  type ParsedAppRoute,
-} from './routes';
-import type { AuthState } from './useAuthSession';
+import { getInternalDestination } from './routes';
 
 export const getLocationDestination = (location: {
   hash: string;
@@ -13,18 +8,3 @@ export const getLocationDestination = (location: {
   getInternalDestination(
     `${location.pathname}${location.search}${location.hash}`
   );
-
-export const shouldRenderAuthGate = ({
-  authConfigured,
-  route,
-  status,
-}: {
-  authConfigured: boolean;
-  route: ParsedAppRoute;
-  status: AuthState['status'];
-}) =>
-  authConfigured &&
-  status !== 'signedIn' &&
-  (isProtectedAppRoute(route) ||
-    route.type === 'auth-callback' ||
-    route.type === 'sign-in');
