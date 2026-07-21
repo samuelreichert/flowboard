@@ -67,16 +67,13 @@ export const completeWorkCycle = (
         ? { ...column, cards: [] }
         : column
     ),
-    completedWorkCycles: [
-      ...state.completedWorkCycles,
-      completedWorkCycle,
-    ],
+    completedWorkCycles: [...state.completedWorkCycles, completedWorkCycle],
   };
 };
 
 export const resolveArchivedTagName = (
   tagId: string,
-  card: ArchivedBoardCard,
+  card: Pick<ArchivedBoardCard, 'tagSnapshots'>,
   tags: BoardTag[]
 ) =>
   tags.find((tag) => tag.id === tagId)?.name ??

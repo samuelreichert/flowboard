@@ -1,5 +1,5 @@
-import type { KeyboardEvent, RefObject } from 'react';
 import { Field } from '@base-ui/react/field';
+import type { RefObject } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 
@@ -29,13 +29,6 @@ const ComposerInput = ({
   textareaRef,
 }: ComposerInputProps) => {
   const { messages } = useLocalization();
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-      onSubmitShortcut();
-    }
-  };
-
   return (
     <Field.Root className="card-composer__input-row" invalid={Boolean(error)}>
       <Field.Label className="card-composer__label">
@@ -48,7 +41,12 @@ const ComposerInput = ({
         maxLength={100_000}
         onBlur={onBlur}
         onFocus={onFocus}
-        onKeyDown={onKeyDown}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            onSubmitShortcut();
+          }
+        }}
         onValueChange={onChange}
         placeholder={
           disabled
@@ -56,8 +54,7 @@ const ComposerInput = ({
             : messages.composer.captureCard
         }
         ref={textareaRef}
-        render={<textarea />}
-        rows={1}
+        render={<textarea rows={1} />}
         value={draft}
       />
       {error && (
