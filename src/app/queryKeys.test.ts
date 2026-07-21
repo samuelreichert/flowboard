@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
-import { isPersistableFlowboardQueryKey, queryKeys } from './queryKeys';
+import { queryKeys } from './queryKeys';
 
 describe('queryKeys', () => {
-  test('defines stable keys for persisted read queries', () => {
+  test('defines stable keys for resource queries', () => {
     expect(queryKeys.profile).toEqual(['profile']);
     expect(queryKeys.board.bootstrap).toEqual(['board', 'bootstrap']);
     expect(queryKeys.board.card('card-1')).toEqual([
@@ -31,36 +31,5 @@ describe('queryKeys', () => {
       'cards',
       'card-1',
     ]);
-  });
-
-  test('allows only supported resource query keys to persist', () => {
-    expect(isPersistableFlowboardQueryKey(['profile'])).toBe(true);
-    expect(isPersistableFlowboardQueryKey(['board', 'bootstrap'])).toBe(true);
-    expect(isPersistableFlowboardQueryKey(['board', 'cards', 'card-1'])).toBe(
-      true
-    );
-    expect(
-      isPersistableFlowboardQueryKey(['board', 'work-cycles', 'history', 20])
-    ).toBe(true);
-    expect(
-      isPersistableFlowboardQueryKey([
-        'board',
-        'work-cycles',
-        'history',
-        20,
-        'cursor-1',
-      ])
-    ).toBe(true);
-    expect(
-      isPersistableFlowboardQueryKey([
-        'board',
-        'work-cycles',
-        'cycle-1',
-        'cards',
-        'card-1',
-      ])
-    ).toBe(true);
-    expect(isPersistableFlowboardQueryKey(['board', 'history'])).toBe(false);
-    expect(isPersistableFlowboardQueryKey(['unknown'])).toBe(false);
   });
 });
