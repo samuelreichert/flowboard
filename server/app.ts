@@ -3,7 +3,6 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createPrincipalResolver } from './auth/principal.ts';
 import { createSupabaseAuthVerifier } from './auth/supabaseAuth.ts';
 import { createServerConfig, type ServerConfig } from './config.ts';
-import { createFlowboardPrismaClient } from './db/prismaClient.ts';
 import { sendInternalError } from './http/apiErrors.ts';
 import { serveProductionFile } from './http/static.ts';
 import { handleAuthenticatedBoardApiRequest } from './routes/authenticatedBoard.ts';
@@ -29,6 +28,7 @@ export const createFlowboardApp = async (): Promise<FlowboardApp> => {
         })
       )
     : null;
+  const { createFlowboardPrismaClient } = await import('./db/prismaClient.ts');
   const prisma = createFlowboardPrismaClient(config);
   const authVerifier = createSupabaseAuthVerifier(config);
   const principalResolver = createPrincipalResolver(config, authVerifier);

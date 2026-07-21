@@ -19,7 +19,6 @@ import {
   removeBootstrapCard,
   toCardDetail,
   upsertBootstrapCard,
-  upsertBootstrapCardSummary,
 } from './flowboardMutationCache';
 import { queryKeys } from './queryKeys';
 
@@ -168,15 +167,19 @@ export const useFlowboardCardMutations = ({
           return bootstrap;
         }
 
-        return upsertBootstrapCardSummary(bootstrap, {
-          ...existing,
-          ...variables.card,
+        const optimisticCard = {
           columnId: existing.columnId,
+          content:
+            variables.card.content ?? previousCardDetail?.content ?? '',
+          createdAt:
+            previousCardDetail?.createdAt ?? new Date().toISOString(),
           id: variables.cardId,
           priority: variables.card.priority ?? existing.priority,
           tagIds: variables.card.tagIds ?? existing.tagIds,
           title: variables.card.title ?? existing.title,
-        });
+        };
+
+        return upsertBootstrapCard(bootstrap, optimisticCard);
       });
 
       if (previousCardDetail) {
