@@ -3,6 +3,9 @@ import { type Level } from '@tiptap/extension-heading';
 import { NodeSelection } from '@tiptap/pm/state';
 
 import type { AlignValue, HeadingValue, ListValue } from './types';
+import { isSupportedImageUrl, isSupportedLinkUrl } from './urlSafety';
+
+export { isSupportedImageUrl } from './urlSafety';
 
 let lastHeadingValue: HeadingValue = 'paragraph';
 
@@ -21,34 +24,9 @@ export const normalizeUrl = (value: string) => {
 };
 
 export const isSupportedUrl = (value: string, allowDataImage = false) => {
-  try {
-    const url = new URL(value);
-
-    if (url.protocol === 'https:' || url.protocol === 'mailto:') {
-      return true;
-    }
-
-    return (
-      allowDataImage &&
-      url.protocol === 'data:' &&
-      value.startsWith('data:image/')
-    );
-  } catch {
-    return false;
-  }
-};
-
-export const isSupportedImageUrl = (value: string) => {
-  try {
-    const url = new URL(value);
-
-    return (
-      url.protocol === 'https:' ||
-      (url.protocol === 'data:' && value.startsWith('data:image/'))
-    );
-  } catch {
-    return false;
-  }
+  return (
+    isSupportedLinkUrl(value) || (allowDataImage && isSupportedImageUrl(value))
+  );
 };
 
 export const getEditorMarkdown = (editor: Editor) =>

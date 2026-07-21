@@ -45,6 +45,7 @@ import {
 import {
   sendBadRequest,
   sendNotFound,
+  sendRateLimited,
   sendUnauthenticated,
 } from '../http/apiErrors.js';
 import { readRequestBody, sendJson } from '../http/json.js';
@@ -67,14 +68,42 @@ const WORK_CYCLE_COMPLETE_PATH = '/api/board/work-cycle/complete';
 const COMPLETED_HISTORY_PATH = '/api/board/work-cycles/history';
 const ARCHIVED_CARD_DETAIL_PATH_PATTERN =
   /^\/api\/board\/work-cycles\/([^/]+)\/cards\/([^/]+)$/;
+const ACTIVE_CARD_TITLE_MAX_LENGTH = 160;
+const ACTIVE_CARD_CONTENT_MAX_LENGTH = 100_000;
+const ACTIVE_CARD_TAG_IDS_MAX_COUNT = 25;
+const ACTIVE_COLUMN_TITLE_MAX_LENGTH = 80;
+const BOARD_TAG_NAME_MAX_LENGTH = 40;
+const AUTHENTICATED_WRITE_RATE_LIMIT = 120;
+const AUTHENTICATED_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const writeRateLimitBuckets = new Map<
+  string,
+  {
+    count: number;
+    resetAt: number;
+  }
+>();
 
 const isString = (value: unknown): value is string => typeof value === 'string';
 
 const isNonEmptyString = (value: unknown): value is string =>
   isString(value) && value.trim().length > 0;
+
+const normalizeBoundedText = (value: unknown, maxLength: number) => {
+  if (!isNonEmptyString(value)) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return trimmedValue.length <= maxLength ? trimmedValue : null;
+};
+
+const isBoundedString = (value: unknown, maxLength: number): value is string =>
+  isString(value) && value.length <= maxLength;
 
 const isCardPriority = (
   value: unknown
@@ -83,11 +112,50 @@ const isCardPriority = (
   CARD_PRIORITIES.includes(value as ActiveCardCreateInput['priority']);
 
 const normalizeTagIds = (value: unknown) => {
-  if (!Array.isArray(value) || value.some((item) => !isString(item))) {
+  if (
+    !Array.isArray(value) ||
+    value.length > ACTIVE_CARD_TAG_IDS_MAX_COUNT ||
+    value.some((item) => !isString(item))
+  ) {
     return null;
   }
 
-  return [...new Set(value)];
+  const tagIds = [...new Set(value)];
+
+  return tagIds.length <= ACTIVE_CARD_TAG_IDS_MAX_COUNT ? tagIds : null;
+};
+
+const isAuthenticatedWriteRateLimited = (userId: string, method?: string) => {
+  if (!method || method === 'GET' || method === 'HEAD') {
+    return false;
+  }
+
+  const now = Date.now();
+  const currentBucket = writeRateLimitBuckets.get(userId);
+
+  if (!currentBucket || currentBucket.resetAt <= now) {
+    writeRateLimitBuckets.set(userId, {
+      count: 1,
+      resetAt: now + AUTHENTICATED_WRITE_RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  currentBucket.count += 1;
+
+  if (currentBucket.count <= AUTHENTICATED_WRITE_RATE_LIMIT) {
+    return false;
+  }
+
+  if (writeRateLimitBuckets.size > 1_000) {
+    for (const [bucketUserId, bucket] of writeRateLimitBuckets) {
+      if (bucket.resetAt <= now) {
+        writeRateLimitBuckets.delete(bucketUserId);
+      }
+    }
+  }
+
+  return true;
 };
 
 const readJsonPayload = async (request: IncomingMessage) => {
@@ -104,10 +172,11 @@ const normalizeCardFields = (body: unknown) => {
   }
 
   const tagIds = normalizeTagIds(body.tagIds);
+  const title = normalizeBoundedText(body.title, ACTIVE_CARD_TITLE_MAX_LENGTH);
 
   if (
-    !isNonEmptyString(body.title) ||
-    !isString(body.content) ||
+    !title ||
+    !isBoundedString(body.content, ACTIVE_CARD_CONTENT_MAX_LENGTH) ||
     !isCardPriority(body.priority) ||
     !tagIds
   ) {
@@ -118,7 +187,7 @@ const normalizeCardFields = (body: unknown) => {
     content: body.content,
     priority: body.priority,
     tagIds,
-    title: body.title.trim(),
+    title,
   };
 };
 
@@ -153,15 +222,20 @@ const normalizeUpdateCardInput = (
   const input: ActiveCardUpdateInput = {};
 
   if (body.title !== undefined) {
-    if (!isNonEmptyString(body.title)) {
+    const title = normalizeBoundedText(
+      body.title,
+      ACTIVE_CARD_TITLE_MAX_LENGTH
+    );
+
+    if (!title) {
       return null;
     }
 
-    input.title = body.title.trim();
+    input.title = title;
   }
 
   if (body.content !== undefined) {
-    if (!isString(body.content)) {
+    if (!isBoundedString(body.content, ACTIVE_CARD_CONTENT_MAX_LENGTH)) {
       return null;
     }
 
@@ -223,28 +297,32 @@ const normalizeMoveCardInput = (body: unknown): ActiveCardMoveInput | null => {
 const normalizeCreateColumnInput = (
   body: unknown
 ): ActiveColumnCreateInput | null => {
-  if (
-    !isRecord(body) ||
-    !isNonEmptyString(body.id) ||
-    !isNonEmptyString(body.title)
-  ) {
+  const title = isRecord(body)
+    ? normalizeBoundedText(body.title, ACTIVE_COLUMN_TITLE_MAX_LENGTH)
+    : null;
+
+  if (!isRecord(body) || !isNonEmptyString(body.id) || !title) {
     return null;
   }
 
   return {
     id: body.id,
-    title: body.title.trim(),
+    title,
   };
 };
 
 const normalizeUpdateColumnInput = (
   body: unknown
 ): ActiveColumnUpdateInput | null => {
-  if (!isRecord(body) || !isNonEmptyString(body.title)) {
+  const title = isRecord(body)
+    ? normalizeBoundedText(body.title, ACTIVE_COLUMN_TITLE_MAX_LENGTH)
+    : null;
+
+  if (!isRecord(body) || !title) {
     return null;
   }
 
-  return { title: body.title.trim() };
+  return { title };
 };
 
 const normalizeMoveColumnInput = (
@@ -272,26 +350,30 @@ const normalizeMoveColumnInput = (
 };
 
 const normalizeCreateTagInput = (body: unknown): BoardTagCreateInput | null => {
-  if (
-    !isRecord(body) ||
-    !isNonEmptyString(body.id) ||
-    !isNonEmptyString(body.name)
-  ) {
+  const name = isRecord(body)
+    ? normalizeBoundedText(body.name, BOARD_TAG_NAME_MAX_LENGTH)
+    : null;
+
+  if (!isRecord(body) || !isNonEmptyString(body.id) || !name) {
     return null;
   }
 
   return {
     id: body.id,
-    name: body.name.trim(),
+    name,
   };
 };
 
 const normalizeUpdateTagInput = (body: unknown): BoardTagUpdateInput | null => {
-  if (!isRecord(body) || !isNonEmptyString(body.name)) {
+  const name = isRecord(body)
+    ? normalizeBoundedText(body.name, BOARD_TAG_NAME_MAX_LENGTH)
+    : null;
+
+  if (!isRecord(body) || !name) {
     return null;
   }
 
-  return { name: body.name.trim() };
+  return { name };
 };
 
 const normalizeBoardSettingsInput = (
@@ -391,6 +473,11 @@ export const handleAuthenticatedBoardApiRequest = async (
   }
 
   await ensureProfile(prisma, user);
+
+  if (isAuthenticatedWriteRateLimited(user.id, request.method)) {
+    sendRateLimited(response);
+    return true;
+  }
 
   if (pathname === '/api/board/bootstrap') {
     if (request.method !== 'GET') {

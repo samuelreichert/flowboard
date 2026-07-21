@@ -317,6 +317,97 @@ describe('structured board repository', () => {
     ).resolves.toBeNull();
   });
 
+  test('blocks cross-user active card and tag mutations', async () => {
+    const prisma = createTestPrisma();
+    const otherState: BoardState = {
+      ...sampleState,
+      activeWorkCycle: {
+        completedColumnId: 'other-done',
+        startDate: '2026-07-01T00:00:00.000Z',
+      },
+      columns: [
+        {
+          cards: [
+            {
+              content: 'Other content',
+              createdAt: '2026-07-02T00:00:00.000Z',
+              id: 'other-card',
+              priority: 'medium',
+              tagIds: ['other-tag'],
+              title: 'Other card',
+            },
+          ],
+          id: 'other-todo',
+          position: 0,
+          title: 'Other Todo',
+        },
+        {
+          cards: [],
+          id: 'other-done',
+          position: 1,
+          title: 'Other Done',
+        },
+      ],
+      completedWorkCycles: [],
+      tags: [{ id: 'other-tag', name: 'Other tag' }],
+    };
+
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'one@example.com',
+      id: 'user-1',
+    });
+    await ensureProfile(prisma, {
+      avatarUrl: null,
+      displayName: null,
+      email: 'two@example.com',
+      id: 'user-2',
+    });
+    const board = await ensureDefaultBoard(prisma, 'user-1', sampleState);
+    await ensureDefaultBoard(prisma, 'user-2', otherState);
+
+    await expect(
+      createActiveCard(prisma, 'user-2', {
+        columnId: 'todo',
+        content: 'Cross-user insert',
+        id: 'cross-user-card',
+        priority: 'medium',
+        tagIds: ['tag-1'],
+        title: 'Cross-user insert',
+      })
+    ).resolves.toBeNull();
+    await expect(
+      updateActiveCard(prisma, 'user-2', 'card-1', {
+        title: 'Cross-user update',
+      })
+    ).resolves.toBeNull();
+    await expect(
+      moveActiveCard(prisma, 'user-2', 'card-1', {
+        afterCardId: null,
+        beforeCardId: null,
+        columnId: 'other-done',
+      })
+    ).resolves.toBeNull();
+    await expect(
+      deleteActiveCard(prisma, 'user-2', 'card-1')
+    ).resolves.toBeNull();
+    await expect(
+      renameBoardTag(prisma, 'user-2', 'tag-1', { name: 'Cross-user tag' })
+    ).resolves.toBeNull();
+    await expect(
+      assignActiveCardTag(prisma, 'user-2', 'card-1', 'tag-1')
+    ).resolves.toBeNull();
+    await expect(
+      unassignActiveCardTag(prisma, 'user-2', 'card-1', 'tag-1')
+    ).resolves.toBeNull();
+
+    const loaded = await loadBoard(prisma, 'user-1', board.id);
+
+    expect(loaded?.state.columns).toEqual(sampleState.columns);
+    expect(loaded?.state.tags).toEqual(sampleState.tags);
+  });
+
   test('creates an active card without rewriting unrelated board data', async () => {
     const prisma = createTestPrisma();
 
