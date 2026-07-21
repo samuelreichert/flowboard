@@ -5,6 +5,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { LocalizationProvider } from '../LocalizationProvider';
 import { getMessages } from '../localization';
 import { FlowboardToastProvider } from '../components/ToastNotifications';
+import type { BoardBootstrapResponse } from '../storage/authenticatedApi';
 import type { AppAction } from './appTypes';
 import useAuthenticatedBoardSync from './useAuthenticatedBoardSync';
 import type { AuthState } from './useAuthSession';
@@ -27,6 +28,21 @@ const signedInAuthState = {
   session: { access_token: 'access-token' },
   status: 'signedIn',
 } as AuthState;
+const bootstrap: BoardBootstrapResponse = {
+  board: {
+    background: { type: 'color', value: '#ffffff' },
+    id: 'board-1',
+    title: 'Board',
+    version: 1,
+  },
+  cards: [],
+  columns: [],
+  tags: [],
+  workCycle: {
+    completedColumnId: null,
+    startDate: '2026-07-21T00:00:00.000Z',
+  },
+};
 const dispatch = vi.fn() as Dispatch<AppAction>;
 
 const SyncHarness = ({
@@ -88,7 +104,7 @@ test('reports an unavailable bootstrap board through the shared error toast', as
 
 test('unmasks a signed-in board as soon as bootstrap data is available', () => {
   useBoardBootstrapQueryMock.mockReturnValue({
-    data: {} as never,
+    data: bootstrap,
     isError: false,
     isFetching: true,
     isPending: true,

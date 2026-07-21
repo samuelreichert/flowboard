@@ -20,6 +20,13 @@ export const clearFlowboardQueryCache = () => {
   flowboardQueryClient.clear();
 };
 
+export const shouldClearFlowboardQueryCache = (
+  previousAuthenticatedUserId: string | null,
+  nextAuthenticatedUserId: string | null
+) =>
+  previousAuthenticatedUserId !== null &&
+  previousAuthenticatedUserId !== nextAuthenticatedUserId;
+
 export const removeLegacyFlowboardQueryCache = () => {
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(LEGACY_FLOWBOARD_QUERY_CACHE_KEY);
