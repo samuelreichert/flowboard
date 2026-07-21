@@ -33,5 +33,8 @@ describe('CardContentEditor command helpers', () => {
     expect(isSupportedImageUrl('https://example.com/image.png')).toBe(true);
     expect(isSupportedImageUrl('mailto:team@example.com')).toBe(false);
     expect(isSupportedImageUrl('data:text/plain;base64,abc123')).toBe(false);
+    expect(isSupportedImageUrl('data:image/svg+xml;base64,PHN2Zy8+')).toBe(
+      false
+    );
   });
 });
