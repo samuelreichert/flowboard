@@ -2,7 +2,7 @@
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  padding-right: 4px;
+  padding-inline: 22px;
 }
 
 .history-view__toolbar {
@@ -236,6 +236,10 @@
 }
 
 @media (max-width: 760px) {
+  .history-view {
+    padding-inline: 12px;
+  }
+
   .history-card-detail__toolbar {
     display: grid;
   }
