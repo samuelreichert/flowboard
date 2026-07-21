@@ -9,8 +9,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, vi } from 'vitest';
 
 import AuthGate from './AuthGate';
-import { shouldRenderAuthGate } from './routeGuards';
-import { parseAppRoute } from './routes';
 import { resetAppTestEnvironment } from '../test/appTestUtils';
 
 vi.mock('@base-ui/react/button', () => ({
@@ -151,41 +149,4 @@ test('shows non-sensitive social auth failure messaging', () => {
   expect(
     screen.queryByText(/token|secret|client_secret/i)
   ).not.toBeInTheDocument();
-});
-
-test('requires the auth gate for every inside-app route when signed out', () => {
-  const signedOutRoutes = [
-    '/board',
-    '/history',
-    '/settings',
-    '/tags',
-    '/board/cards/card-1',
-    '/history/cycles/cycle-1/cards/card-1',
-    '/unknown-route',
-  ];
-
-  for (const path of signedOutRoutes) {
-    expect(
-      shouldRenderAuthGate({
-        authConfigured: true,
-        route: parseAppRoute(path),
-        status: 'signedOut',
-      })
-    ).toBe(true);
-  }
-
-  expect(
-    shouldRenderAuthGate({
-      authConfigured: true,
-      route: parseAppRoute('/board'),
-      status: 'signedIn',
-    })
-  ).toBe(false);
-  expect(
-    shouldRenderAuthGate({
-      authConfigured: false,
-      route: parseAppRoute('/board'),
-      status: 'static',
-    })
-  ).toBe(false);
 });

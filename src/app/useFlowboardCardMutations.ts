@@ -19,6 +19,7 @@ import {
   removeBootstrapCard,
   toCardDetail,
   upsertBootstrapCard,
+  upsertBootstrapCardSummary,
 } from './flowboardMutationCache';
 import { queryKeys } from './queryKeys';
 
@@ -129,7 +130,8 @@ export const useFlowboardCardMutations = ({
     UpdateCardMutationVariables,
     MutationContext
   >({
-    mutationFn: ({ card, cardId }) => updateActiveCard(cardId, card, accessToken),
+    mutationFn: ({ card, cardId }) =>
+      updateActiveCard(cardId, card, accessToken),
     onError: (_error, variables, context) => {
       onMutationError?.();
       queryClient.setQueryData(
@@ -166,10 +168,10 @@ export const useFlowboardCardMutations = ({
           return bootstrap;
         }
 
-        return upsertBootstrapCard(bootstrap, {
+        return upsertBootstrapCardSummary(bootstrap, {
+          ...existing,
           ...variables.card,
           columnId: existing.columnId,
-          createdAt: previousCardDetail?.createdAt ?? new Date().toISOString(),
           id: variables.cardId,
         });
       });
@@ -234,7 +236,10 @@ export const useFlowboardCardMutations = ({
         );
 
       queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
-        moveBootstrapCard(current as BoardBootstrapResponse | undefined, variables)
+        moveBootstrapCard(
+          current as BoardBootstrapResponse | undefined,
+          variables
+        )
       );
 
       return { previousBootstrap, previousCardDetail };

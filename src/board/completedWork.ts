@@ -26,18 +26,16 @@ export const createCompletedWorkCycle = (
   }
 
   return {
-    cards: completedColumn.cards.map(
-      (card): ArchivedBoardCard => ({
-        archivedAt: completedAt,
-        content: card.content,
-        createdAt: card.createdAt,
-        id: card.id,
-        priority: card.priority,
-        tagIds: card.tagIds,
-        tagSnapshots: snapshotTags(card.tagIds, state.tags),
-        title: card.title,
-      })
-    ),
+    cards: completedColumn.cards.map((card): ArchivedBoardCard => ({
+      archivedAt: completedAt,
+      content: card.content,
+      createdAt: card.createdAt,
+      id: card.id,
+      priority: card.priority,
+      tagIds: card.tagIds,
+      tagSnapshots: snapshotTags(card.tagIds, state.tags),
+      title: card.title,
+    })),
     completedColumnId: completedColumn.id,
     completedColumnTitle: completedColumn.title,
     endDate: completedAt,
@@ -67,16 +65,13 @@ export const completeWorkCycle = (
         ? { ...column, cards: [] }
         : column
     ),
-    completedWorkCycles: [
-      ...state.completedWorkCycles,
-      completedWorkCycle,
-    ],
+    completedWorkCycles: [...state.completedWorkCycles, completedWorkCycle],
   };
 };
 
 export const resolveArchivedTagName = (
   tagId: string,
-  card: ArchivedBoardCard,
+  card: Pick<ArchivedBoardCard, 'tagSnapshots'>,
   tags: BoardTag[]
 ) =>
   tags.find((tag) => tag.id === tagId)?.name ??

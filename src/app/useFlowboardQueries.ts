@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  type InfiniteData,
+} from '@tanstack/react-query';
 
 import {
   fetchArchivedCardDetail,
@@ -6,6 +10,7 @@ import {
   fetchAuthenticatedProfile,
   fetchBoardBootstrap,
   fetchCompletedHistory,
+  type CompletedHistoryResponse,
 } from '../storage/authenticatedApi';
 import { queryKeys } from './queryKeys';
 
@@ -52,7 +57,13 @@ export const useCompletedHistoryQuery = ({
   enabled: boolean;
   limit?: number;
 }) =>
-  useInfiniteQuery({
+  useInfiniteQuery<
+    CompletedHistoryResponse,
+    Error,
+    InfiniteData<CompletedHistoryResponse>,
+    ReturnType<typeof queryKeys.board.history>,
+    string | null
+  >({
     enabled,
     getNextPageParam: (lastPage) => lastPage.pageInfo.nextCursor,
     initialPageParam: null as string | null,

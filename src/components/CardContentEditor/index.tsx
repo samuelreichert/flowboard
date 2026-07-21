@@ -121,6 +121,7 @@ const CardContentEditor = ({
         return getToolbarState(currentEditor);
       },
     }) ?? defaultToolbarState;
+  const headingValueRef = useRef(toolbarState.headingValue);
   const interactions = useCardContentInteractions(editor, toolbarState);
 
   return (
@@ -139,7 +140,9 @@ const CardContentEditor = ({
         linkError={interactions.linkError}
         linkPopoverOpen={interactions.linkPopoverOpen}
         linkUrl={interactions.linkUrl}
-        onAlignChange={(nextValue) => applyAlignChange(editor, nextValue)}
+        onAlignChange={(nextValue) =>
+          applyAlignChange(editor, nextValue, headingValueRef.current)
+        }
         onApplyImage={interactions.applyImageValue}
         onApplyLink={interactions.applyLinkPopoverValue}
         onBlockquote={() => editor?.chain().focus().toggleBlockquote().run()}
@@ -147,7 +150,10 @@ const CardContentEditor = ({
         onCode={() => editor?.chain().focus().toggleCode().run()}
         onCodeBlock={() => editor?.chain().focus().toggleCodeBlock().run()}
         onCopyMarkdown={interactions.copyMarkdown}
-        onHeadingChange={(nextValue) => applyHeadingChange(editor, nextValue)}
+        onHeadingChange={(nextValue) => {
+          headingValueRef.current = nextValue;
+          applyHeadingChange(editor, nextValue);
+        }}
         onImagePopoverOpenChange={interactions.onImagePopoverOpenChange}
         onItalic={() => editor?.chain().focus().toggleItalic().run()}
         onLinkMouseDown={interactions.onLinkMouseDown}

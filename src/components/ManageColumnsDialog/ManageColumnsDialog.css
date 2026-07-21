@@ -57,10 +57,6 @@
   z-index: 42;
 }
 
-.column-manager__delete {
-  color: var(--color-danger);
-}
-
 .column-manager__add {
   justify-self: start;
 }

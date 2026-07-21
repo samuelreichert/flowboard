@@ -4,6 +4,8 @@ import { NodeSelection } from '@tiptap/pm/state';
 
 import type { AlignValue, HeadingValue, ListValue } from './types';
 
+let lastHeadingValue: HeadingValue = 'paragraph';
+
 export const normalizeUrl = (value: string) => {
   const trimmedValue = value.trim();
 
@@ -117,6 +119,7 @@ export const applyHeadingChange = (
 
   if (nextValue === 'paragraph') {
     editor.chain().focus().setParagraph().run();
+    lastHeadingValue = nextValue;
     return;
   }
 
@@ -127,6 +130,7 @@ export const applyHeadingChange = (
       level: Number(nextValue.replace('heading-', '')) as Level,
     })
     .run();
+  lastHeadingValue = nextValue;
 };
 
 export const applyListChange = (
@@ -159,9 +163,25 @@ export const applyListChange = (
 
 export const applyAlignChange = (
   editor: Editor | null,
-  nextValue: AlignValue
+  nextValue: AlignValue,
+  headingValue: HeadingValue = 'paragraph'
 ) => {
   if (!editor) {
+    return;
+  }
+
+  const activeHeadingValue =
+    headingValue !== 'paragraph' ? headingValue : lastHeadingValue;
+
+  if (activeHeadingValue !== 'paragraph') {
+    editor
+      .chain()
+      .focus()
+      .setHeading({
+        level: Number(activeHeadingValue.replace('heading-', '')) as Level,
+      })
+      .setTextAlign(nextValue)
+      .run();
     return;
   }
 

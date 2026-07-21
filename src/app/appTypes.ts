@@ -5,7 +5,6 @@ import type {
   BoardColumn,
   BoardState,
   BoardTag,
-  CompletedWorkCycle,
 } from '../types';
 
 export type AppView = 'board' | 'history';
@@ -17,8 +16,6 @@ export type AppState = {
   columnCount: number;
   completionAcknowledgement: boolean;
   completeWorkOpen: boolean;
-  completedWorkCycles: CompletedWorkCycle[];
-  currentView: AppView;
   languagePreference: LanguagePreference;
   manageColumnsOpen: boolean;
   mobileSidebarOpen: boolean;
@@ -41,7 +38,6 @@ export type AppAction =
   | { type: 'clearBoardOpenChanged'; open: boolean }
   | { type: 'completeWorkOpenChanged'; open: boolean }
   | { type: 'completionAcknowledgementChanged'; active: boolean }
-  | { type: 'currentViewChanged'; view: AppView }
   | { type: 'languagePreferenceChanged'; preference: LanguagePreference }
   | { type: 'manageColumnsOpenChanged'; open: boolean }
   | { type: 'mobileSidebarOpenChanged'; open: boolean }
