@@ -14,6 +14,6 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "include": ["server/**/*.ts", "src/board/**/*.ts"],
+  "include": ["api/**/*.ts", "server/**/*.ts", "src/board/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
