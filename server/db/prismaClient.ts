@@ -29,6 +29,7 @@ type FlowboardPrismaDelegates = {
     | 'findFirst'
     | 'findMany'
     | 'update'
+    | 'updateMany'
   >;
   boardWorkCycle: PrismaDelegate<
     SqlitePrismaClient['boardWorkCycle'],
@@ -48,6 +49,7 @@ type FlowboardPrismaDelegates = {
     | 'findFirst'
     | 'findMany'
     | 'update'
+    | 'updateMany'
   >;
   cardTag: PrismaDelegate<
     SqlitePrismaClient['cardTag'],
