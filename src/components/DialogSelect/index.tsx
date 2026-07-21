@@ -2,6 +2,8 @@ import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import SelectTrigger from '../SelectTrigger';
+
 type DialogSelectOption<T extends string> = {
   label: ReactNode;
   value: T;
@@ -34,8 +36,8 @@ const DialogSelect = <T extends string>({
     {label ? (
       <div className="dialog-field">
         <Select.Label className="dialog-label">{label}</Select.Label>
-        <Select.Trigger
-          aria-label={ariaLabel}
+        <SelectTrigger
+          ariaLabel={ariaLabel}
           className="dialog-input dialog-select__trigger"
         >
           <Select.Value className="dialog-select__value">
@@ -44,11 +46,11 @@ const DialogSelect = <T extends string>({
           <Select.Icon className="dialog-select__icon">
             <ChevronDown size={17} />
           </Select.Icon>
-        </Select.Trigger>
+        </SelectTrigger>
       </div>
     ) : (
-      <Select.Trigger
-        aria-label={ariaLabel}
+      <SelectTrigger
+        ariaLabel={ariaLabel}
         className="dialog-input dialog-select__trigger"
       >
         <Select.Value className="dialog-select__value">
@@ -57,7 +59,7 @@ const DialogSelect = <T extends string>({
         <Select.Icon className="dialog-select__icon">
           <ChevronDown size={17} />
         </Select.Icon>
-      </Select.Trigger>
+      </SelectTrigger>
     )}
     <Select.Portal>
       <Select.Positioner

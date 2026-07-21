@@ -223,7 +223,13 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   fetchMock.mockClear();
 
   await user.click(screen.getByText('Tagged'));
-  await user.click(screen.getByRole('combobox', { name: /tags/i }));
+  const tagSelect = screen.getByRole('combobox', { name: /tags/i });
+  expect(tagSelect.querySelector('.dialog-select__value')).toHaveTextContent(
+    'No tags'
+  );
+  expect(tagSelect.querySelector('.dialog-select__icon')).toBeInTheDocument();
+
+  await user.click(tagSelect);
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
   await waitFor(() =>

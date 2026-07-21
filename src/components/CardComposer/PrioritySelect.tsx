@@ -3,6 +3,7 @@ import { Check, ChevronDown } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { CardPriority } from '../../types';
+import SelectTrigger from '../SelectTrigger';
 
 export type PriorityOption = {
   label: string;
@@ -28,8 +29,8 @@ const PrioritySelect = ({
       onValueChange={(nextValue) => onValueChange(nextValue as CardPriority)}
       value={value}
     >
-      <Select.Trigger
-        aria-label={messages.card.priority}
+      <SelectTrigger
+        ariaLabel={messages.card.priority}
         className={`card-composer__chip card-composer__priority card-composer__priority--${value}`}
       >
         <Select.Value className="card-composer__chip-value">
@@ -42,7 +43,7 @@ const PrioritySelect = ({
         <Select.Icon className="card-composer__chip-icon">
           <ChevronDown size={15} />
         </Select.Icon>
-      </Select.Trigger>
+      </SelectTrigger>
       <Select.Portal>
         <Select.Positioner
           align="start"
