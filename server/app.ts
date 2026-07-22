@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { createPrincipalResolver } from './auth/principal.ts';
-import { createSupabaseAuthVerifier } from './auth/supabaseAuth.ts';
-import { createServerConfig, type ServerConfig } from './config.ts';
-import { sendInternalError } from './http/apiErrors.ts';
-import { serveProductionFile } from './http/static.ts';
-import { handleAuthenticatedBoardApiRequest } from './routes/authenticatedBoard.ts';
-import { handleAuthenticatedProfileApiRequest } from './routes/authenticatedProfile.ts';
+import { createPrincipalResolver } from './auth/principal.js';
+import { createSupabaseAuthVerifier } from './auth/supabaseAuth.js';
+import { createServerConfig, type ServerConfig } from './config.js';
+import { sendInternalError } from './http/apiErrors.js';
+import { serveProductionFile } from './http/static.js';
+import { handleAuthenticatedBoardApiRequest } from './routes/authenticatedBoard.js';
+import { handleAuthenticatedProfileApiRequest } from './routes/authenticatedProfile.js';
 
 export type FlowboardRequestHandler = (
   request: IncomingMessage,
@@ -28,7 +28,7 @@ export const createFlowboardApp = async (): Promise<FlowboardApp> => {
         })
       )
     : null;
-  const { createFlowboardPrismaClient } = await import('./db/prismaClient.ts');
+  const { createFlowboardPrismaClient } = await import('./db/prismaClient.js');
   const prisma = createFlowboardPrismaClient(config);
   const authVerifier = createSupabaseAuthVerifier(config);
   const principalResolver = createPrincipalResolver(config, authVerifier);

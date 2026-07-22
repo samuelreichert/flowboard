@@ -3,7 +3,7 @@ import type {
   BoardState,
   BoardTag,
   CompletedWorkCycle,
-} from './types.ts';
+} from './types.js';
 
 const createId = () => crypto.randomUUID();
 

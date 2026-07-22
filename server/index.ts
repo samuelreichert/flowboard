@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 
-import { createFlowboardApp } from './app.ts';
+import { createFlowboardApp } from './app.js';
 
 const { config, handleRequest } = await createFlowboardApp();
 const server = createServer(handleRequest);

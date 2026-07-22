@@ -1,4 +1,4 @@
-import type { BoardColumn } from './types.ts';
+import type { BoardColumn } from './types.js';
 
 const COLUMN_POSITION_STEP = 10;
 

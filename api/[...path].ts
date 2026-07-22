@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { createFlowboardApp } from '../server/app.ts';
+import { createFlowboardApp } from '../server/app.js';
 
 export const config = {
   api: {

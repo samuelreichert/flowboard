@@ -3,7 +3,7 @@ import type {
   BoardCard,
   BoardColumn,
   CompletedWorkCycle,
-} from './types.ts';
+} from './types.js';
 
 export type ActiveCardRouteTarget = {
   card: BoardCard;
