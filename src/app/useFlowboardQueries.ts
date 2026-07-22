@@ -16,6 +16,8 @@ import { queryKeys } from './queryKeys';
 
 export const COMPLETED_HISTORY_PAGE_LIMIT = 20;
 
+type CompletedHistoryQueryKey = ReturnType<typeof queryKeys.board.history>;
+
 export const useAuthenticatedProfileQuery = (accessToken?: string) =>
   useQuery({
     enabled: Boolean(accessToken),
@@ -61,7 +63,7 @@ export const useCompletedHistoryQuery = ({
     CompletedHistoryResponse,
     Error,
     InfiniteData<CompletedHistoryResponse>,
-    ReturnType<typeof queryKeys.board.history>,
+    CompletedHistoryQueryKey,
     string | null
   >({
     enabled,

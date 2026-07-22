@@ -10,7 +10,10 @@ import useAuthenticatedBoardSync from './useAuthenticatedBoardSync';
 import useAuthenticatedProfile from './useAuthenticatedProfile';
 import useAppThemeEffects from './useAppThemeEffects';
 import useAuthSession from './useAuthSession';
-import { clearFlowboardQueryCache } from './queryClient';
+import {
+  clearFlowboardQueryCache,
+  shouldClearFlowboardQueryCache,
+} from './queryClient';
 import { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
@@ -38,7 +41,7 @@ const useAppController = () => {
     themePreference,
   } = state;
   const messages = getMessages(resolvedLanguage);
-  const authenticatedUserIdRef = useRef<string | null | undefined>(undefined);
+  const authenticatedUserIdRef = useRef<string | null>(null);
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
   const cardMutations = useFlowboardCardMutations({
@@ -100,8 +103,10 @@ const useAppController = () => {
       authState.status === 'signedIn' ? authState.session.user.id : null;
 
     if (
-      authenticatedUserIdRef.current !== undefined &&
-      authenticatedUserIdRef.current !== authenticatedUserId
+      shouldClearFlowboardQueryCache(
+        authenticatedUserIdRef.current,
+        authenticatedUserId
+      )
     ) {
       clearFlowboardQueryCache();
     }

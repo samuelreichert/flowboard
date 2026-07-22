@@ -8,6 +8,10 @@
   gap: 10px;
 }
 
+.app-settings__field {
+  margin-top: 0;
+}
+
 .app-settings__section-title {
   color: var(--color-text);
   font-size: 13px;

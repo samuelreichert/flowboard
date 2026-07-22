@@ -7,6 +7,7 @@ import {
   Settings,
   Sun,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { LanguagePreference, ResolvedLanguage } from '../../localization';
@@ -20,6 +21,13 @@ import type { SegmentedControlOption } from '../SegmentedControl';
 
 import '../SettingsDialog/SettingsDialog.css';
 import './AppSettingsDialog.css';
+
+type AppSettingsSectionProps = {
+  children: ReactNode;
+  icon: ReactNode;
+  id: string;
+  title: string;
+};
 
 type AppSettingsDialogProps = {
   canClearBoard: boolean;
@@ -38,6 +46,23 @@ type AppSettingsDialogProps = {
 };
 
 const UNSET_COMPLETED_COLUMN = '__unset__';
+
+const AppSettingsSection = ({
+  children,
+  icon,
+  id,
+  title,
+}: AppSettingsSectionProps) => (
+  <section className="app-settings__section" aria-labelledby={id}>
+    <div className="board-settings__label-row">
+      {icon}
+      <h2 className="app-settings__section-title" id={id}>
+        {title}
+      </h2>
+    </div>
+    {children}
+  </section>
+);
 
 const AppSettingsDialog = ({
   canClearBoard,
@@ -95,19 +120,11 @@ const AppSettingsDialog = ({
       title={messages.settings.title}
     >
       <div className="app-settings__content">
-        <section
-          className="app-settings__section"
-          aria-labelledby="appearance-settings-title"
+        <AppSettingsSection
+          icon={<Sun size={15} />}
+          id="appearance-settings-title"
+          title={messages.settings.appearance}
         >
-          <div className="board-settings__label-row">
-            <Sun size={15} />
-            <h2
-              className="app-settings__section-title"
-              id="appearance-settings-title"
-            >
-              {messages.settings.appearance}
-            </h2>
-          </div>
           <SegmentedControl
             ariaLabel={messages.settings.themePreference}
             className="app-settings__theme-control"
@@ -118,38 +135,30 @@ const AppSettingsDialog = ({
             }))}
             value={themePreference}
           />
-          <div className="dialog-field board-settings__section">
-            <div className="board-settings__label-row">
-              <Languages size={15} />
-              <span className="dialog-label">{messages.language.title}</span>
-            </div>
-            <DialogSelect
-              ariaLabel={messages.language.preferenceLabel}
-              name="language-preference"
-              onValueChange={onLanguagePreferenceChange}
-              options={languageOptions}
-              renderValue={(value) =>
-                languageOptions.find((option) => option.value === value)
-                  ?.label ?? messages.language.english
-              }
-              value={languagePreference}
-            />
-          </div>
-        </section>
-        <section
-          className="app-settings__section"
-          aria-labelledby="board-settings-title"
+        </AppSettingsSection>
+        <AppSettingsSection
+          icon={<Languages size={15} />}
+          id="language-settings-title"
+          title={messages.language.title}
         >
-          <div className="board-settings__label-row">
-            <Settings size={15} />
-            <h2
-              className="app-settings__section-title"
-              id="board-settings-title"
-            >
-              {messages.settings.board}
-            </h2>
-          </div>
-          <div className="dialog-field board-settings__section">
+          <DialogSelect
+            ariaLabel={messages.language.preferenceLabel}
+            name="language-preference"
+            onValueChange={onLanguagePreferenceChange}
+            options={languageOptions}
+            renderValue={(value) =>
+              languageOptions.find((option) => option.value === value)
+                ?.label ?? messages.language.english
+            }
+            value={languagePreference}
+          />
+        </AppSettingsSection>
+        <AppSettingsSection
+          icon={<Settings size={15} />}
+          id="board-settings-title"
+          title={messages.settings.board}
+        >
+          <div className="dialog-field app-settings__field">
             <span className="dialog-label">
               {messages.settings.completedColumn}
             </span>
@@ -190,7 +199,7 @@ const AppSettingsDialog = ({
               </InlineEmptyState>
             )}
           </div>
-        </section>
+        </AppSettingsSection>
         {canClearBoard && (
           <section className="board-settings__danger-zone board-settings__section">
             <div>

@@ -1,8 +1,9 @@
 # Flowboard
 
-Flowboard is a focused workflow board for organizing columns, cards,
-priorities, tags, rich notes, and completed work history with durable
-Prisma-backed persistence.
+Flowboard is a focused workflow board built with React, TypeScript, Prisma, and
+Supabase. It supports columns, cards, rich notes, priorities, tags, work-cycle
+history, and durable structured persistence with SQLite locally and Postgres in
+production.
 
 ![Flowboard latest app shell with workflow columns, cards, priorities, and theme controls](public/flowboard-screenshot-latest.jpg)
 
@@ -20,10 +21,12 @@ Prisma-backed persistence.
 - Assign Low, Medium, or High priority to cards.
 - Create reusable board tags and assign them to cards.
 - Track active work cycles and completed work history.
-- Sign in with Supabase Auth for durable user-owned boards.
+- Sign in with Supabase Auth for durable, user-owned boards.
 - Use a responsive app shell with a collapsible sidebar, board actions, and system/light/dark theme controls.
 - Persist board data through structured Prisma tables, using SQLite locally and
   Supabase Postgres in production.
+- Keep browser `localStorage` limited to non-database UI preferences, not board
+  data.
 
 ## Setup
 
@@ -142,6 +145,7 @@ Production Supabase Postgres uses:
 ```bash
 PRISMA_PROVIDER=postgresql
 DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=...
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -156,6 +160,22 @@ Apply production migrations with:
 ```bash
 npm run db:deploy:postgres
 ```
+
+Run that command explicitly before a production deployment, from a trusted
+local shell or CI job with `DIRECT_URL` configured. Do not add it to Vercel's
+build command. The current Supabase database predates Prisma's migration
+ledger, so baseline its existing initial schema exactly once before the first
+deploy:
+
+```bash
+PRISMA_PROVIDER=postgresql ./node_modules/.bin/prisma migrate resolve --applied 20260706231500_initial_structured_board_model
+npm run db:deploy:postgres
+PRISMA_PROVIDER=postgresql ./node_modules/.bin/prisma migrate status
+```
+
+Future releases only need the deploy and status commands. `DATABASE_URL` is
+used by the running API and should use Supabase's pooled connection string;
+`DIRECT_URL` is used only by Prisma migration commands.
 
 The browser `VITE_*` Supabase values are public client configuration. Keep
 database URLs, service-role keys, and any privileged Supabase secrets server-side
@@ -253,7 +273,8 @@ Manual verification checklist:
 
 Flowboard stores durable board data in Prisma-backed databases. Local
 development uses SQLite, and production authenticated deployments use Supabase
-Postgres.
+Postgres. Browser `localStorage` is not a supported board database or board
+import source.
 
 When using `npm run dev` or `npm start` with Prisma SQLite, the complete board
 state is saved locally in structured tables in `data/flowboard.local.db`:
@@ -269,25 +290,61 @@ data/flowboard.local.db
 Authenticated persistence loads durable board data from the authenticated API
 and saves through Prisma-backed structured tables.
 
+The browser may still store non-database UI preferences such as theme or
+language selection locally, but columns, cards, tags, and work history live in
+the Prisma data model.
+
 ## PWA Shell
 
 The production build includes a web app manifest and service worker. After the
 app has loaded successfully once, the service worker caches the app shell and
 bundled assets so Flowboard can reopen offline.
 
-The service worker is for app-shell availability. Board data remains a
-database-backed product concern and is saved only after the Prisma API confirms
-persistence.
+The service worker is for app-shell availability. It does not provide a
+`localStorage` board fallback. Board data remains a database-backed product
+concern and is saved only after the Prisma API confirms persistence.
 
 ## Deploying to Vercel
 
-Deploy Flowboard as an app shell plus an authenticated Node API runtime backed
-by Supabase Postgres. The included `vercel.json` builds the browser app with
-`npm run build` and publishes `dist`.
+Deploy Flowboard in one Vercel project. The included `vercel.json` builds the
+browser app with `npm run build` and publishes `dist`; the Vercel Node Function
+at `api/[...path].ts` serves the same-origin authenticated API. Vercel checks
+that Function before applying the SPA fallback, so `/api/*` requests reach
+Prisma while client-side routes still resolve to `index.html`.
 
-For production persistence, deploy the Node API runtime with Supabase Auth
-verification, Prisma, and Supabase Postgres. Set `VITE_FLOWBOARD_API_URL` when
-the browser should call an API origin other than the current site origin.
+Set these Vercel environment variables for each environment:
+
+- Runtime: `PRISMA_PROVIDER=postgresql`, `DATABASE_URL`, `SUPABASE_URL`, and
+  `SUPABASE_PUBLISHABLE_KEY`.
+- Browser build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, OAuth
+  flags, and `VITE_SUPABASE_AVATAR_BUCKET`.
+- Migration-only: `DIRECT_URL`; use it in an explicit pre-deploy command, not
+  in the Vercel build.
+
+Leave `VITE_FLOWBOARD_API_URL` unset for this same-origin deployment. The CSP
+allows the standard `*.supabase.co` API origin; update it if you use a custom
+Supabase domain.
+
+For a production release, run the explicit Prisma migration step first, verify
+its status, then deploy the already-validated commit through Vercel. Use a
+separate Supabase project or safely isolated data for Preview deployments.
+
+### GitHub Actions Production Deployment
+
+`.github/workflows/deploy-vercel-production.yml` serializes production releases
+from `main`: it applies and verifies Prisma migrations before building and
+deploying Vercel's prebuilt production artifact. Configure these GitHub Actions
+secrets in the `production` environment:
+
+- `DIRECT_URL`: Supabase's direct Postgres connection string, used only for
+  migration commands.
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`: Vercel deployment
+  credentials and project identifiers.
+
+Keep the browser and API runtime variables in Vercel, where `vercel pull`
+loads them before the production build. Do not enable Vercel's automatic Git
+deployments for `main`; this workflow is the deployment owner so migrations
+finish before Vercel receives the artifact.
 
 Flowboard includes Vercel Web Analytics and Speed Insights instrumentation.
 Enable both products for the Vercel project before treating analytics as fully

@@ -75,8 +75,7 @@ export default defineConfig({
       },
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true,
-        suppressWarnings: true,
+        enabled: false,
       },
       workbox: {
         globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}'],

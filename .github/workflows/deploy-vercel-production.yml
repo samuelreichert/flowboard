@@ -1,0 +1,53 @@
+name: Deploy Production to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@56.4.0
+
+      - name: Pull Vercel production environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Apply Prisma migrations
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npm run db:deploy:postgres
+
+      - name: Verify Prisma migration status
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: PRISMA_PROVIDER=postgresql ./node_modules/.bin/prisma migrate status
+
+      - name: Build Vercel production artifact
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy production artifact
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

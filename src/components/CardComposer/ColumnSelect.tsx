@@ -3,6 +3,7 @@ import { Check, ChevronDown } from 'lucide-react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { BoardColumn } from '../../types';
+import SelectTrigger from '../SelectTrigger';
 
 type ColumnSelectProps = {
   columns: BoardColumn[];
@@ -23,8 +24,8 @@ const ColumnSelect = ({ columns, onValueChange, value }: ColumnSelectProps) => {
       }}
       value={value}
     >
-      <Select.Trigger
-        aria-label={messages.composer.destinationColumn}
+      <SelectTrigger
+        ariaLabel={messages.composer.destinationColumn}
         className="card-composer__chip"
       >
         <Select.Value className="card-composer__chip-value">
@@ -36,7 +37,7 @@ const ColumnSelect = ({ columns, onValueChange, value }: ColumnSelectProps) => {
         <Select.Icon className="card-composer__chip-icon">
           <ChevronDown size={15} />
         </Select.Icon>
-      </Select.Trigger>
+      </SelectTrigger>
       <Select.Portal>
         <Select.Positioner
           align="start"

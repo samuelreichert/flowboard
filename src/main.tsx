@@ -21,9 +21,17 @@ createRoot(root).render(
   </React.StrictMode>
 );
 
-registerSW({
-  immediate: true,
-  onRegisterError(error) {
-    console.error('Service worker registration failed.', error);
-  },
-});
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onRegisterError(error) {
+      console.error('Service worker registration failed.', error);
+    },
+  });
+} else if ('serviceWorker' in navigator) {
+  void navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) =>
+      Promise.all(registrations.map((registration) => registration.unregister()))
+    );
+}

@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Field } from '@base-ui/react/field';
 import { Select } from '@base-ui/react/select';
 import { Check, Plus } from 'lucide-react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { BoardTag } from '../../types';
@@ -28,7 +28,10 @@ type TagMultiSelectProps = {
   tagError: string;
   tags: BoardTag[];
   trigger: ReactNode;
+  triggerIcon?: ReactNode;
+  triggerIconClassName?: string;
   triggerClassName: string;
+  triggerValueClassName?: string;
 };
 
 const TagMultiSelect = ({
@@ -52,9 +55,13 @@ const TagMultiSelect = ({
   tagError,
   tags,
   trigger,
+  triggerIcon,
+  triggerIconClassName,
   triggerClassName,
+  triggerValueClassName,
 }: TagMultiSelectProps) => {
   const { messages } = useLocalization();
+  const wasOpenOnPointerDownRef = useRef(false);
 
   const onTagCreateKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     event.stopPropagation();
@@ -81,9 +88,21 @@ const TagMultiSelect = ({
       <Select.Trigger
         aria-label={ariaLabel}
         className={triggerClassName}
-        onClick={() => onOpenChange(!open)}
+        onPointerDown={() => {
+          wasOpenOnPointerDownRef.current = open;
+        }}
+        onClick={() => {
+          onOpenChange(!wasOpenOnPointerDownRef.current);
+        }}
       >
-        <Select.Value>{() => trigger}</Select.Value>
+        <Select.Value className={triggerValueClassName}>
+          {() => trigger}
+        </Select.Value>
+        {triggerIcon && (
+          <Select.Icon className={triggerIconClassName}>
+            {triggerIcon}
+          </Select.Icon>
+        )}
       </Select.Trigger>
       <Select.Portal>
         <Select.Positioner

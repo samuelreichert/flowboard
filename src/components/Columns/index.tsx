@@ -21,6 +21,7 @@ import type {
 } from '../../app/useFlowboardCardMutations';
 import { fetchStorage } from '../../storage';
 import type { BoardColumn, BoardTag } from '../../types';
+import { EmptyState } from '../EmptyState';
 import ActiveCardMissingState from './ActiveCardMissingState';
 import AddColumnDialog from './AddColumnDialog';
 import ColumnList from './ColumnList';
@@ -287,6 +288,18 @@ const Columns = ({
   const activeCardTarget = activeCardId
     ? findActiveCardRouteTarget(sortedColumns, activeCardId)
     : null;
+
+  if (boardLoading) {
+    return (
+      <div aria-busy="true" className="columns-board">
+        <div aria-live="polite" className="columns-list columns-list--empty">
+          <EmptyState title={messages.app.toast.loadingBoard}>
+            {messages.app.persistence.loadingBoard}
+          </EmptyState>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

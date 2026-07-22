@@ -97,7 +97,17 @@ test('composer creates cards with selected column, priority, and inline-created 
 
   await chooseSelectOption(user, 'Destination column', 'Review');
   await chooseSelectOption(user, 'Priority', 'High');
-  await user.click(screen.getByRole('combobox', { name: /^tags$/i }));
+  const tagSelect = screen.getByRole('combobox', { name: /^tags$/i });
+  await user.click(tagSelect);
+  expect(
+    screen.getByRole('button', { name: /create tag/i })
+  ).toBeInTheDocument();
+  await user.click(tagSelect);
+  expect(
+    screen.queryByRole('button', { name: /create tag/i })
+  ).not.toBeInTheDocument();
+
+  await user.click(tagSelect);
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design');
   expect(screen.getByLabelText('New tag name')).toHaveValue('Design');

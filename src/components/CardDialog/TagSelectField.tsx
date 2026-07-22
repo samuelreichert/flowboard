@@ -63,13 +63,11 @@ const TagSelectField = ({
         selectedTagIds={selectedTagIds}
         tagError={tagError}
         tags={tags}
-        trigger={
-          <>
-            <span>{tagSummary}</span>
-            <ChevronDown size={17} />
-          </>
-        }
-        triggerClassName="dialog-input tag-select__trigger"
+        trigger={tagSummary}
+        triggerClassName="dialog-input dialog-select__trigger"
+        triggerIcon={<ChevronDown size={17} />}
+        triggerIconClassName="dialog-select__icon"
+        triggerValueClassName="dialog-select__value"
       />
     </div>
   );
