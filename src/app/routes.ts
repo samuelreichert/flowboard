@@ -50,6 +50,13 @@ export const getNextSearchDestination = (
   fallback = APP_ROUTES.board
 ) => getInternalDestination(new URLSearchParams(search).get('next'), fallback);
 
+export const createSignInPath = (nextDestination: string) => {
+  const next = getInternalDestination(nextDestination);
+  const params = new URLSearchParams({ next });
+
+  return `${APP_ROUTES.signIn}?${params.toString()}`;
+};
+
 export const createAuthCallbackPath = (nextDestination: string) => {
   const next = getInternalDestination(nextDestination);
   const params = new URLSearchParams({ next });

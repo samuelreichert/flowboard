@@ -5,6 +5,7 @@ import {
   createActiveCardPath,
   createArchivedCardPath,
   createAuthCallbackPath,
+  createSignInPath,
   getInternalDestination,
   getNextSearchDestination,
 } from './routes';
@@ -27,6 +28,12 @@ describe('app routes', () => {
   });
 
   test('builds auth routes with safe next destinations', () => {
+    expect(createSignInPath('/board/cards/card-1?focus=title#editor')).toBe(
+      '/sign-in?next=%2Fboard%2Fcards%2Fcard-1%3Ffocus%3Dtitle%23editor'
+    );
+    expect(createSignInPath('https://evil.example')).toBe(
+      '/sign-in?next=%2Fboard'
+    );
     expect(createAuthCallbackPath('/board/cards/card-1')).toBe(
       '/auth/callback?next=%2Fboard%2Fcards%2Fcard-1'
     );

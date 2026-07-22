@@ -20,7 +20,11 @@ import FlowboardQueryProvider from './app/FlowboardQueryProvider';
 import { AuthRedirect, NotFoundView } from './app/RouteFallbacks';
 import { getThemeIconSrc } from './app/appTheme';
 import { getLocationDestination } from './app/routeGuards';
-import { APP_ROUTES, getNextSearchDestination } from './app/routes';
+import {
+  APP_ROUTES,
+  createSignInPath,
+  getNextSearchDestination,
+} from './app/routes';
 import useAppController from './app/useAppController';
 import { isSupabaseConfigured } from './auth/supabase';
 import { FlowboardToastProvider } from './components/ToastNotifications';
@@ -64,13 +68,9 @@ const ProtectedRoute = ({ controller }: RouteControllerProps) => {
 
   if (isSupabaseConfigured && controller.authState.status !== 'signedIn') {
     return (
-      <AuthGate
-        message={controller.authState.message}
-        iconSrc={getThemeIconSrc(controller.resolvedTheme)}
-        nextDestination={getLocationDestination(location)}
-        onMagicLinkRequest={controller.requestMagicLink}
-        onSocialAuthRequest={controller.requestSocialAuth}
-        status={controller.authState.status}
+      <Navigate
+        replace
+        to={createSignInPath(getLocationDestination(location))}
       />
     );
   }
