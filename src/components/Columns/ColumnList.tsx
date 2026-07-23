@@ -1,6 +1,5 @@
 import { Button } from '@base-ui/react/button';
 import { Columns3, Plus } from 'lucide-react';
-import { useEffect } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { ColumnMoveDirection } from '../../board/columns';
@@ -24,10 +23,10 @@ type ColumnListProps = {
   moveColumn: (columnId: string, direction: ColumnMoveDirection) => void;
   onActiveCardClose: () => void;
   onAddColumnClick: () => void;
-  onHorizontalOverflowChange: (hasOverflow: boolean) => void;
   onTagsChange: (tags: BoardTag[]) => void;
   renameColumn: (columnId: string, title: string) => string | void;
   tags: BoardTag[];
+  horizontalOverflow: ReturnType<typeof useHorizontalOverflow>;
 };
 
 const ColumnList = ({
@@ -40,10 +39,10 @@ const ColumnList = ({
   moveColumn,
   onActiveCardClose,
   onAddColumnClick,
-  onHorizontalOverflowChange,
   onTagsChange,
   renameColumn,
   tags,
+  horizontalOverflow,
 }: ColumnListProps) => {
   const { messages } = useLocalization();
   const {
@@ -54,13 +53,7 @@ const ColumnList = ({
     onScrollRailScroll,
     scrollRailRef,
     scrollWidth,
-  } = useHorizontalOverflow(columns.length);
-
-  useEffect(() => {
-    onHorizontalOverflowChange(hasOverflow);
-
-    return () => onHorizontalOverflowChange(false);
-  }, [hasOverflow, onHorizontalOverflowChange]);
+  } = horizontalOverflow;
 
   if (columns.length === 0) {
     return (

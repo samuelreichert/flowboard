@@ -26,6 +26,7 @@ import ActiveCardMissingState from './ActiveCardMissingState';
 import AddColumnDialog from './AddColumnDialog';
 import ColumnList from './ColumnList';
 import { useColumnsDragMonitor } from './useColumnsDragMonitor';
+import { useHorizontalOverflow } from './useHorizontalOverflow';
 
 import './Columns.css';
 
@@ -84,7 +85,6 @@ const Columns = ({
 }: ColumnsProps) => {
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 
   const moveCard = useCallback(
     ({
@@ -254,6 +254,7 @@ const Columns = ({
   const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
   );
+  const horizontalOverflow = useHorizontalOverflow(sortedColumns.length);
   const activeCardTarget = activeCardId
     ? findActiveCardRouteTarget(sortedColumns, activeCardId)
     : null;
@@ -274,7 +275,7 @@ const Columns = ({
     <>
       <div
         className="columns-board"
-        data-horizontal-overflow={hasHorizontalOverflow || undefined}
+        data-horizontal-overflow={horizontalOverflow.hasOverflow || undefined}
       >
         <ActiveCardMissingState
           activeCardId={activeCardId}
@@ -291,10 +292,10 @@ const Columns = ({
           moveColumn={onMoveColumn}
           onActiveCardClose={onActiveCardClose}
           onAddColumnClick={openAddColumn}
-          onHorizontalOverflowChange={setHasHorizontalOverflow}
           onTagsChange={onTagsChange}
           renameColumn={onRenameColumn}
           tags={tags}
+          horizontalOverflow={horizontalOverflow}
         />
         <div className="card-composer-dock">
           <CardComposer
