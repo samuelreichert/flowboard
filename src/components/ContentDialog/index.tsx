@@ -2,7 +2,7 @@ import { Button } from '@base-ui/react/button';
 import { Field } from '@base-ui/react/field';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import DialogShell from '../DialogShell';
@@ -10,6 +10,7 @@ import './ContentDialog.css';
 
 type ContentDialogProps = {
   description: string;
+  finalFocus?: RefObject<HTMLElement | null>;
   hideCancel?: boolean;
   initialValue?: string;
   label: string;
@@ -24,6 +25,7 @@ type ContentDialogProps = {
 
 const ContentDialog = ({
   description,
+  finalFocus,
   hideCancel = false,
   initialValue = '',
   label,
@@ -40,6 +42,7 @@ const ContentDialog = ({
   return (
     <ContentDialogContent
       description={description}
+      finalFocus={finalFocus}
       hideCancel={hideCancel}
       initialValue={initialValue}
       key={dialogKey}
@@ -57,6 +60,7 @@ const ContentDialog = ({
 
 const ContentDialogContent = ({
   description,
+  finalFocus,
   hideCancel = false,
   initialValue = '',
   label,
@@ -88,6 +92,7 @@ const ContentDialogContent = ({
     <DialogShell
       description={description}
       descriptionClassName="dialog-description--compact"
+      finalFocus={finalFocus}
       onOpenChange={onOpenChange}
       open={open}
       title={title}

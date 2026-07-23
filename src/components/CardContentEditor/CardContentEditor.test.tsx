@@ -9,7 +9,8 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, vi } from 'vitest';
 
 import App from '../../App';
-import './index';
+import { LocalizationProvider } from '../../LocalizationProvider';
+import CardContentEditor from './index';
 import {
   CREATED_AT,
   addCard,
@@ -408,4 +409,71 @@ test('shows contextual image actions for selected images', async () => {
   expect(
     screen.getByRole('button', { name: /remove image/i })
   ).toBeInTheDocument();
+});
+
+test('uses TextCursorInput for the regular paragraph style', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Paragraph icon', 'Body');
+  await user.click(screen.getByText('Paragraph icon'));
+
+  const textStyle = await screen.findByRole('combobox', {
+    name: 'Text style',
+  });
+  expect(
+    textStyle.querySelector('.lucide-text-cursor-input')
+  ).toBeInTheDocument();
+
+  await user.click(await screen.findByLabelText('Content'));
+  await user.click(textStyle);
+  expect(
+    (await screen.findByRole('option', { name: 'Paragraph' })).querySelector(
+      '.lucide-text-cursor-input'
+    )
+  ).toBeInTheDocument();
+});
+
+test('keeps the editor focused while typing and creating a paragraph', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Focus card', 'Start');
+  await user.click(screen.getByText('Focus card'));
+
+  const content = await screen.findByLabelText('Content');
+  await user.click(content);
+  await user.type(content, ' one');
+
+  expect(content).toHaveFocus();
+  await user.keyboard('{Enter}two');
+
+  expect(content).toHaveFocus();
+  await waitFor(() =>
+    expect(readColumns()[0].cards[0].content).toContain('two')
+  );
+});
+
+test('applies distinct external editor content without emitting another update', async () => {
+  const onChange = vi.fn();
+  const renderEditor = (value: string) => (
+    <LocalizationProvider language="en">
+      <span id="content-label">Content</span>
+      <CardContentEditor
+        id="external-content-editor"
+        labelId="content-label"
+        onChange={onChange}
+        value={value}
+      />
+    </LocalizationProvider>
+  );
+  const { rerender } = render(renderEditor('Local'));
+
+  const content = await screen.findByLabelText('Content');
+  rerender(renderEditor('Remote'));
+
+  await waitFor(() => expect(content).toHaveTextContent('Remote'));
+  expect(onChange).not.toHaveBeenCalled();
 });

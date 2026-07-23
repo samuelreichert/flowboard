@@ -45,7 +45,7 @@
   --radius-pill: 999px;
   --radius-round: 50%;
   --sidebar-width: 260px;
-  --sidebar-collapsed-width: 64px;
+  --sidebar-collapsed-width: 56px;
 }
 
 :root[data-theme='dark'] {

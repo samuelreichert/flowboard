@@ -128,7 +128,7 @@
   display: inline-flex;
   font: inherit;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
   gap: 5px;
   min-height: 28px;
   min-width: 0;
@@ -143,9 +143,19 @@
   border-radius: var(--radius-round);
   flex: 0 0 auto;
   height: 28px;
+  justify-content: center;
   order: -1;
   padding: 5px;
   width: 28px;
+}
+
+.card-composer__tag-trigger-value,
+.card-composer__tag-trigger-content {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+  justify-content: center;
+  min-width: 0;
 }
 
 .card-composer__chip:hover,
@@ -163,7 +173,7 @@
 }
 
 .card-composer__chip-value,
-.card-composer__tag-trigger span {
+.card-composer__tag-trigger-content span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -180,7 +190,7 @@
   width: 15px;
 }
 
-.card-composer__tag-trigger:has(span) {
+.card-composer__tag-trigger--selected {
   border-radius: var(--radius-pill);
   padding: 5px 9px;
   width: auto;
@@ -355,7 +365,7 @@
     width: 34px;
   }
 
-  .card-composer__tag-trigger:has(span) {
+  .card-composer__tag-trigger--selected {
     padding: 5px 9px;
     width: auto;
   }

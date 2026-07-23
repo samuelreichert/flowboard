@@ -10,7 +10,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { ColumnMoveDirection } from '../../board/columns';
@@ -19,6 +19,7 @@ import ColumnRenameDialog from '../ColumnRenameDialog';
 import ConfirmDialog from '../ConfirmDialog';
 import DialogShell from '../DialogShell';
 import { InlineEmptyState } from '../EmptyState';
+import AddColumnDialog from '../Columns/AddColumnDialog';
 
 import './ManageColumnsDialog.css';
 import '../IconButton/IconButton.css';
@@ -27,7 +28,7 @@ type ManageColumnsDialogProps = {
   columns: BoardColumn[];
   deleteColumn: (columnId: string) => void;
   moveColumn: (columnId: string, direction: ColumnMoveDirection) => void;
-  onAddColumnClick: () => void;
+  onAddColumnSave: (title: string) => string | void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   renameColumn: (columnId: string, title: string) => string | void;
@@ -37,7 +38,7 @@ const ManageColumnsDialog = ({
   columns,
   deleteColumn,
   moveColumn,
-  onAddColumnClick,
+  onAddColumnSave,
   onOpenChange,
   open,
   renameColumn,
@@ -47,13 +48,10 @@ const ManageColumnsDialog = ({
     useState<BoardColumn | null>(null);
   const [deleteColumnTarget, setDeleteColumnTarget] =
     useState<BoardColumn | null>(null);
+  const [addColumnOpen, setAddColumnOpen] = useState(false);
+  const addColumnTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [menuPortalContainer, setMenuPortalContainer] =
     useState<HTMLDivElement | null>(null);
-
-  const startAddColumn = () => {
-    onOpenChange(false);
-    onAddColumnClick();
-  };
 
   return (
     <>
@@ -171,12 +169,19 @@ const ManageColumnsDialog = ({
           )}
           <Button
             className="button button--subtle column-manager__add"
-            onClick={startAddColumn}
+            onClick={() => setAddColumnOpen(true)}
+            ref={addColumnTriggerRef}
             type="button"
           >
             <Plus size={15} />
             <span>{messages.board.addColumn}</span>
           </Button>
+          <AddColumnDialog
+            finalFocus={addColumnTriggerRef}
+            onOpenChange={setAddColumnOpen}
+            onSave={onAddColumnSave}
+            open={addColumnOpen}
+          />
         </div>
       </DialogShell>
       <ColumnRenameDialog

@@ -42,3 +42,41 @@ test('opens the account menu from the keyboard and runs the selected action', as
 
   expect(onSettingsClick).toHaveBeenCalledOnce();
 });
+
+test('uses the shared compact-control contract when collapsed', () => {
+  render(
+    <LocalizationProvider language="en">
+      <AppSidebar
+        currentView="board"
+        onBoardClick={vi.fn()}
+        onCloseMobileSidebar={vi.fn()}
+        onHistoryClick={vi.fn()}
+        onManageColumnsClick={vi.fn()}
+        onManageTagsClick={vi.fn()}
+        onProfileClick={vi.fn()}
+        onSettingsClick={vi.fn()}
+        onSignOut={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        profile={{
+          avatarUrl: null,
+          displayName: 'Ada',
+          email: 'ada@example.com',
+        }}
+        resolvedTheme="light"
+        sidebarExpanded={false}
+        showProfile={false}
+        showSignOut={false}
+      />
+    </LocalizationProvider>
+  );
+
+  expect(screen.getByRole('button', { name: /expand sidebar/i })).toHaveClass(
+    'app-sidebar__compact-control'
+  );
+  expect(screen.getByRole('button', { name: 'Board' })).toHaveClass(
+    'app-sidebar__compact-control'
+  );
+  expect(screen.getByRole('button', { name: 'Settings' })).toHaveClass(
+    'app-sidebar__compact-control'
+  );
+});

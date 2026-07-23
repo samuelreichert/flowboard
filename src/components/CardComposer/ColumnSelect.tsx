@@ -35,7 +35,7 @@ const ColumnSelect = ({ columns, onValueChange, value }: ColumnSelectProps) => {
           }
         </Select.Value>
         <Select.Icon className="card-composer__chip-icon">
-          <ChevronDown size={15} />
+          <ChevronDown size={15} strokeWidth={1.5} />
         </Select.Icon>
       </SelectTrigger>
       <Select.Portal>

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import { moveColumn } from '../../board/columns';
@@ -26,6 +26,7 @@ import ActiveCardMissingState from './ActiveCardMissingState';
 import AddColumnDialog from './AddColumnDialog';
 import ColumnList from './ColumnList';
 import { useColumnsDragMonitor } from './useColumnsDragMonitor';
+import { useHorizontalOverflow } from './useHorizontalOverflow';
 
 import './Columns.css';
 
@@ -84,8 +85,6 @@ const Columns = ({
 }: ColumnsProps) => {
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const addColumnOpenedFromManagerRef = useRef(false);
-  const returnToManagerAfterAddRef = useRef(false);
 
   const moveCard = useCallback(
     ({
@@ -118,39 +117,9 @@ const Columns = ({
 
     onColumnsChange(createColumn(columns, { id, title }));
     boardMutations.createColumn({ id, title });
-
-    if (addColumnOpenedFromManagerRef.current) {
-      returnToManagerAfterAddRef.current = true;
-    }
   };
 
-  const onAddColumnOpenChange = (open: boolean) => {
-    setAddColumnOpen(open);
-
-    if (open) {
-      return;
-    }
-
-    if (returnToManagerAfterAddRef.current) {
-      onManageColumnsOpenChange(true);
-    }
-
-    addColumnOpenedFromManagerRef.current = false;
-    returnToManagerAfterAddRef.current = false;
-  };
-
-  const openAddColumn = () => {
-    addColumnOpenedFromManagerRef.current = false;
-    returnToManagerAfterAddRef.current = false;
-    setAddColumnOpen(true);
-  };
-
-  const openAddColumnFromManager = () => {
-    onManageColumnsOpenChange(false);
-    addColumnOpenedFromManagerRef.current = true;
-    returnToManagerAfterAddRef.current = false;
-    setAddColumnOpen(true);
-  };
+  const openAddColumn = () => setAddColumnOpen(true);
 
   const onRenameColumn = (columnId: string, title: string) => {
     if (!title) {
@@ -285,6 +254,7 @@ const Columns = ({
   const sortedColumns = columns.toSorted(
     (first, second) => first.position - second.position
   );
+  const horizontalOverflow = useHorizontalOverflow(sortedColumns.length);
   const activeCardTarget = activeCardId
     ? findActiveCardRouteTarget(sortedColumns, activeCardId)
     : null;
@@ -303,7 +273,10 @@ const Columns = ({
 
   return (
     <>
-      <div className="columns-board">
+      <div
+        className="columns-board"
+        data-horizontal-overflow={horizontalOverflow.hasOverflow || undefined}
+      >
         <ActiveCardMissingState
           activeCardId={activeCardId}
           boardLoading={boardLoading}
@@ -322,6 +295,7 @@ const Columns = ({
           onTagsChange={onTagsChange}
           renameColumn={onRenameColumn}
           tags={tags}
+          horizontalOverflow={horizontalOverflow}
         />
         <div className="card-composer-dock">
           <CardComposer
@@ -339,13 +313,13 @@ const Columns = ({
         columns={sortedColumns}
         deleteColumn={onDeleteColumn}
         moveColumn={onMoveColumn}
-        onAddColumnClick={openAddColumnFromManager}
+        onAddColumnSave={onSaveColumn}
         onOpenChange={onManageColumnsOpenChange}
         open={manageColumnsOpen}
         renameColumn={onRenameColumn}
       />
       <AddColumnDialog
-        onOpenChange={onAddColumnOpenChange}
+        onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
       />

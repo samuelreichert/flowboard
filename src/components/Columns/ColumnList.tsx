@@ -7,6 +7,7 @@ import Column from '../Column';
 import type { CardDialogSaveValues } from '../CardDialog';
 import { EmptyState } from '../EmptyState';
 import type { BoardColumn, BoardTag } from '../../types';
+import { useHorizontalOverflow } from './useHorizontalOverflow';
 
 type ColumnListProps = {
   activeCardId: string | null;
@@ -25,6 +26,7 @@ type ColumnListProps = {
   onTagsChange: (tags: BoardTag[]) => void;
   renameColumn: (columnId: string, title: string) => string | void;
   tags: BoardTag[];
+  horizontalOverflow: ReturnType<typeof useHorizontalOverflow>;
 };
 
 const ColumnList = ({
@@ -40,8 +42,18 @@ const ColumnList = ({
   onTagsChange,
   renameColumn,
   tags,
+  horizontalOverflow,
 }: ColumnListProps) => {
   const { messages } = useLocalization();
+  const {
+    columnsListRef,
+    hasOverflow,
+    onColumnsScroll,
+    onColumnsWheel,
+    onScrollRailScroll,
+    scrollRailRef,
+    scrollWidth,
+  } = horizontalOverflow;
 
   if (columns.length === 0) {
     return (
@@ -66,29 +78,45 @@ const ColumnList = ({
   }
 
   return (
-    <div className="columns-list">
-      {columns.map((column) => (
-        <Column
-          activeCardId={activeCardId}
-          cardDetailAccessToken={cardDetailAccessToken}
-          column={column}
-          columns={columns}
-          deleteCard={deleteCard}
-          deleteColumn={deleteColumn}
-          editCard={editCard}
-          key={column.id}
-          moveColumn={moveColumn}
-          onActiveCardClose={onActiveCardClose}
-          onTagsChange={onTagsChange}
-          renameColumn={renameColumn}
-          tags={tags}
-        />
-      ))}
-      <Button className="add-column-placeholder" onClick={onAddColumnClick}>
-        <Plus size={16} />
-        {messages.board.addAnotherColumn}
-      </Button>
-    </div>
+    <>
+      <div
+        className="columns-list"
+        onScroll={onColumnsScroll}
+        onWheel={onColumnsWheel}
+        ref={columnsListRef}
+      >
+        {columns.map((column) => (
+          <Column
+            activeCardId={activeCardId}
+            cardDetailAccessToken={cardDetailAccessToken}
+            column={column}
+            columns={columns}
+            deleteCard={deleteCard}
+            deleteColumn={deleteColumn}
+            editCard={editCard}
+            key={column.id}
+            moveColumn={moveColumn}
+            onActiveCardClose={onActiveCardClose}
+            onTagsChange={onTagsChange}
+            renameColumn={renameColumn}
+            tags={tags}
+          />
+        ))}
+        <Button className="add-column-placeholder" onClick={onAddColumnClick}>
+          <Plus size={16} />
+          {messages.board.addAnotherColumn}
+        </Button>
+      </div>
+      <div
+        aria-label="Horizontal board scroll"
+        className="columns-scroll-rail"
+        onScroll={onScrollRailScroll}
+        ref={scrollRailRef}
+        tabIndex={0}
+      >
+        <div style={{ width: scrollWidth }} />
+      </div>
+    </>
   );
 };
 
