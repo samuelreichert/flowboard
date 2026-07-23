@@ -62,7 +62,7 @@ const Sidebar = ({
     <div className="app-sidebar__header">
       <Button
         aria-label={expanded ? collapseLabel : expandLabel}
-        className="icon-button app-sidebar__toggle"
+        className="icon-button app-sidebar__compact-control app-sidebar__toggle"
         onClick={onToggle}
         type="button"
       >
@@ -91,7 +91,7 @@ const Sidebar = ({
         <Button
           aria-current={item.active ? 'page' : undefined}
           aria-label={item.ariaLabel ?? item.label}
-          className={`app-sidebar__nav-item ${item.active ? 'app-sidebar__nav-item--active' : ''} ${item.variant === 'danger' ? 'app-sidebar__nav-item--danger' : ''}`}
+          className={`app-sidebar__compact-control app-sidebar__nav-item ${item.active ? 'app-sidebar__nav-item--active' : ''} ${item.variant === 'danger' ? 'app-sidebar__nav-item--danger' : ''}`}
           key={item.id}
           onClick={item.onClick}
           title={item.title ?? item.label}

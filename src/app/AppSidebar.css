@@ -1,4 +1,6 @@
 .app-sidebar {
+  --sidebar-compact-control-size: 40px;
+
   background-color: var(--color-sidebar-bg);
   border-right: 1px solid var(--color-border);
   display: grid;
@@ -26,6 +28,12 @@
 
 .app-sidebar__toggle {
   flex: 0 0 auto;
+  height: var(--sidebar-compact-control-size);
+  width: var(--sidebar-compact-control-size);
+}
+
+.app-sidebar__compact-control {
+  border-radius: var(--radius-md);
 }
 
 .app-sidebar__toggle-brand-icon {
@@ -84,17 +92,13 @@
   font-weight: 560;
   gap: 10px;
   justify-content: flex-start;
-  min-height: 38px;
+  min-height: var(--sidebar-compact-control-size);
   min-width: 0;
   padding: 8px 10px;
   text-align: left;
   transition:
     background-color 140ms ease,
     color 140ms ease;
-}
-
-.app-sidebar__nav-item {
-  border-radius: var(--radius-md);
 }
 
 .app-sidebar__nav-item svg {
@@ -106,6 +110,11 @@
   background-color: var(--color-hover);
   color: var(--color-text);
   outline: 0;
+}
+
+.app-sidebar__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .app-sidebar__nav-item--active {
@@ -132,15 +141,14 @@
 
 .app-sidebar__account-trigger {
   align-items: center;
-  background-color: var(--color-surface-subtle);
+  background-color: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
   color: var(--color-text);
   cursor: pointer;
   display: flex;
   font: inherit;
   gap: 9px;
-  min-height: 48px;
+  min-height: 44px;
   min-width: 0;
   padding: 6px 8px;
   text-align: left;
@@ -151,11 +159,14 @@
   width: 100%;
 }
 
-.app-sidebar__account-trigger:hover,
+.app-sidebar__account-trigger:hover {
+  background-color: var(--color-hover);
+}
+
 .app-sidebar__account-trigger:focus-visible {
   background-color: var(--color-hover);
-  border-color: var(--color-border);
-  outline: 0;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .app-sidebar__account-text {
@@ -208,6 +219,8 @@
 }
 
 .app--sidebar-collapsed .app-sidebar {
+  border-right: 0;
+  box-shadow: inset -1px 0 var(--color-border);
   padding: 10px 8px;
 }
 
@@ -224,7 +237,10 @@
 .app--sidebar-collapsed .app-sidebar__nav-item,
 .app--sidebar-collapsed .app-sidebar__account-trigger {
   justify-content: center;
-  padding: 8px;
+  height: var(--sidebar-compact-control-size);
+  min-height: var(--sidebar-compact-control-size);
+  padding: 6px;
+  width: var(--sidebar-compact-control-size);
 }
 
 @media (max-width: 760px) {
@@ -272,6 +288,9 @@
   .app-sidebar__account-trigger,
   .app--sidebar-collapsed .app-sidebar__nav-item {
     justify-content: flex-start;
+    height: auto;
+    min-height: 44px;
     padding: 8px 10px;
+    width: 100%;
   }
 }

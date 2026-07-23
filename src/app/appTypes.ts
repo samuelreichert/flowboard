@@ -24,7 +24,6 @@ export type AppState = {
   resolvedLanguage: ResolvedLanguage;
   settingsOpen: boolean;
   sidebarExpanded: boolean;
-  storageVersion: number;
   systemLanguage: ResolvedLanguage;
   tagManagerOpen: boolean;
   tags: BoardTag[];
@@ -48,7 +47,6 @@ export type AppAction =
       type: 'storageHydrated';
       state: BoardState;
     }
-  | { type: 'storageVersionIncremented' }
   | { type: 'systemThemeChanged'; resolvedTheme: ResolvedTheme }
   | { type: 'tagManagerOpenChanged'; open: boolean }
   | { type: 'tagsChanged'; tags: BoardTag[] }

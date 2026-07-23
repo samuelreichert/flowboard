@@ -119,8 +119,7 @@ test('renames and deletes a column with confirmation', async () => {
     expect(
       fetchMock.mock.calls.some(
         ([url, init]) =>
-          String(url).endsWith('/api/board/columns') &&
-          init?.method === 'POST'
+          String(url).endsWith('/api/board/columns') && init?.method === 'POST'
       )
     ).toBe(true)
   );
@@ -173,7 +172,8 @@ test('renames and deletes a column with confirmation', async () => {
   expect(readColumns()).toEqual([]);
   expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });
@@ -275,4 +275,27 @@ test('preserves Manage Columns add, rename, and delete workflows', async () => {
   await user.click(screen.getByRole('button', { name: /^delete column$/i }));
 
   expect(readColumns().map((column) => column.title)).toEqual(['Review']);
+});
+
+test('keeps Manage Columns open when its add-column dialog is dismissed', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+
+  const managerAddColumn = screen.getByRole('button', {
+    name: /^add column$/i,
+  });
+  await user.click(managerAddColumn);
+
+  expect(
+    document.querySelector('.dialog-popup--column-management')
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /close dialog/i }));
+
+  expect(
+    screen.getByRole('dialog', { name: /manage columns/i })
+  ).toBeInTheDocument();
+  expect(managerAddColumn).toHaveFocus();
 });

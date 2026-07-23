@@ -37,7 +37,6 @@ type AppWorkspaceProps = {
   onManageColumnsOpenChange: (open: boolean) => void;
   onOpenMobileSidebar: () => void;
   onTagsChange: (tags: BoardTag[]) => void;
-  storageVersion: number;
   tags: BoardTag[];
 };
 
@@ -63,7 +62,6 @@ const AppWorkspace = ({
   onManageColumnsOpenChange,
   onOpenMobileSidebar,
   onTagsChange,
-  storageVersion,
   tags,
 }: AppWorkspaceProps) => {
   const { messages } = useLocalization();
@@ -143,7 +141,6 @@ const AppWorkspace = ({
             cardDetailAccessToken={cardDetailAccessToken}
             cardMutations={cardMutations}
             columns={columns}
-            key={storageVersion}
             manageColumnsOpen={manageColumnsOpen}
             onActiveCardClose={onActiveCardClose}
             onCardColumnsChange={onCardColumnsChange}

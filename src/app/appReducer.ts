@@ -31,7 +31,6 @@ export const initAppState = (): AppState => {
     resolvedTheme: resolveThemePreference(themePreference),
     settingsOpen: false,
     sidebarExpanded: true,
-    storageVersion: 0,
     systemLanguage,
     tagManagerOpen: false,
     tags: boardState.tags,
@@ -52,7 +51,6 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         activeWorkCycle: action.state.activeWorkCycle,
         columns: action.state.columns,
         columnCount: action.state.columns.length,
-        storageVersion: state.storageVersion + 1,
         tags: action.state.tags,
       };
     case 'boardStateSynced':
@@ -94,11 +92,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         activeWorkCycle: action.state.activeWorkCycle,
         columns: action.state.columns,
         columnCount: action.state.columns.length,
-        storageVersion: state.storageVersion + 1,
         tags: action.state.tags,
       };
-    case 'storageVersionIncremented':
-      return { ...state, storageVersion: state.storageVersion + 1 };
     case 'systemThemeChanged':
       return { ...state, resolvedTheme: action.resolvedTheme };
     case 'tagManagerOpenChanged':

@@ -20,10 +20,10 @@ import {
   List,
   ListChecks,
   ListOrdered,
-  Pilcrow,
   Quote,
   Redo2,
   Strikethrough,
+  TextCursorInput,
   Undo2,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -83,7 +83,7 @@ const getHeadingOptions = (
   messages: ContentEditorMessages
 ): ToolbarSelectOption<HeadingValue>[] => [
   {
-    icon: <Pilcrow size={15} />,
+    icon: <TextCursorInput size={15} />,
     label: messages.paragraph,
     value: 'paragraph',
   },

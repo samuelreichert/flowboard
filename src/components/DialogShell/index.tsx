@@ -1,7 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
-import type { ReactNode, Ref } from 'react';
+import type { ReactNode, Ref, RefObject } from 'react';
 
 import '../ContentDialog/ContentDialog.css';
 import '../IconButton/IconButton.css';
@@ -13,6 +13,7 @@ type DialogShellProps = {
   closeLabel?: string;
   description?: ReactNode;
   descriptionClassName?: string;
+  finalFocus?: RefObject<HTMLElement | null>;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   popupClassName?: string;
@@ -27,6 +28,7 @@ const DialogShell = ({
   closeLabel = 'Close dialog',
   description,
   descriptionClassName,
+  finalFocus,
   onOpenChange,
   open,
   popupClassName,
@@ -39,6 +41,7 @@ const DialogShell = ({
       <Dialog.Viewport className="dialog-viewport" ref={viewportRef}>
         <Dialog.Popup
           className={['dialog-popup', popupClassName].filter(Boolean).join(' ')}
+          finalFocus={finalFocus}
         >
           <div className="dialog-header">
             <div>

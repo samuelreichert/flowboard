@@ -212,7 +212,6 @@ const AppShell = ({ controller }: RouteControllerProps) => {
         onOpenMobileSidebar={controller.openMobileSidebar}
         mobileNavigationTriggerRef={mobileNavigationTriggerRef}
         onTagsChange={controller.updateTags}
-        storageVersion={controller.storageVersion}
         tags={controller.tags}
       />
       <AppDialogs

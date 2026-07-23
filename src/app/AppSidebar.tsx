@@ -126,7 +126,7 @@ const AppSidebar = ({
         opensSettingsDirectly ? (
           <Button
             aria-label={messages.app.navigation.settings}
-            className="app-sidebar__account-trigger"
+            className="app-sidebar__compact-control app-sidebar__account-trigger"
             onClick={onSettingsClick}
             title={displayName}
             type="button"
@@ -141,7 +141,7 @@ const AppSidebar = ({
           <Menu.Root open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
             <Menu.Trigger
               aria-label={messages.app.navigation.openAccountMenu}
-              className="app-sidebar__account-trigger"
+              className="app-sidebar__compact-control app-sidebar__account-trigger"
               render={<Button />}
               title={displayName}
             >
@@ -179,10 +179,7 @@ const AppSidebar = ({
                       <Menu.Separator className="menu-separator" />
                     </>
                   )}
-                  <Menu.Item
-                    className="menu-item"
-                    onClick={onSettingsClick}
-                  >
+                  <Menu.Item className="menu-item" onClick={onSettingsClick}>
                     <Settings size={15} />
                     {messages.app.navigation.settings}
                   </Menu.Item>

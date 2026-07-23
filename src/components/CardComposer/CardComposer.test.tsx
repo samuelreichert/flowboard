@@ -161,3 +161,35 @@ test('composer submits with command enter and preserves plain enter as content',
   });
   expect(screen.getByLabelText('New card')).toHaveValue('');
 });
+
+test('keeps the empty tag trigger circular and expands it only for selected tags', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+
+  const tagSelect = screen.getByRole('combobox', { name: /^tags$/i });
+  expect(tagSelect).toHaveClass('card-composer__tag-trigger');
+  expect(tagSelect).not.toHaveClass('card-composer__tag-trigger--selected');
+  expect(tagSelect).not.toHaveAttribute('data-has-selection');
+  expect(
+    tagSelect.querySelector('.card-composer__tag-trigger-value')
+  ).toBeInTheDocument();
+
+  await user.click(tagSelect);
+  await user.click(screen.getByRole('button', { name: /create tag/i }));
+  await user.type(screen.getByLabelText('New tag name'), 'Design');
+  await user.keyboard('{Enter}');
+
+  expect(tagSelect).toHaveClass('card-composer__tag-trigger--selected');
+  expect(tagSelect).toHaveAttribute('data-has-selection');
+  expect(
+    tagSelect.querySelector('.card-composer__tag-trigger-content')
+  ).toHaveTextContent('Design');
+
+  await user.click(tagSelect);
+  await user.click(screen.getByRole('option', { name: 'Design' }));
+
+  expect(tagSelect).not.toHaveClass('card-composer__tag-trigger--selected');
+  expect(tagSelect).not.toHaveAttribute('data-has-selection');
+});

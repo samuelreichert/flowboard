@@ -88,6 +88,7 @@ const TagMultiSelect = ({
       <Select.Trigger
         aria-label={ariaLabel}
         className={triggerClassName}
+        data-has-selection={selectedTagIds.length > 0 || undefined}
         onPointerDown={() => {
           wasOpenOnPointerDownRef.current = open;
         }}
@@ -144,7 +145,10 @@ const TagMultiSelect = ({
                     type="text"
                     value={newTagName}
                   />
-                  <Field.Error className={errorClassName} match={Boolean(tagError)}>
+                  <Field.Error
+                    className={errorClassName}
+                    match={Boolean(tagError)}
+                  >
                     {tagError}
                   </Field.Error>
                 </Field.Root>

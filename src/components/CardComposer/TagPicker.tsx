@@ -61,12 +61,13 @@ const TagPicker = ({
       tagError={tagError}
       tags={tags}
       trigger={
-        <>
+        <span className="card-composer__tag-trigger-content">
           <Plus size={18} />
           {tagSummary && <span>{tagSummary}</span>}
-        </>
+        </span>
       }
-      triggerClassName="card-composer__tag-trigger"
+      triggerClassName={`card-composer__tag-trigger${tagSummary ? ' card-composer__tag-trigger--selected' : ''}`}
+      triggerValueClassName="card-composer__tag-trigger-value"
     />
   );
 };

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import { moveColumn } from '../../board/columns';
@@ -84,8 +84,7 @@ const Columns = ({
 }: ColumnsProps) => {
   const { messages } = useLocalization();
   const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const addColumnOpenedFromManagerRef = useRef(false);
-  const returnToManagerAfterAddRef = useRef(false);
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 
   const moveCard = useCallback(
     ({
@@ -118,39 +117,9 @@ const Columns = ({
 
     onColumnsChange(createColumn(columns, { id, title }));
     boardMutations.createColumn({ id, title });
-
-    if (addColumnOpenedFromManagerRef.current) {
-      returnToManagerAfterAddRef.current = true;
-    }
   };
 
-  const onAddColumnOpenChange = (open: boolean) => {
-    setAddColumnOpen(open);
-
-    if (open) {
-      return;
-    }
-
-    if (returnToManagerAfterAddRef.current) {
-      onManageColumnsOpenChange(true);
-    }
-
-    addColumnOpenedFromManagerRef.current = false;
-    returnToManagerAfterAddRef.current = false;
-  };
-
-  const openAddColumn = () => {
-    addColumnOpenedFromManagerRef.current = false;
-    returnToManagerAfterAddRef.current = false;
-    setAddColumnOpen(true);
-  };
-
-  const openAddColumnFromManager = () => {
-    onManageColumnsOpenChange(false);
-    addColumnOpenedFromManagerRef.current = true;
-    returnToManagerAfterAddRef.current = false;
-    setAddColumnOpen(true);
-  };
+  const openAddColumn = () => setAddColumnOpen(true);
 
   const onRenameColumn = (columnId: string, title: string) => {
     if (!title) {
@@ -303,7 +272,10 @@ const Columns = ({
 
   return (
     <>
-      <div className="columns-board">
+      <div
+        className="columns-board"
+        data-horizontal-overflow={hasHorizontalOverflow || undefined}
+      >
         <ActiveCardMissingState
           activeCardId={activeCardId}
           boardLoading={boardLoading}
@@ -319,6 +291,7 @@ const Columns = ({
           moveColumn={onMoveColumn}
           onActiveCardClose={onActiveCardClose}
           onAddColumnClick={openAddColumn}
+          onHorizontalOverflowChange={setHasHorizontalOverflow}
           onTagsChange={onTagsChange}
           renameColumn={onRenameColumn}
           tags={tags}
@@ -339,13 +312,13 @@ const Columns = ({
         columns={sortedColumns}
         deleteColumn={onDeleteColumn}
         moveColumn={onMoveColumn}
-        onAddColumnClick={openAddColumnFromManager}
+        onAddColumnSave={onSaveColumn}
         onOpenChange={onManageColumnsOpenChange}
         open={manageColumnsOpen}
         renameColumn={onRenameColumn}
       />
       <AddColumnDialog
-        onOpenChange={onAddColumnOpenChange}
+        onOpenChange={setAddColumnOpen}
         onSave={onSaveColumn}
         open={addColumnOpen}
       />
