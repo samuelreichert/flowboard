@@ -1,4 +1,5 @@
 import { NodeSelection } from '@tiptap/pm/state';
+import type { EditorProps } from '@tiptap/pm/view';
 import { useEditor } from '@tiptap/react';
 import type { Editor } from '@tiptap/core';
 import {
@@ -42,7 +43,7 @@ export const useCardContentEditor = ({
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  const editorProps = useMemo(
+  const editorProps = useMemo<EditorProps>(
     () => ({
       attributes: {
         'aria-labelledby': labelId,
@@ -162,7 +163,9 @@ export const useCardContentEditor = ({
 
     editor.on('blur', applyPendingExternalValue);
 
-    return () => editor.off('blur', applyPendingExternalValue);
+    return () => {
+      editor.off('blur', applyPendingExternalValue);
+    };
   }, [applyExternalValue, editor]);
 
   return editor;
