@@ -3,6 +3,7 @@ import type { JSONContent } from '@tiptap/core';
 import { isSupportedImageUrl, isSupportedLinkUrl } from './urlSafety';
 
 export type MarkdownHeadingLevel = 1 | 2 | 3 | 4;
+export type EditorContentType = 'html' | 'markdown';
 
 export const EMPTY_PARAGRAPH_MARKDOWN = '&nbsp;';
 export const NBSP_CHAR = '\u00A0';
@@ -41,7 +42,7 @@ export const normalizeMarkdownForEditor = (markdown: string) =>
         renderImageHtml(alt, src, title)
     );
 
-export const getEditorContentType = (value: string) =>
+export const getEditorContentType = (value: string): EditorContentType =>
   /<(?:p|h[1-4])(?:\s|>)/i.test(value) ? 'html' : 'markdown';
 
 export const renderInlineHtml = (content: JSONContent[] = []): string =>
