@@ -7,12 +7,14 @@ import type { KeyboardEvent } from 'react';
 import { useLocalization } from '../../LocalizationProvider';
 import ConfirmDialog from '../ConfirmDialog';
 import DialogShell from '../DialogShell';
+import ActionGroup from '../IconButton/ActionGroup';
 import {
   createTag as createBoardTag,
   getTagNameError,
   renameTag,
   TAG_NAME_REQUIRED_MESSAGE,
 } from '../../board/tags';
+import { TAG_NAME_LIMIT } from '../../board/constants';
 import { InlineEmptyState } from '../EmptyState';
 import type { BoardTag } from '../../types';
 import './TagManagerDialog.css';
@@ -209,7 +211,7 @@ const TagManagerDialog = ({
                 <Tag size={15} />
                 <Field.Control
                   autoFocus
-                  maxLength={60}
+                  maxLength={TAG_NAME_LIMIT}
                   onValueChange={(value) => {
                     dispatch({
                       name: value,
@@ -247,7 +249,7 @@ const TagManagerDialog = ({
                         aria-label={messages.tagManager.editTag(tag.name)}
                         autoFocus
                         className="dialog-input tag-manager__edit-input"
-                        maxLength={60}
+                        maxLength={TAG_NAME_LIMIT}
                         onBlur={() =>
                           saveRename(tag.id, { revertInvalid: true })
                         }
@@ -260,11 +262,13 @@ const TagManagerDialog = ({
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault();
+                            event.stopPropagation();
                             saveRename(tag.id);
                           }
 
                           if (event.key === 'Escape') {
                             event.preventDefault();
+                            event.stopPropagation();
                             dispatch({ type: 'editingCanceled' });
                           }
                         }}
@@ -286,7 +290,7 @@ const TagManagerDialog = ({
                           {messages.tagManager.usage(getTagUsageCount(tag.id))}
                         </span>
                       </div>
-                      <div className="tag-manager__actions">
+                      <ActionGroup className="tag-manager__actions">
                         <Button
                           aria-label={messages.tagManager.renameTag(tag.name)}
                           className="icon-button"
@@ -310,7 +314,7 @@ const TagManagerDialog = ({
                         >
                           <Trash2 size={15} />
                         </Button>
-                      </div>
+                      </ActionGroup>
                     </>
                   )}
                 </div>

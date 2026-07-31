@@ -196,7 +196,7 @@ test('keeps rename column dialog open when the title is blank', async () => {
   expect(readColumns()[0].title).toBe('Todo');
 });
 
-test('reorders columns from the Manage Columns dialog action hierarchy', async () => {
+test('reorders columns from direct Manage Columns actions', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -207,8 +207,8 @@ test('reorders columns from the Manage Columns dialog action hierarchy', async (
   await user.click(screen.getByRole('button', { name: /manage columns/i }));
 
   expect(
-    screen.queryByRole('button', { name: /move todo to top/i })
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: /move todo to top/i })
+  ).toBeDisabled();
   expect(screen.getByRole('button', { name: /move todo up/i })).toBeDisabled();
 
   await user.click(screen.getByRole('button', { name: /move doing up/i }));
@@ -219,10 +219,7 @@ test('reorders columns from the Manage Columns dialog action hierarchy', async (
   ]);
 
   await user.click(
-    screen.getByRole('button', { name: /more actions for todo/i })
-  );
-  await user.click(
-    await screen.findByRole('menuitem', { name: /move todo to bottom/i })
+    screen.getByRole('button', { name: /move todo to bottom/i })
   );
 
   expect(readColumns().map((column) => column.title)).toEqual([
@@ -253,21 +250,13 @@ test('preserves Manage Columns add, rename, and delete workflows', async () => {
   ]);
 
   await user.click(screen.getByRole('button', { name: /rename todo column/i }));
-  await user.clear(screen.getByLabelText('Column title'));
-  await user.type(screen.getByLabelText('Column title'), 'Ready');
-  await user.click(screen.getByRole('button', { name: /close dialog/i }));
+  await user.clear(screen.getByLabelText('Rename Todo column'));
+  await user.type(screen.getByLabelText('Rename Todo column'), 'Ready');
+  await user.keyboard('{Enter}');
   expect(readColumns()[0].title).toBe('Ready');
 
   await user.click(
-    screen.getByRole('button', { name: /more actions for ready/i })
-  );
-  expect(
-    (
-      await screen.findByRole('menuitem', { name: /delete ready column/i })
-    ).closest('.dialog-viewport')
-  ).toBeInTheDocument();
-  await user.click(
-    screen.getByRole('menuitem', { name: /delete ready column/i })
+    screen.getByRole('button', { name: /delete ready column/i })
   );
   expect(
     screen.getByRole('alertdialog', { name: /delete this column/i })
@@ -275,6 +264,23 @@ test('preserves Manage Columns add, rename, and delete workflows', async () => {
   await user.click(screen.getByRole('button', { name: /^delete column$/i }));
 
   expect(readColumns().map((column) => column.title)).toEqual(['Review']);
+});
+
+test('cancels a Manage Columns inline rename with Escape', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+  await user.click(screen.getByRole('button', { name: /rename todo column/i }));
+  await user.clear(screen.getByLabelText('Rename Todo column'));
+  await user.type(screen.getByLabelText('Rename Todo column'), 'Ready');
+  await user.keyboard('{Escape}');
+
+  expect(readColumns()[0].title).toBe('Todo');
+  expect(
+    screen.getByRole('button', { name: /rename todo column/i })
+  ).toBeInTheDocument();
 });
 
 test('keeps Manage Columns open when its add-column dialog is dismissed', async () => {
@@ -298,4 +304,36 @@ test('keeps Manage Columns open when its add-column dialog is dismissed', async 
     screen.getByRole('dialog', { name: /manage columns/i })
   ).toBeInTheDocument();
   expect(managerAddColumn).toHaveFocus();
+});
+
+test('keeps mobile column actions in the same menu command list', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addColumn(user, 'Doing');
+  await user.click(screen.getByRole('button', { name: /manage columns/i }));
+
+  const mobileActions = document.querySelector(
+    '.column-manager__mobile-actions'
+  );
+  expect(mobileActions).toHaveAttribute(
+    'aria-label',
+    'Open Todo column actions'
+  );
+
+  fireEvent.click(mobileActions as HTMLButtonElement);
+  expect(
+    await screen.findByRole('menuitem', { name: /move todo to top/i })
+  ).toHaveAttribute('aria-disabled', 'true');
+  expect(
+    screen.getByRole('menuitem', { name: /move todo down/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: /rename todo column/i })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: /delete todo column/i })
+  ).toBeInTheDocument();
+  expect(document.querySelector('.menu-separator')).toBeInTheDocument();
 });

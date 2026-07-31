@@ -105,7 +105,7 @@
 }
 
 .tag-manager__actions {
-  gap: 3px;
+  flex: 0 0 auto;
 }
 
 .tag-manager__delete {

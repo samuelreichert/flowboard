@@ -23,6 +23,18 @@
   outline-offset: 2px;
 }
 
+.icon-button-group {
+  align-items: center;
+  display: inline-flex;
+}
+
+.icon-button-group__separator {
+  background-color: var(--color-border);
+  height: 18px;
+  margin: 0 3px;
+  width: 1px;
+}
+
 @media (max-width: 640px) {
   .icon-button {
     height: 40px;

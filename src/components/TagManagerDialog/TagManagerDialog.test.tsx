@@ -40,6 +40,7 @@ test('manages board tags from the sidebar', async () => {
 
   fetchMock.mockClear();
   await openTagManager(user);
+  expect(screen.getByLabelText('New tag')).toHaveAttribute('maxlength', '40');
   await user.type(screen.getByLabelText('New tag'), 'Bug{Enter}');
   await waitFor(() =>
     expect(
@@ -50,6 +51,11 @@ test('manages board tags from the sidebar', async () => {
     ).toBe(true)
   );
   expect(fetchTagStorage()[0].name).toBe('Bug');
+  expect(
+    screen
+      .getByRole('button', { name: /rename bug tag/i })
+      .parentElement?.querySelector('.icon-button-group__separator')
+  ).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /rename bug tag/i }));
   await user.clear(screen.getByLabelText('Edit Bug tag'));
@@ -81,8 +87,12 @@ test('manages board tags from the sidebar', async () => {
   );
   expect(fetchTagStorage()).toEqual([]);
   expect(
+    screen.queryByRole('button', { name: /remove issue tag/i })
+  ).not.toBeInTheDocument();
+  expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });
@@ -95,9 +105,7 @@ test('confirms removing tags that are assigned to cards', async () => {
   await addCard(user, 'Todo', 'Tagged');
   await user.click(screen.getByText('Tagged'));
   const cardDialog = await screen.findByRole('dialog', { name: /card/i });
-  await user.click(
-    within(cardDialog).getByRole('combobox', { name: /tags/i })
-  );
+  await user.click(within(cardDialog).getByRole('combobox', { name: /tags/i }));
   await user.click(screen.getByRole('button', { name: /create tag/i }));
   await user.type(screen.getByLabelText('New tag name'), 'Design{Enter}');
   await waitFor(() =>

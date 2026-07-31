@@ -2,6 +2,7 @@ import { Columns3 } from 'lucide-react';
 import type { RefObject } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import { COLUMN_TITLE_LIMIT } from '../../board/constants';
 import ContentDialog from '../ContentDialog';
 
 type AddColumnDialogProps = {
@@ -26,6 +27,7 @@ const AddColumnDialog = ({
       hideCancel
       label={messages.board.columnTitle}
       leadingIcon={<Columns3 size={15} />}
+      maxLength={COLUMN_TITLE_LIMIT}
       onOpenChange={onOpenChange}
       onSave={onSave}
       open={open}

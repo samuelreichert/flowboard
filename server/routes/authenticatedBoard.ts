@@ -2,6 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { isBoardBackground } from '../../src/board/validation.js';
 import { CARD_PRIORITIES } from '../../src/board/cardPriority.js';
+import {
+  COLUMN_TITLE_LIMIT,
+  TAG_NAME_LIMIT,
+} from '../../src/board/constants.js';
 import { ensureProfile } from '../auth/profileService.js';
 import type { PrincipalResolver } from '../auth/principal.js';
 import type { FlowboardPrismaClient } from '../db/prismaClient.js';
@@ -71,8 +75,6 @@ const ARCHIVED_CARD_DETAIL_PATH_PATTERN =
 const ACTIVE_CARD_TITLE_MAX_LENGTH = 160;
 const ACTIVE_CARD_CONTENT_MAX_LENGTH = 100_000;
 const ACTIVE_CARD_TAG_IDS_MAX_COUNT = 25;
-const ACTIVE_COLUMN_TITLE_MAX_LENGTH = 80;
-const BOARD_TAG_NAME_MAX_LENGTH = 40;
 const AUTHENTICATED_WRITE_RATE_LIMIT = 120;
 const AUTHENTICATED_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 
@@ -298,7 +300,7 @@ const normalizeCreateColumnInput = (
   body: unknown
 ): ActiveColumnCreateInput | null => {
   const title = isRecord(body)
-    ? normalizeBoundedText(body.title, ACTIVE_COLUMN_TITLE_MAX_LENGTH)
+    ? normalizeBoundedText(body.title, COLUMN_TITLE_LIMIT)
     : null;
 
   if (!isRecord(body) || !isNonEmptyString(body.id) || !title) {
@@ -315,7 +317,7 @@ const normalizeUpdateColumnInput = (
   body: unknown
 ): ActiveColumnUpdateInput | null => {
   const title = isRecord(body)
-    ? normalizeBoundedText(body.title, ACTIVE_COLUMN_TITLE_MAX_LENGTH)
+    ? normalizeBoundedText(body.title, COLUMN_TITLE_LIMIT)
     : null;
 
   if (!isRecord(body) || !title) {
@@ -351,7 +353,7 @@ const normalizeMoveColumnInput = (
 
 const normalizeCreateTagInput = (body: unknown): BoardTagCreateInput | null => {
   const name = isRecord(body)
-    ? normalizeBoundedText(body.name, BOARD_TAG_NAME_MAX_LENGTH)
+    ? normalizeBoundedText(body.name, TAG_NAME_LIMIT)
     : null;
 
   if (!isRecord(body) || !isNonEmptyString(body.id) || !name) {
@@ -366,7 +368,7 @@ const normalizeCreateTagInput = (body: unknown): BoardTagCreateInput | null => {
 
 const normalizeUpdateTagInput = (body: unknown): BoardTagUpdateInput | null => {
   const name = isRecord(body)
-    ? normalizeBoundedText(body.name, BOARD_TAG_NAME_MAX_LENGTH)
+    ? normalizeBoundedText(body.name, TAG_NAME_LIMIT)
     : null;
 
   if (!isRecord(body) || !name) {

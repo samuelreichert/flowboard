@@ -22,53 +22,79 @@ The system SHALL provide a Manage columns dialog for board-level column manageme
 
 ### Requirement: User reorders columns in the management dialog
 
-The system SHALL allow users to reorder columns from the Manage columns dialog without board-surface column drag-and-drop.
+The system SHALL allow users to reorder columns from the Manage columns dialog
+without board-surface column drag-and-drop. Desktop rows SHALL expose every
+reorder command as a direct separated icon action; smartphone rows SHALL expose
+the same commands through one accessible column-actions menu.
 
 #### Scenario: User moves a column up
 
-- **WHEN** the user activates Move up for a column that is not first in the dialog list
+- **WHEN** the user activates Move up for a column that is not first in the
+  dialog list
 - **THEN** the system moves that column one position earlier in the board order
 - **AND** the board displays the column one position further left
 
 #### Scenario: User moves a column down
 
-- **WHEN** the user activates Move down for a column that is not last in the dialog list
+- **WHEN** the user activates Move down for a column that is not last in the
+  dialog list
 - **THEN** the system moves that column one position later in the board order
 - **AND** the board displays the column one position further right
 
 #### Scenario: User moves a column to the top
 
-- **WHEN** the user activates Move to top for a column that is not first in the dialog list
+- **WHEN** the user activates Move to top for a column that is not first in the
+  dialog list
 - **THEN** the system moves that column to the first board position
 - **AND** the board displays the column as the left-most column
 
 #### Scenario: User moves a column to the bottom
 
-- **WHEN** the user activates Move to bottom for a column that is not last in the dialog list
+- **WHEN** the user activates Move to bottom for a column that is not last in
+  the dialog list
 - **THEN** the system moves that column to the last board position
 - **AND** the board displays the column as the right-most column
 
-#### Scenario: Primary reorder controls are visible
+#### Scenario: Desktop rows expose all reorder commands directly
 
-- **WHEN** the Manage columns dialog lists one or more columns
-- **THEN** Move up and Move down remain visible row actions
-- **AND** unavailable visible movement controls are disabled at dialog edges
+- **WHEN** Manage columns is viewed above the smartphone breakpoint
+- **THEN** Move to top, Move up, Move down, and Move to bottom are direct icon
+  actions in each column row
+- **AND** the actions are visually separated from one another
+- **AND** unavailable movement commands remain visible and disabled at dialog
+  edges
 
-#### Scenario: Secondary reorder controls are available from row actions
+#### Scenario: Smartphone rows expose the same commands through a menu
 
-- **WHEN** the Manage columns dialog lists one or more columns
-- **THEN** Move to top and Move to bottom remain available from each row through a secondary action surface
-- **AND** unavailable secondary movement commands are disabled at dialog edges
+- **WHEN** Manage columns is viewed at or below the smartphone breakpoint
+- **THEN** a column row exposes one accessible Column actions menu trigger
+- **AND** its menu contains Move to top, Move up, Move down, and Move to
+  bottom in the same command order as desktop
+- **AND** unavailable movement commands remain visible and disabled at dialog
+  edges
 
 ### Requirement: User performs column actions in the management dialog
 
-The system SHALL provide rename, delete, and add-column entry points from the Manage columns dialog while preserving the manager as the parent context for rename and add-column child dialogs.
+The system SHALL provide inline rename, delete, and add-column entry points
+from the Manage columns dialog while preserving the existing column validation,
+save behavior, and manager context for the add-column dialog.
 
-#### Scenario: User renames a column from Manage columns
+#### Scenario: User starts renaming a column from Manage columns
 
-- **WHEN** the user starts renaming a column from the Manage columns dialog
-- **THEN** the system uses the existing column rename validation and save behavior
-- **AND** the Manage columns dialog remains open behind the rename dialog
+- **WHEN** the user activates Rename for a column row
+- **THEN** that row replaces its summary with a focused inline column-title
+  input
+- **AND** no column rename mutation is sent until the user commits a valid
+  title
+
+#### Scenario: User saves or cancels an inline column rename
+
+- **WHEN** the user commits a valid column title with Enter or by moving focus
+  away from a valid inline input
+- **THEN** the system saves the renamed column using the existing validation
+  rules
+- **AND** when the user presses Escape while editing, the original title is
+  restored without a column rename mutation
 
 #### Scenario: User deletes a column from Manage columns
 
@@ -93,11 +119,18 @@ The system SHALL provide rename, delete, and add-column entry points from the Ma
 - **THEN** the add-column dialog closes while Manage columns remains open
 - **AND** the newly created column appears in the dialog list
 
-#### Scenario: Destructive column action is lower emphasis
+#### Scenario: Destructive column action remains lower emphasis
 
 - **WHEN** the Manage columns dialog lists columns
-- **THEN** the delete action remains available for each column without appearing as an equal-weight default row action
-- **AND** activating delete still uses the existing confirmation flow
+- **THEN** Delete follows a visual separator after non-destructive actions and
+  uses the existing destructive visual treatment
+- **AND** activating Delete still uses the existing confirmation flow
+
+#### Scenario: Smartphone column menu preserves non-reorder actions
+
+- **WHEN** a user opens a Column actions menu at the smartphone breakpoint
+- **THEN** the menu also exposes Rename and Delete for that column
+- **AND** Delete is separated from the non-destructive commands
 
 ### Requirement: User moves columns from column action menus
 
