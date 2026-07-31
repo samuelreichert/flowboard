@@ -194,12 +194,107 @@ test('opens archived cards with metadata, rich content, and Markdown copy', asyn
   ).toBeInTheDocument();
   expect(within(dialog).getByText('Ship')).toBeInTheDocument();
 
+  const copyButton = within(dialog).getByRole('button', {
+    name: /copy markdown/i,
+  });
+
+  await user.hover(copyButton);
+  const tooltip = await screen.findByText('Copy Markdown');
+  expect(tooltip.closest('.dialog-viewport')).toBeInTheDocument();
+
+  await user.click(copyButton);
+
+  expect(writeText).toHaveBeenCalledWith(markdown);
+  expect(within(dialog).getByRole('status')).toHaveTextContent('Copied');
+  await waitFor(() =>
+    expect(
+      document.querySelector('.history-card-detail__copy-tooltip')
+    ).toHaveTextContent('Copied')
+  );
+  expect(
+    within(dialog).queryByRole('button', { name: /copy markdown/i })
+  ).toHaveClass('history-card-detail__copy');
+});
+
+test('hides archived Markdown copy when the card has no content', async () => {
+  const user = userEvent.setup();
+  seedBoardState({
+    completedWorkCycles: [
+      {
+        cards: [
+          {
+            archivedAt: CREATED_AT,
+            content: '',
+            createdAt: CREATED_AT,
+            id: 'archived-empty',
+            priority: 'medium',
+            tagIds: [],
+            tagSnapshots: [],
+            title: 'Empty archived card',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: CREATED_AT,
+        id: 'cycle-empty',
+        startDate: CREATED_AT,
+      },
+    ],
+  });
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  await user.click(screen.getByText('Empty archived card'));
+  const dialog = screen.getByRole('dialog', { name: /empty archived card/i });
+
+  expect(
+    within(dialog).queryByRole('button', { name: /copy markdown/i })
+  ).not.toBeInTheDocument();
+});
+
+test('does not announce copied when the archived Markdown clipboard write fails', async () => {
+  const user = userEvent.setup();
+  const writeText = vi
+    .spyOn(navigator.clipboard, 'writeText')
+    .mockRejectedValue(new Error('Clipboard unavailable'));
+  seedBoardState({
+    completedWorkCycles: [
+      {
+        cards: [
+          {
+            archivedAt: CREATED_AT,
+            content: 'Retry this copy',
+            createdAt: CREATED_AT,
+            id: 'archived-copy-failure',
+            priority: 'medium',
+            tagIds: [],
+            tagSnapshots: [],
+            title: 'Copy failure',
+          },
+        ],
+        completedColumnId: 'done',
+        completedColumnTitle: 'Done',
+        endDate: CREATED_AT,
+        id: 'cycle-copy-failure',
+        startDate: CREATED_AT,
+      },
+    ],
+  });
+
+  render(<App />);
+
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  await user.click(screen.getByText('Copy failure'));
+  const dialog = screen.getByRole('dialog', { name: /copy failure/i });
   await user.click(
     within(dialog).getByRole('button', { name: /copy markdown/i })
   );
 
-  expect(writeText).toHaveBeenCalledWith(markdown);
-  expect(within(dialog).getByText('Copied')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(writeText).toHaveBeenCalledWith('Retry this copy')
+  );
+  expect(within(dialog).getByRole('status')).toHaveTextContent('');
 });
 
 test('switches completed work history between grid and list layouts', async () => {

@@ -1,5 +1,7 @@
 import { Button } from '@base-ui/react/button';
+import { Tooltip } from '@base-ui/react/tooltip';
 import { CalendarDays, Copy } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { ArchivedBoardCard } from '../../types';
@@ -10,7 +12,7 @@ import { InlineEmptyState } from '../EmptyState';
 
 type ArchivedCardDialogProps = {
   copyStatus: string;
-  onCopyMarkdown: () => void;
+  onCopyMarkdown: () => Promise<boolean>;
   onOpenChange: (open: boolean) => void;
   selectedCard: ArchivedBoardCard | null;
   selectedTagNames: string[];
@@ -24,6 +26,39 @@ const ArchivedCardDialog = ({
   selectedTagNames,
 }: ArchivedCardDialogProps) => {
   const { formatDate, messages } = useLocalization();
+  const [copyTooltipOpen, setCopyTooltipOpen] = useState(false);
+  const copyTooltipPinnedRef = useRef(false);
+  const [tooltipPortalContainer, setTooltipPortalContainer] =
+    useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (copyStatus) {
+      setCopyTooltipOpen(true);
+      return;
+    }
+
+    if (copyTooltipPinnedRef.current) {
+      copyTooltipPinnedRef.current = false;
+      setCopyTooltipOpen(false);
+    }
+  }, [copyStatus]);
+
+  useEffect(() => {
+    if (!selectedCard) {
+      copyTooltipPinnedRef.current = false;
+      setCopyTooltipOpen(false);
+    }
+  }, [selectedCard]);
+
+  const copyMarkdown = async () => {
+    copyTooltipPinnedRef.current = true;
+    setCopyTooltipOpen(true);
+
+    if (!(await onCopyMarkdown())) {
+      copyTooltipPinnedRef.current = false;
+      setCopyTooltipOpen(false);
+    }
+  };
 
   return (
     <DialogShell
@@ -37,6 +72,7 @@ const ArchivedCardDialog = ({
       onOpenChange={onOpenChange}
       popupClassName="dialog-popup--card"
       title={selectedCard?.title ?? messages.history.archivedCard}
+      viewportRef={setTooltipPortalContainer}
     >
       {selectedCard && (
         <div className="history-card-detail__body">
@@ -67,27 +103,58 @@ const ArchivedCardDialog = ({
                 </span>
               </div>
             </div>
-            <Button
-              aria-label={messages.history.copyMarkdown}
-              className="button button--subtle history-card-detail__copy"
-              onClick={onCopyMarkdown}
-              type="button"
-            >
-              <Copy size={15} />
-              <span>{messages.history.copyMarkdown}</span>
-              {copyStatus && (
-                <span className="history-card-detail__copy-status">
-                  {copyStatus}
-                </span>
-              )}
-            </Button>
           </div>
           {selectedCard.content ? (
             <div className="history-card-detail__content">
+              <div className="history-card-detail__copy-anchor">
+                <Tooltip.Root
+                  onOpenChange={(nextOpen, eventDetails) => {
+                    if (!nextOpen && copyTooltipPinnedRef.current) {
+                      eventDetails.preventUnmountOnClose();
+                      setCopyTooltipOpen(true);
+                      return;
+                    }
+
+                    setCopyTooltipOpen(nextOpen);
+                  }}
+                  open={copyTooltipOpen}
+                >
+                  <Tooltip.Trigger
+                    delay={300}
+                    render={
+                      <Button
+                        aria-label={messages.history.copyMarkdown}
+                        className="history-card-detail__copy icon-button"
+                        onClick={() => void copyMarkdown()}
+                        type="button"
+                      >
+                        <Copy size={16} />
+                      </Button>
+                    }
+                  />
+                  <Tooltip.Portal container={tooltipPortalContainer}>
+                    <Tooltip.Positioner
+                      className="history-card-detail__copy-tooltip-positioner"
+                      sideOffset={6}
+                    >
+                      <Tooltip.Popup className="history-card-detail__copy-tooltip">
+                        {copyStatus || messages.history.copyMarkdown}
+                      </Tooltip.Popup>
+                    </Tooltip.Positioner>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </div>
               <CardContentViewer
                 ariaLabel={`${selectedCard.title} content`}
                 value={selectedCard.content}
               />
+              <span
+                aria-live="polite"
+                className="history-card-detail__copy-status"
+                role="status"
+              >
+                {copyStatus}
+              </span>
             </div>
           ) : (
             <InlineEmptyState>

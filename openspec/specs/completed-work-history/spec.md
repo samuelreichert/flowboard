@@ -92,7 +92,20 @@ The system SHALL provide a separate History view that groups completed work by r
 - **THEN** the system displays the archived card snapshot as readonly rich content
 - **AND** the system displays created date near the title and archived date in the detail metadata
 - **AND** the system displays priority and tags as separate labelled rows
-- **AND** the system provides a Copy Markdown action for the archived card content
+
+#### Scenario: User copies archived Markdown
+
+- **WHEN** an archived card with content is open and the user activates its
+  Copy Markdown icon from the readonly content surface
+- **THEN** the system copies the archived Markdown to the clipboard
+- **AND** the action's tooltip changes from Copy Markdown to Copied for a
+  short confirmation interval
+- **AND** the system announces the successful copy through an accessible status
+
+#### Scenario: Archived card has no content to copy
+
+- **WHEN** an archived card with no content is open
+- **THEN** the system does not display a Copy Markdown action
 
 #### Scenario: History card metadata is visually stable
 - **WHEN** History or board cards render priority and tag chips with long labels
