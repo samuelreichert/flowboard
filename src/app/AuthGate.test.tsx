@@ -47,12 +47,21 @@ test('renders unified auth entry with social options and email fallback', () => 
   expect(
     document.querySelector<HTMLImageElement>('.auth-panel__brand-icon')?.src
   ).toMatch(/\/icon-light\.svg$/);
+  const googleButton = screen.getByRole('button', {
+    name: /continue with google/i,
+  });
+  const appleButton = screen.getByRole('button', {
+    name: /continue with apple/i,
+  });
+
+  expect(googleButton).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: /continue with google/i })
-  ).toBeInTheDocument();
+    googleButton.querySelector('[data-provider-icon="google"]')
+  ).toBeTruthy();
+  expect(appleButton).toBeDisabled();
   expect(
-    screen.getByRole('button', { name: /continue with apple/i })
-  ).toBeDisabled();
+    appleButton.querySelector('[data-provider-icon="apple"]')
+  ).toBeTruthy();
   expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: /send magic link/i })
@@ -84,6 +93,42 @@ test('starts Google social auth from the unified auth entry', async () => {
       label: 'Google',
     }),
     '/history'
+  );
+});
+
+test('keeps the provider icon visible while social auth is opening', async () => {
+  const user = userEvent.setup();
+  let resolveRequest: (() => void) | undefined;
+  const onSocialAuthRequest = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        resolveRequest = resolve;
+      })
+  );
+
+  render(
+    <AuthGate
+      message={null}
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={onSocialAuthRequest}
+      status="signedOut"
+    />
+  );
+
+  const googleButton = screen.getByRole('button', {
+    name: /continue with google/i,
+  });
+  await user.click(googleButton);
+
+  expect(googleButton).toHaveTextContent('Opening...');
+  expect(googleButton).toBeDisabled();
+  expect(
+    googleButton.querySelector('[data-provider-icon="google"]')
+  ).toBeTruthy();
+
+  resolveRequest?.();
+  await waitFor(() =>
+    expect(googleButton).toHaveTextContent('Continue with Google')
   );
 });
 

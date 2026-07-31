@@ -5,6 +5,7 @@ import { type FormEvent, useState } from 'react';
 import { useLocalization } from '../LocalizationProvider';
 import { socialAuthProviders, type SocialAuthProvider } from '../auth/supabase';
 import type { AuthState } from './useAuthSession';
+import SocialAuthProviderIcon from './SocialAuthProviderIcon';
 
 import './AuthGate.css';
 
@@ -90,14 +91,17 @@ export const AuthGate = ({
               {socialAuthProviders.map((provider) => (
                 <div className="auth-panel__provider" key={provider.id}>
                   <Button
-                    className="button auth-panel__provider-button"
+                    className={`button auth-panel__provider-button auth-panel__provider-button--${provider.id}`}
                     disabled={!provider.enabled || submittingProvider !== null}
                     onClick={() => void startSocialAuth(provider)}
                     type="button"
                   >
-                    {submittingProvider === provider.id
-                      ? messages.app.auth.opening
-                      : messages.app.auth.continueWith(provider.label)}
+                    <SocialAuthProviderIcon provider={provider.id} />
+                    <span>
+                      {submittingProvider === provider.id
+                        ? messages.app.auth.opening
+                        : messages.app.auth.continueWith(provider.label)}
+                    </span>
                   </Button>
                   {!provider.enabled && provider.disabledReason ? (
                     <p className="auth-panel__provider-note">
