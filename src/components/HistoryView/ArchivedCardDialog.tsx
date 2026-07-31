@@ -1,7 +1,7 @@
 import { Button } from '@base-ui/react/button';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { CalendarDays, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
 import type { ArchivedBoardCard } from '../../types';
@@ -27,35 +27,26 @@ const ArchivedCardDialog = ({
 }: ArchivedCardDialogProps) => {
   const { formatDate, messages } = useLocalization();
   const [copyTooltipOpen, setCopyTooltipOpen] = useState(false);
-  const copyTooltipPinnedRef = useRef(false);
+  const [copyFeedbackPending, setCopyFeedbackPending] = useState(false);
   const [tooltipPortalContainer, setTooltipPortalContainer] =
     useState<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (copyStatus) {
-      setCopyTooltipOpen(true);
-      return;
-    }
-
-    if (copyTooltipPinnedRef.current) {
-      copyTooltipPinnedRef.current = false;
-      setCopyTooltipOpen(false);
-    }
-  }, [copyStatus]);
-
-  useEffect(() => {
-    if (!selectedCard) {
-      copyTooltipPinnedRef.current = false;
-      setCopyTooltipOpen(false);
-    }
-  }, [selectedCard]);
+  const copyFeedbackActive = copyFeedbackPending || Boolean(copyStatus);
 
   const copyMarkdown = async () => {
-    copyTooltipPinnedRef.current = true;
+    setCopyFeedbackPending(true);
     setCopyTooltipOpen(true);
 
-    if (!(await onCopyMarkdown())) {
-      copyTooltipPinnedRef.current = false;
+    let copied = false;
+
+    try {
+      copied = await onCopyMarkdown();
+    } catch {
+      copied = false;
+    } finally {
+      setCopyFeedbackPending(false);
+    }
+
+    if (!copied) {
       setCopyTooltipOpen(false);
     }
   };
@@ -109,15 +100,14 @@ const ArchivedCardDialog = ({
               <div className="history-card-detail__copy-anchor">
                 <Tooltip.Root
                   onOpenChange={(nextOpen, eventDetails) => {
-                    if (!nextOpen && copyTooltipPinnedRef.current) {
+                    if (!nextOpen && copyFeedbackActive) {
                       eventDetails.preventUnmountOnClose();
-                      setCopyTooltipOpen(true);
                       return;
                     }
 
                     setCopyTooltipOpen(nextOpen);
                   }}
-                  open={copyTooltipOpen}
+                  open={copyTooltipOpen || copyFeedbackActive}
                 >
                   <Tooltip.Trigger
                     delay={300}
