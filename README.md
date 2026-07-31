@@ -75,12 +75,6 @@ When Supabase browser environment values are configured, the app shows a
 Supabase magic-link sign-in flow and loads authenticated board data from
 `/api/boards/default`. Authenticated saves are sent to `/api/boards/:id`.
 
-### `npm run dev:static`
-
-Runs Vite without the local API. Use this only for quick UI rendering checks;
-durable product behavior requires the Prisma API from `npm run dev` or
-`npm start`.
-
 ### `npm start`
 
 Compiles the local TypeScript server, then serves the production build and the

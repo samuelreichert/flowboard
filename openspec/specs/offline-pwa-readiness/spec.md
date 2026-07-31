@@ -45,11 +45,6 @@ The system SHALL use the canonical board API backed by Prisma as the durable sou
 - **WHEN** the app is running in local SQLite mode and a canonical board API write fails
 - **THEN** the system reports that durable saving is unavailable instead of persisting board data to browser localStorage
 
-#### Scenario: Static UI-only mode is used
-
-- **WHEN** the app is running without the Prisma API
-- **THEN** any board state is treated as in-memory UI state only
-
 #### Scenario: Authenticated production data load fails
 
 - **WHEN** the app is running in authenticated production mode and server-backed board data cannot be loaded
