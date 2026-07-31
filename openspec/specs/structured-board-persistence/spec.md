@@ -91,11 +91,6 @@ The system SHALL NOT depend on browser localStorage import as part of normal boa
 - **WHEN** Flowboard starts with Prisma-backed persistence enabled
 - **THEN** the system does not treat browser localStorage board keys as a supported durable board source
 
-#### Scenario: Static UI-only mode is used
-
-- **WHEN** Flowboard runs without the Prisma API
-- **THEN** any board state is treated as transient in-memory state rather than a supported database mode
-
 ### Requirement: Persisted board records support route target resolution
 
 The system SHALL resolve route-addressed active cards and archived card

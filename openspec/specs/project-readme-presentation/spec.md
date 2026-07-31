@@ -34,12 +34,12 @@ The project README SHALL include a screenshot that shows the latest actual Flowb
 
 ### Requirement: README documents offline and deployment behavior
 
-The project README SHALL document how the app behaves in local SQLite mode, production Supabase Postgres mode, static UI-only mode, offline/PWA app-shell mode, and Vercel analytics-enabled deployment mode.
+The project README SHALL document how the app behaves in local SQLite mode, production Supabase Postgres mode, offline/PWA app-shell mode, and Vercel analytics-enabled deployment mode.
 
 #### Scenario: Developer chooses a run mode
 
 - **WHEN** a developer reads setup and deployment guidance
-- **THEN** the README points to the running-mode matrix for local SQLite, Supabase Postgres, auth, no-auth, and static UI-only choices
+- **THEN** the README points to the running-mode matrix for local SQLite, Supabase Postgres, auth, and no-auth choices
 
 #### Scenario: User evaluates offline support
 

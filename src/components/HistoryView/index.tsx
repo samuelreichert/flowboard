@@ -1,5 +1,5 @@
 import { CheckCircle2, LayoutGrid, List } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useLocalization } from '../../LocalizationProvider';
@@ -58,6 +58,7 @@ const HistoryView = ({
   const { messages } = useLocalization();
   const navigate = useNavigate();
   const [copyStatus, setCopyStatus] = useState('');
+  const copyStatusTimeoutRef = useRef<number | null>(null);
   const [historyLayout, setHistoryLayout] = useState<HistoryLayout>('grid');
   const historyLayoutOptions: SegmentedControlOption<HistoryLayout>[] = [
     {
@@ -107,14 +108,38 @@ const HistoryView = ({
   const selectedTagNames = selectedCard
     ? getVisibleTagNames(selectedCard, tags)
     : [];
+
+  useEffect(
+    () => () => {
+      if (copyStatusTimeoutRef.current !== null) {
+        window.clearTimeout(copyStatusTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const copySelectedCardMarkdown = async () => {
     if (!archivedCardDetailQuery.data) {
-      return;
+      return false;
     }
 
-    await navigator.clipboard.writeText(archivedCardDetailQuery.data.content);
-    setCopyStatus(messages.common.copied);
-    window.setTimeout(() => setCopyStatus(''), 1600);
+    try {
+      await navigator.clipboard.writeText(archivedCardDetailQuery.data.content);
+      setCopyStatus(messages.common.copied);
+
+      if (copyStatusTimeoutRef.current !== null) {
+        window.clearTimeout(copyStatusTimeoutRef.current);
+      }
+
+      copyStatusTimeoutRef.current = window.setTimeout(
+        () => setCopyStatus(''),
+        1600
+      );
+      return true;
+    } catch {
+      setCopyStatus('');
+      return false;
+    }
   };
 
   if (sortedCycles.length === 0) {

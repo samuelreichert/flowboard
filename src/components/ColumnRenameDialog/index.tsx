@@ -2,6 +2,7 @@ import { Field } from '@base-ui/react/field';
 import { useState } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import { COLUMN_TITLE_LIMIT } from '../../board/constants';
 import DialogShell from '../DialogShell';
 import '../ContentDialog/ContentDialog.css';
 
@@ -86,7 +87,7 @@ const ColumnRenameDialogContent = ({
         <Field.Control
           autoFocus
           className="dialog-input"
-          maxLength={80}
+          maxLength={COLUMN_TITLE_LIMIT}
           onValueChange={onValueChange}
           type="text"
           value={value}

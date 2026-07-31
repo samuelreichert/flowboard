@@ -15,6 +15,7 @@ type ContentDialogProps = {
   initialValue?: string;
   label: string;
   leadingIcon?: ReactNode;
+  maxLength?: number;
   onOpenChange: (open: boolean) => void;
   onSave: (value: string) => string | void;
   open: boolean;
@@ -30,6 +31,7 @@ const ContentDialog = ({
   initialValue = '',
   label,
   leadingIcon,
+  maxLength,
   onOpenChange,
   onSave,
   open,
@@ -48,6 +50,7 @@ const ContentDialog = ({
       key={dialogKey}
       label={label}
       leadingIcon={leadingIcon}
+      maxLength={maxLength}
       onOpenChange={onOpenChange}
       onSave={onSave}
       open={open}
@@ -65,6 +68,7 @@ const ContentDialogContent = ({
   initialValue = '',
   label,
   leadingIcon,
+  maxLength,
   onOpenChange,
   onSave,
   open,
@@ -105,7 +109,7 @@ const ContentDialogContent = ({
               {leadingIcon}
               <Field.Control
                 autoFocus
-                maxLength={80}
+                maxLength={maxLength}
                 onValueChange={setValue}
                 placeholder={placeholder}
                 type="text"
@@ -116,7 +120,7 @@ const ContentDialogContent = ({
             <Field.Control
               autoFocus
               className="dialog-input"
-              maxLength={80}
+              maxLength={maxLength}
               onValueChange={setValue}
               placeholder={placeholder}
               type="text"

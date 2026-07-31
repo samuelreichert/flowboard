@@ -205,17 +205,6 @@
   min-width: 0;
 }
 
-.history-card-detail__copy {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.history-card-detail__copy-status {
-  color: currentColor;
-  font-size: 11px;
-  font-weight: 650;
-}
-
 .history-card-detail__content {
   background-color: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
@@ -226,6 +215,54 @@
   max-height: 420px;
   overflow: auto;
   padding: 12px;
+  position: relative;
+}
+
+.history-card-detail__copy-anchor {
+  display: flex;
+  height: 0;
+  justify-content: flex-end;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.history-card-detail__copy {
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 5px var(--color-shadow-soft);
+}
+
+.history-card-detail__copy:hover {
+  background-color: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.history-card-detail__copy-tooltip-positioner {
+  z-index: 45;
+}
+
+.history-card-detail__copy-tooltip {
+  background-color: var(--color-tooltip-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 14px var(--color-shadow);
+  color: var(--color-on-solid);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  max-width: min(220px, calc(100vw - 48px));
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.history-card-detail__copy-status {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .history-card-detail__meta {
@@ -242,10 +279,6 @@
 
   .history-card-detail__toolbar {
     display: grid;
-  }
-
-  .history-card-detail__copy {
-    width: 100%;
   }
 
   .history-view__toolbar {

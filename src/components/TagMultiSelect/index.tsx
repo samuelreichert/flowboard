@@ -5,6 +5,7 @@ import { Check, Plus } from 'lucide-react';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 
 import { useLocalization } from '../../LocalizationProvider';
+import { TAG_NAME_LIMIT } from '../../board/constants';
 import type { BoardTag } from '../../types';
 
 type TagMultiSelectProps = {
@@ -138,7 +139,7 @@ const TagMultiSelect = ({
                   <Field.Control
                     aria-label={messages.composer.newTagName}
                     autoFocus
-                    maxLength={60}
+                    maxLength={TAG_NAME_LIMIT}
                     onKeyDownCapture={onTagCreateKeyDown}
                     onValueChange={onNewTagNameChange}
                     placeholder={messages.composer.newTagName}
