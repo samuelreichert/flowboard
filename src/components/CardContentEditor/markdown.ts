@@ -42,6 +42,15 @@ export const normalizeMarkdownForEditor = (markdown: string) =>
         renderImageHtml(alt, src, title)
     );
 
+export const sanitizeMarkdownContent = (content: JSONContent): JSONContent => ({
+  ...content,
+  content: content.content?.map(sanitizeMarkdownContent),
+  marks: content.marks?.filter(
+    (mark) =>
+      mark.type !== 'link' || isSupportedLinkUrl(String(mark.attrs?.href ?? ''))
+  ),
+});
+
 export const getEditorContentType = (value: string): EditorContentType =>
   /<(?:p|h[1-4])(?:\s|>)/i.test(value) ? 'html' : 'markdown';
 

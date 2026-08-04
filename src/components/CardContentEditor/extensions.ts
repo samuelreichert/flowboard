@@ -14,6 +14,7 @@ import {
   renderAlignedBlockHtml,
   type MarkdownHeadingLevel,
 } from './markdown';
+import { MarkdownPaste } from './MarkdownPaste';
 import type { Messages } from '../../localization';
 
 export const imageMimeTypes = [
@@ -213,4 +214,5 @@ export const getCardContentExtensions = (
   Markdown.configure({
     indentation: { size: 2, style: 'space' },
   }),
+  ...(options.fileHandling ? [MarkdownPaste] : []),
 ];

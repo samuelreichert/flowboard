@@ -66,6 +66,216 @@ test('exports card content as Markdown', async () => {
   );
 });
 
+test('pastes supported Markdown as rich content and copies it back', async () => {
+  const user = userEvent.setup();
+  const writeText = vi
+    .spyOn(navigator.clipboard, 'writeText')
+    .mockResolvedValue(undefined);
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Markdown paste');
+  await user.click(screen.getByText('Markdown paste'));
+
+  const content = await screen.findByLabelText('Content');
+  pasteText(
+    content,
+    [
+      '# Release notes',
+      '',
+      '**Ship** [Docs](https://tiptap.dev)',
+      '',
+      '- Bullet',
+      '- [ ] Review',
+      '',
+      '> Ready',
+      '',
+      '`inline`',
+      '',
+      '```ts',
+      'const ready = true;',
+      '```',
+      '',
+      '![Diagram](https://images.example.com/diagram.png)',
+    ].join('\n')
+  );
+
+  await waitFor(() =>
+    expect(
+      within(content).getByRole('heading', { name: 'Release notes' })
+    ).toBeInTheDocument()
+  );
+  expect(
+    within(content).getByText('Ship').closest('strong')
+  ).toBeInTheDocument();
+  expect(within(content).getByRole('link', { name: 'Docs' })).toHaveAttribute(
+    'href',
+    'https://tiptap.dev'
+  );
+  expect(
+    within(content).getByRole('checkbox', { name: /incomplete task: review/i })
+  ).toBeInTheDocument();
+  expect(content.querySelector('blockquote')).toHaveTextContent('Ready');
+  expect(content.querySelector('code')).toHaveTextContent('inline');
+  expect(content.querySelector('pre')).toHaveTextContent('const ready = true;');
+  expect(content.querySelector('img')).toHaveAttribute(
+    'src',
+    'https://images.example.com/diagram.png'
+  );
+
+  await user.click(screen.getByRole('button', { name: /copy markdown/i }));
+  const copiedMarkdown = writeText.mock.calls.at(-1)?.[0] ?? '';
+
+  expect(copiedMarkdown).toContain('# Release notes');
+  expect(copiedMarkdown).toContain('**Ship**');
+  expect(copiedMarkdown).toContain('[Docs](https://tiptap.dev)');
+  expect(copiedMarkdown).toContain('- [ ] Review');
+  expect(copiedMarkdown).toContain('```ts');
+});
+
+test('converts Markdown even when its clipboard HTML has inline formatting', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Mirrored Markdown');
+  await user.click(screen.getByText('Mirrored Markdown'));
+
+  const content = await screen.findByLabelText('Content');
+  const markdown = [
+    '### Styling',
+    '',
+    'Conventions are in `docs/requirements/frontend-guidelines.md`. Flag only deviations:',
+    '',
+    '- Inline styles used for static design',
+    '- Core Atlas UI classes overridden',
+    '- `!important` used',
+    '- CSS class not prefixed with widget name',
+    '',
+    '### Unit tests',
+    '',
+    'Files live in `src/**/**tests**/*.spec.ts(x)` and run with Jest + RTL (enzyme-free).',
+    '',
+    '**Structure**',
+    '',
+    '- Use `describe`/`it` blocks; group related cases under a nested `describe`',
+  ].join('\n');
+  fireEvent.paste(content, {
+    clipboardData: {
+      files: [],
+      getData: (type: string) =>
+        type === 'text/html'
+          ? '<div>### Styling</div><div><br></div><div>Conventions are in <code>docs/requirements/frontend-guidelines.md</code>. Flag only deviations:</div><div><br></div><div>- Inline styles used for static design</div><div>- Core Atlas UI classes overridden</div><div>- <code>!important</code> used</div><div>- CSS class not prefixed with widget name</div><div><br></div><div>### Unit tests</div><div><br></div><div><strong>Structure</strong></div><div><br></div><div>- Use <code>describe</code>/<code>it</code> blocks; group related cases under a nested <code>describe</code></div>'
+          : type === 'text/plain'
+            ? markdown
+            : '',
+      types: ['text/plain', 'text/html'],
+    },
+  });
+
+  await waitFor(() =>
+    expect(
+      within(content).getByRole('heading', { level: 3, name: 'Styling' })
+    ).toBeInTheDocument()
+  );
+  expect(
+    within(content).getByRole('heading', { level: 3, name: 'Unit tests' })
+  ).toBeInTheDocument();
+  expect(content.querySelectorAll('li')).toHaveLength(5);
+  expect(
+    within(content).getByText('Structure').closest('strong')
+  ).toBeInTheDocument();
+  expect(content.querySelector('code')).toHaveTextContent(
+    'docs/requirements/frontend-guidelines.md'
+  );
+});
+
+test('pasted Markdown replaces the active editor selection', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Replace selection', 'Replace me');
+  await user.click(screen.getByText('Replace selection'));
+
+  const content = await screen.findByLabelText('Content');
+  selectEditorContents(content);
+  pasteText(content, '# Replacement');
+
+  await waitFor(() =>
+    expect(
+      within(content).getByRole('heading', { name: 'Replacement' })
+    ).toBeInTheDocument()
+  );
+  expect(content).not.toHaveTextContent('Replace me');
+  expect(readColumns()[0].cards[0].content).toBe('# Replacement');
+});
+
+test('preserves plain text, rich HTML, and image-file paste behavior', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Clipboard paths');
+  await user.click(screen.getByText('Clipboard paths'));
+
+  const content = await screen.findByLabelText('Content');
+  pasteText(content, 'Plain prose');
+  await waitFor(() => expect(content).toHaveTextContent('Plain prose'));
+
+  selectEditorContents(content);
+  fireEvent.paste(content, {
+    clipboardData: {
+      files: [],
+      getData: (type: string) =>
+        type === 'text/html'
+          ? '<p><strong>From HTML</strong></p>'
+          : type === 'text/plain'
+            ? 'Native HTML'
+            : '',
+      types: ['text/plain', 'text/html'],
+    },
+  });
+  await waitFor(() =>
+    expect(content.querySelector('strong')).toHaveTextContent('From HTML')
+  );
+  expect(content).not.toHaveTextContent('Native HTML');
+
+  const image = new File(['image-bytes'], 'diagram.png', { type: 'image/png' });
+  fireEvent.paste(content, {
+    clipboardData: {
+      files: [image],
+      getData: () => '',
+      types: ['Files'],
+    },
+  });
+  await waitFor(() =>
+    expect(readColumns()[0].cards[0].content).toMatch(
+      /!\[diagram\.png]\(data:image\/png;base64,/
+    )
+  );
+});
+
+test('does not create active nodes from unsafe Markdown URLs', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Safe paste');
+  await user.click(screen.getByText('Safe paste'));
+
+  const content = await screen.findByLabelText('Content');
+  pasteText(
+    content,
+    '[Unsafe link](javascript:alert(1))\n\n![Unsafe image](javascript:alert(1))'
+  );
+
+  await waitFor(() => expect(content).toHaveTextContent('Unsafe link'));
+  expect(content.querySelector('a')).not.toBeInTheDocument();
+  expect(content.querySelector('img')).not.toBeInTheDocument();
+  expect(content).toHaveTextContent('Unsafe image');
+});
+
 test('visually groups toolbar controls without removing accessible commands', async () => {
   const user = userEvent.setup();
   render(<App />);
