@@ -50,18 +50,14 @@ test('renders unified auth entry with social options and email fallback', () => 
   const googleButton = screen.getByRole('button', {
     name: /continue with google/i,
   });
-  const appleButton = screen.getByRole('button', {
-    name: /continue with apple/i,
-  });
 
   expect(googleButton).toBeInTheDocument();
   expect(
     googleButton.querySelector('[data-provider-icon="google"]')
   ).toBeTruthy();
-  expect(appleButton).toBeDisabled();
   expect(
-    appleButton.querySelector('[data-provider-icon="apple"]')
-  ).toBeTruthy();
+    screen.queryByRole('button', { name: /continue with apple/i })
+  ).not.toBeInTheDocument();
   expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: /send magic link/i })
@@ -155,8 +151,7 @@ test('requests magic link with the preserved auth destination', async () => {
   );
 });
 
-test('keeps Apple social auth gated until configured', async () => {
-  const user = userEvent.setup();
+test('does not render Apple social auth until configured', () => {
   const onSocialAuthRequest = vi.fn().mockResolvedValue(undefined);
 
   render(
@@ -168,14 +163,13 @@ test('keeps Apple social auth gated until configured', async () => {
     />
   );
 
-  await user.click(
-    screen.getByRole('button', { name: /continue with apple/i })
-  );
-
   expect(onSocialAuthRequest).not.toHaveBeenCalled();
   expect(
-    screen.getByText(/apple sign-in needs apple developer/i)
-  ).toBeInTheDocument();
+    screen.queryByRole('button', { name: /continue with apple/i })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(/apple sign-in needs apple developer/i)
+  ).not.toBeInTheDocument();
 });
 
 test('shows non-sensitive social auth failure messaging', () => {

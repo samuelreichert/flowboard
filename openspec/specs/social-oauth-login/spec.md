@@ -34,11 +34,17 @@ The system SHALL render Google and Apple social OAuth controls with a provider-s
 - **THEN** the control displays an Apple mark alongside the localized Apple sign-in label
 - **AND** the control uses a black surface with a white foreground
 
-#### Scenario: Provider option is unavailable or opening
+#### Scenario: Unavailable provider is omitted
 
-- **WHEN** a social provider is disabled by configuration or its OAuth request is opening
+- **WHEN** a social provider is disabled by configuration
+- **THEN** the auth screen does not render a button or setup note for that provider
+- **AND** the remaining configured authentication methods stay available
+
+#### Scenario: Opening provider retains its branding
+
+- **WHEN** an enabled provider's OAuth request is opening
 - **THEN** the corresponding control retains its provider icon and visual treatment
-- **AND** the existing disabled or loading behavior remains available to the user
+- **AND** the existing loading behavior remains available to the user
 
 #### Scenario: User changes the app theme or keyboard-focuses a provider control
 

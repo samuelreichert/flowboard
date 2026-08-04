@@ -99,8 +99,6 @@ const enMessages = {
       sending: 'Sending...',
       signIn: 'Sign in',
       socialOptionsLabel: 'Social sign-in options',
-      appleDisabledReason:
-        'Apple sign-in needs Apple Developer and production redirect setup first.',
       continueWith: (provider: string) => `Continue with ${provider}`,
       magicLinkFailure: 'Unable to send a sign-in link right now.',
       magicLinkSuccess: 'Check your email for a sign-in link.',
@@ -424,8 +422,6 @@ const ptBrMessages: Messages = {
       sending: 'Enviando...',
       signIn: 'Entrar',
       socialOptionsLabel: 'Opções de login social',
-      appleDisabledReason:
-        'O login com Apple precisa de configuração do Apple Developer e redirecionamento de produção primeiro.',
       continueWith: (provider) => `Continuar com ${provider}`,
       magicLinkFailure: 'Não foi possível enviar um link de acesso agora.',
       magicLinkSuccess: 'Confira seu e-mail para acessar pelo link.',
