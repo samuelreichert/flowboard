@@ -61,24 +61,28 @@
   width: 100%;
 }
 
-.auth-panel__provider-button--google {
+.auth-panel__provider-button.auth-panel__provider-button--google {
   background-color: var(--color-auth-google-background);
   border-color: var(--color-auth-google-border);
   color: var(--color-auth-google-text);
 }
 
-.auth-panel__provider-button--google:hover:not(:disabled) {
+.auth-panel__provider-button.auth-panel__provider-button--google:hover:not(
+    :disabled
+  ) {
   background-color: var(--color-auth-google-hover);
   border-color: var(--color-auth-google-border);
 }
 
-.auth-panel__provider-button--apple {
+.auth-panel__provider-button.auth-panel__provider-button--apple {
   background-color: var(--color-auth-apple-background);
   border-color: var(--color-auth-apple-border);
   color: var(--color-auth-apple-text);
 }
 
-.auth-panel__provider-button--apple:hover:not(:disabled) {
+.auth-panel__provider-button.auth-panel__provider-button--apple:hover:not(
+    :disabled
+  ) {
   background-color: var(--color-auth-apple-hover);
   border-color: var(--color-auth-apple-border);
 }
