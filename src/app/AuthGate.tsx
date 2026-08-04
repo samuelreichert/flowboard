@@ -5,6 +5,7 @@ import { type FormEvent, useState } from 'react';
 import { useLocalization } from '../LocalizationProvider';
 import { socialAuthProviders, type SocialAuthProvider } from '../auth/supabase';
 import type { AuthState } from './useAuthSession';
+import SocialAuthProviderIcon from './SocialAuthProviderIcon';
 
 import './AuthGate.css';
 
@@ -59,6 +60,10 @@ export const AuthGate = ({
     }
   };
 
+  const enabledSocialAuthProviders = socialAuthProviders.filter(
+    (provider) => provider.enabled
+  );
+
   return (
     <main className="app app--auth">
       <section className="auth-panel" aria-label={messages.app.auth.ariaLabel}>
@@ -83,35 +88,35 @@ export const AuthGate = ({
             <p className="auth-panel__description">
               {messages.app.auth.description}
             </p>
-            <div
-              aria-label={messages.app.auth.socialOptionsLabel}
-              className="auth-panel__providers"
-            >
-              {socialAuthProviders.map((provider) => (
-                <div className="auth-panel__provider" key={provider.id}>
-                  <Button
-                    className="button auth-panel__provider-button"
-                    disabled={!provider.enabled || submittingProvider !== null}
-                    onClick={() => void startSocialAuth(provider)}
-                    type="button"
-                  >
-                    {submittingProvider === provider.id
-                      ? messages.app.auth.opening
-                      : messages.app.auth.continueWith(provider.label)}
-                  </Button>
-                  {!provider.enabled && provider.disabledReason ? (
-                    <p className="auth-panel__provider-note">
-                      {provider.id === 'apple'
-                        ? messages.app.auth.appleDisabledReason
-                        : provider.disabledReason}
-                    </p>
-                  ) : null}
+            {enabledSocialAuthProviders.length > 0 ? (
+              <>
+                <div
+                  aria-label={messages.app.auth.socialOptionsLabel}
+                  className="auth-panel__providers"
+                >
+                  {enabledSocialAuthProviders.map((provider) => (
+                    <div className="auth-panel__provider" key={provider.id}>
+                      <Button
+                        className={`button auth-panel__provider-button auth-panel__provider-button--${provider.id}`}
+                        disabled={submittingProvider !== null}
+                        onClick={() => void startSocialAuth(provider)}
+                        type="button"
+                      >
+                        <SocialAuthProviderIcon provider={provider.id} />
+                        <span>
+                          {submittingProvider === provider.id
+                            ? messages.app.auth.opening
+                            : messages.app.auth.continueWith(provider.label)}
+                        </span>
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="auth-panel__divider" role="separator">
-              <span>{messages.app.auth.divider}</span>
-            </div>
+                <div className="auth-panel__divider" role="separator">
+                  <span>{messages.app.auth.divider}</span>
+                </div>
+              </>
+            ) : null}
             <form className="auth-panel__form" onSubmit={submit}>
               <Field.Root>
                 <Field.Label className="auth-panel__label">

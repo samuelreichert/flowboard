@@ -25,7 +25,6 @@ export const supabase = isSupabaseConfigured
 export type SupabaseSession = Session;
 
 export type SocialAuthProvider = {
-  disabledReason?: string;
   enabled: boolean;
   id: Extract<Provider, 'apple' | 'google'>;
   label: string;
@@ -38,8 +37,6 @@ export const socialAuthProviders: SocialAuthProvider[] = [
     label: 'Google',
   },
   {
-    disabledReason:
-      'Apple sign-in needs Apple Developer and production redirect setup first.',
     enabled: isAppleOAuthEnabled,
     id: 'apple',
     label: 'Apple',

@@ -47,12 +47,17 @@ test('renders unified auth entry with social options and email fallback', () => 
   expect(
     document.querySelector<HTMLImageElement>('.auth-panel__brand-icon')?.src
   ).toMatch(/\/icon-light\.svg$/);
+  const googleButton = screen.getByRole('button', {
+    name: /continue with google/i,
+  });
+
+  expect(googleButton).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: /continue with google/i })
-  ).toBeInTheDocument();
+    googleButton.querySelector('[data-provider-icon="google"]')
+  ).toBeTruthy();
   expect(
-    screen.getByRole('button', { name: /continue with apple/i })
-  ).toBeDisabled();
+    screen.queryByRole('button', { name: /continue with apple/i })
+  ).not.toBeInTheDocument();
   expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: /send magic link/i })
@@ -87,6 +92,42 @@ test('starts Google social auth from the unified auth entry', async () => {
   );
 });
 
+test('keeps the provider icon visible while social auth is opening', async () => {
+  const user = userEvent.setup();
+  let resolveRequest: (() => void) | undefined;
+  const onSocialAuthRequest = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        resolveRequest = resolve;
+      })
+  );
+
+  render(
+    <AuthGate
+      message={null}
+      onMagicLinkRequest={vi.fn()}
+      onSocialAuthRequest={onSocialAuthRequest}
+      status="signedOut"
+    />
+  );
+
+  const googleButton = screen.getByRole('button', {
+    name: /continue with google/i,
+  });
+  await user.click(googleButton);
+
+  expect(googleButton).toHaveTextContent('Opening...');
+  expect(googleButton).toBeDisabled();
+  expect(
+    googleButton.querySelector('[data-provider-icon="google"]')
+  ).toBeTruthy();
+
+  resolveRequest?.();
+  await waitFor(() =>
+    expect(googleButton).toHaveTextContent('Continue with Google')
+  );
+});
+
 test('requests magic link with the preserved auth destination', async () => {
   const user = userEvent.setup();
   const onMagicLinkRequest = vi.fn().mockResolvedValue(undefined);
@@ -110,8 +151,7 @@ test('requests magic link with the preserved auth destination', async () => {
   );
 });
 
-test('keeps Apple social auth gated until configured', async () => {
-  const user = userEvent.setup();
+test('does not render Apple social auth until configured', () => {
   const onSocialAuthRequest = vi.fn().mockResolvedValue(undefined);
 
   render(
@@ -123,14 +163,13 @@ test('keeps Apple social auth gated until configured', async () => {
     />
   );
 
-  await user.click(
-    screen.getByRole('button', { name: /continue with apple/i })
-  );
-
   expect(onSocialAuthRequest).not.toHaveBeenCalled();
   expect(
-    screen.getByText(/apple sign-in needs apple developer/i)
-  ).toBeInTheDocument();
+    screen.queryByRole('button', { name: /continue with apple/i })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(/apple sign-in needs apple developer/i)
+  ).not.toBeInTheDocument();
 });
 
 test('shows non-sensitive social auth failure messaging', () => {
