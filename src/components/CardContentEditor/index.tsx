@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditorState } from '@tiptap/react';
 import { useRef } from 'react';
+import type { FocusEvent } from 'react';
 
 import { EditorBubbleMenus } from './EditorBubbleMenus';
 import { EditorToolbar } from './EditorToolbar';
@@ -28,6 +29,7 @@ export { default as CardContentViewer } from './CardContentViewer';
 type CardContentEditorProps = {
   id: string;
   labelId: string;
+  onBlur?: () => void;
   onChange: (value: string) => void;
   value: string;
 };
@@ -105,6 +107,7 @@ const getToolbarState = (currentEditor: Editor): EditorToolbarState => {
 const CardContentEditor = ({
   id,
   labelId,
+  onBlur,
   onChange,
   value,
 }: CardContentEditorProps) => {
@@ -123,10 +126,21 @@ const CardContentEditor = ({
     }) ?? defaultToolbarState;
   const headingValueRef = useRef(toolbarState.headingValue);
   const interactions = useCardContentInteractions(editor, toolbarState);
+  const onEditorBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return;
+    }
+
+    onBlur?.();
+  };
 
   return (
     <div
       className="card-content-editor"
+      onBlur={onEditorBlur}
       onDrop={interactions.onFileDrop}
       onPaste={interactions.onFilePaste}
       ref={editorRootRef}

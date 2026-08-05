@@ -382,7 +382,10 @@ test('creates and toggles task lists as Markdown checkboxes', async () => {
   expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'false');
   await user.click(checkbox);
   expect(checkbox.closest('li')).toHaveAttribute('data-checked', 'true');
-  expect(readColumns()[0].cards[0].content).toBe('- [x] Ship editor');
+  await waitFor(
+    () => expect(readColumns()[0].cards[0].content).toBe('- [x] Ship editor'),
+    { timeout: 2_000 }
+  );
 });
 
 test('applies heading and alignment dropdown formatting', async () => {
@@ -686,4 +689,32 @@ test('applies distinct external editor content without emitting another update',
 
   await waitFor(() => expect(content).toHaveTextContent('Remote'));
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test('reports blur only when focus leaves the composite editor', async () => {
+  const onBlur = vi.fn();
+
+  render(
+    <LocalizationProvider language="en">
+      <span id="content-label">Content</span>
+      <CardContentEditor
+        id="blur-content-editor"
+        labelId="content-label"
+        onBlur={onBlur}
+        onChange={vi.fn()}
+        value="Local"
+      />
+      <button type="button">Outside editor</button>
+    </LocalizationProvider>
+  );
+
+  const content = await screen.findByLabelText('Content');
+  const boldButton = screen.getByRole('button', { name: 'Bold' });
+  const outsideButton = screen.getByRole('button', { name: 'Outside editor' });
+
+  fireEvent.blur(content, { relatedTarget: boldButton });
+  expect(onBlur).not.toHaveBeenCalled();
+
+  fireEvent.blur(content, { relatedTarget: outsideButton });
+  expect(onBlur).toHaveBeenCalledTimes(1);
 });

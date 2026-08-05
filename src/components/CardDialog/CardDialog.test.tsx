@@ -10,6 +10,7 @@ import { beforeEach, vi } from 'vitest';
 
 import App from '../../App';
 import { fetchTagStorage } from '../../storage';
+import * as toastNotifications from '../ToastNotifications/toastNotifications';
 import '../CardContentEditor';
 import {
   CREATED_AT,
@@ -33,6 +34,16 @@ import {
 } from '../../test/appTestUtils';
 
 beforeEach(resetAppTestEnvironment);
+
+const getCardPatchCalls = () =>
+  vi
+    .mocked(fetch)
+    .mock.calls.filter(
+      ([url, init]) =>
+        String(url).includes('/api/board/cards/') &&
+        !String(url).endsWith('/move') &&
+        init?.method === 'PATCH'
+    );
 
 test('shows and edits card details in the modal', async () => {
   const user = userEvent.setup();
@@ -272,7 +283,8 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   expect(readColumns()[0].cards[0].tagIds).toEqual([]);
   expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });
@@ -327,18 +339,8 @@ test('updates card title without sending rich content or legacy board saves', as
   await user.type(screen.getByLabelText('Card title'), 'Renamed');
   await user.click(screen.getByRole('button', { name: /close card/i }));
 
-  await waitFor(() =>
-    expect(
-      fetchMock.mock.calls.some(
-        ([url, init]) =>
-          String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
-      )
-    ).toBe(true)
-  );
-  const titlePatch = fetchMock.mock.calls.find(
-    ([url, init]) =>
-      String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
-  )?.[1];
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+  const titlePatch = getCardPatchCalls()[0]?.[1];
 
   expect(JSON.parse(String(titlePatch?.body))).toEqual({ title: 'Renamed' });
   expect(
@@ -347,4 +349,82 @@ test('updates card title without sending rich content or legacy board saves', as
         String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
+});
+
+test('coalesces rich-content changes and flushes the latest document on close', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Write', 'Initial content');
+  await user.click(screen.getByText('Write'));
+
+  const content = await screen.findByLabelText('Content');
+  const fetchMock = vi.mocked(fetch);
+
+  fetchMock.mockClear();
+  content.focus();
+  pasteText(content, ' first');
+  pasteText(content, ' second');
+  expect(getCardPatchCalls()).toHaveLength(0);
+
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+
+  const contentPatch = JSON.parse(
+    String(getCardPatchCalls()[0]?.[1]?.body)
+  ) as { content: string };
+
+  expect(contentPatch).toEqual({
+    content: expect.stringContaining('first second'),
+  });
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
+});
+
+test('keeps persistence failure visible when a flushed content save fails', async () => {
+  const user = userEvent.setup();
+  const notifyPersistenceFailure = vi.spyOn(
+    toastNotifications,
+    'notifyPersistenceFailure'
+  );
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Offline draft', 'Initial content');
+  await user.click(screen.getByText('Offline draft'));
+
+  const content = await screen.findByLabelText('Content');
+  const fetchMock = vi.mocked(fetch);
+  const defaultFetch = fetchMock.getMockImplementation();
+
+  fetchMock.mockClear();
+  fetchMock.mockImplementation(async (input, init) => {
+    if (
+      String(input).includes('/api/board/cards/') &&
+      !String(input).endsWith('/move') &&
+      init?.method === 'PATCH'
+    ) {
+      return new Response(JSON.stringify({ error: 'Unavailable' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 503,
+      });
+    }
+
+    if (!defaultFetch) {
+      throw new Error('Missing default fetch implementation.');
+    }
+
+    return defaultFetch(input, init);
+  });
+  content.focus();
+  pasteText(content, ' not saved');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+  await waitFor(() => expect(notifyPersistenceFailure).toHaveBeenCalled());
 });
