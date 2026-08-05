@@ -208,7 +208,10 @@ test('pasted Markdown replaces the active editor selection', async () => {
     ).toBeInTheDocument()
   );
   expect(content).not.toHaveTextContent('Replace me');
-  expect(readColumns()[0].cards[0].content).toBe('# Replacement');
+  await waitFor(
+    () => expect(readColumns()[0].cards[0].content).toBe('# Replacement'),
+    { timeout: 2_000 }
+  );
 });
 
 test('preserves plain text, rich HTML, and image-file paste behavior', async () => {
