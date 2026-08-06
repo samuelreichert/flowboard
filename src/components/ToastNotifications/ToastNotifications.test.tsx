@@ -9,8 +9,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { LocalizationProvider } from '../../LocalizationProvider';
+import { getMessages } from '../../localization';
 import { FlowboardToastProvider } from './index';
-import { dismissToast, notify } from './toastNotifications';
+import {
+  dismissToast,
+  notify,
+  notifyPersistenceFailure,
+} from './toastNotifications';
 
 const renderToasts = (language: 'en' | 'pt-BR' = 'en') =>
   render(
@@ -62,6 +67,29 @@ test('renders a persistent error with a localized dismiss control', async () => 
   await user.click(screen.getByRole('button', { name: 'Fechar notificação' }));
 
   expect(screen.queryAllByText('Alterações não salvas')).toHaveLength(0);
+});
+
+test('keeps the persistence failure notification visible', async () => {
+  vi.useFakeTimers();
+  renderToasts();
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+  act(() => notifyPersistenceFailure(getMessages('en').app));
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  expect(screen.getAllByText('Changes not saved')).not.toHaveLength(0);
+  expect(
+    screen.getAllByText(/changes are not durably saved yet/i)
+  ).not.toHaveLength(0);
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10_000);
+  });
+  expect(screen.getAllByText('Changes not saved')).not.toHaveLength(0);
 });
 
 test('updates a repeated operation instead of stacking duplicate toasts', async () => {

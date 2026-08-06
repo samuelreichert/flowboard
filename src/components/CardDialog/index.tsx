@@ -37,6 +37,7 @@ const CardDialogContent = (props: CardDialogProps) => {
     onCardOpenChange,
     onColumnChange,
     onConfirmDeleteCard,
+    onContentBlur,
     onContentChange,
     onDeleteOpenChange,
     onNewTagNameChange,
@@ -132,6 +133,7 @@ const CardDialogContent = (props: CardDialogProps) => {
           <CardContentField
             card={card}
             content={content}
+            onContentBlur={onContentBlur}
             onContentChange={onContentChange}
           />
         </form>

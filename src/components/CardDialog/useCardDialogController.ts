@@ -11,6 +11,7 @@ import { cardDialogReducer, createCardDialogState } from './cardDialogReducer';
 import { formatCreatedAt } from './formatters';
 import { getTagSummary } from './tagSelection';
 import type { CardDialogProps } from './types';
+import { useCardContentAutosave } from './useCardContentAutosave';
 import { useCardDialogAutosave } from './useCardDialogAutosave';
 
 const useCardDialogController = ({
@@ -66,6 +67,21 @@ const useCardDialogController = ({
     state: currentValuesRef,
     titleRequiredMessage: messages.card.titleRequired,
   });
+  const { flushPendingContentSave, queueContentSave } = useCardContentAutosave({
+    onFlush: (pendingContent) => {
+      const pendingTitle = currentValuesRef.current.title;
+      const nextValues =
+        titleDirtyRef.current && pendingTitle.trim()
+          ? { content: pendingContent, title: pendingTitle }
+          : { content: pendingContent };
+
+      saveExistingCard(nextValues);
+
+      if ('title' in nextValues) {
+        titleDirtyRef.current = false;
+      }
+    },
+  });
 
   useEffect(() => {
     currentValuesRef.current = {
@@ -83,9 +99,7 @@ const useCardDialogController = ({
 
   useEffect(() => {
     setLocalTags((currentTags) => {
-      const currentTagById = new Map(
-        currentTags.map((tag) => [tag.id, tag])
-      );
+      const currentTagById = new Map(currentTags.map((tag) => [tag.id, tag]));
 
       for (const tag of tags) {
         currentTagById.set(tag.id, tag);
@@ -121,6 +135,8 @@ const useCardDialogController = ({
   }, [card.content]);
 
   const closeCardDialog = () => {
+    flushPendingContentSave();
+
     if (titleDirtyRef.current) {
       saveExistingCard({ title: currentValuesRef.current.title });
       titleDirtyRef.current = false;
@@ -152,18 +168,8 @@ const useCardDialogController = ({
   const onContentChange = (value: string) => {
     contentEditedRef.current = true;
     currentValuesRef.current.content = value;
-    const pendingTitle = currentValuesRef.current.title;
-    const nextValues =
-      titleDirtyRef.current && pendingTitle.trim()
-        ? { content: value, title: pendingTitle }
-        : { content: value };
-
-    if ('title' in nextValues) {
-      titleDirtyRef.current = false;
-    }
-
     dispatch({ type: 'fieldsChanged', values: { content: value } });
-    saveExistingCard(nextValues);
+    queueContentSave(value);
   };
 
   const onColumnChange = (value: string) => {
@@ -295,6 +301,7 @@ const useCardDialogController = ({
     onCardOpenChange,
     onColumnChange,
     onConfirmDeleteCard,
+    onContentBlur: flushPendingContentSave,
     onContentChange,
     onDeleteOpenChange,
     onNewTagNameChange,
