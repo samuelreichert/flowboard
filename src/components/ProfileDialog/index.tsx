@@ -109,7 +109,6 @@ const ProfileDialog = ({
       closeLabel={messages.profile.closeProfile}
       onOpenChange={onOpenChange}
       open={open}
-      popupClassName="profile-dialog"
       title={messages.profile.editProfile}
     >
       <form className="profile-dialog__content" onSubmit={submit}>

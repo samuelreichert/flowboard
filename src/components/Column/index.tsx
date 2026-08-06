@@ -113,7 +113,7 @@ const Column = ({
               <Ellipsis size={18} />
             </Menu.Trigger>
             <Menu.Portal>
-              <Menu.Positioner sideOffset={4}>
+              <Menu.Positioner align="end" sideOffset={6}>
                 <Menu.Popup className="menu-popup">
                   <Menu.Item
                     className="menu-item"
