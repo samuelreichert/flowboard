@@ -6,6 +6,7 @@ import { InlineEmptyState } from '../EmptyState';
 import TagMultiSelect from '../TagMultiSelect';
 
 type TagSelectFieldProps = {
+  className?: string;
   creatingTag: boolean;
   newTagName: string;
   onCreateTag: () => void;
@@ -21,6 +22,7 @@ type TagSelectFieldProps = {
 };
 
 const TagSelectField = ({
+  className,
   creatingTag,
   newTagName,
   onCreateTag,
@@ -37,7 +39,7 @@ const TagSelectField = ({
   const { messages } = useLocalization();
 
   return (
-    <div className="dialog-field">
+    <div className={['dialog-field', className].filter(Boolean).join(' ')}>
       <span className="dialog-label">{messages.card.tags}</span>
       <TagMultiSelect
         ariaLabel={messages.card.tags}

@@ -62,6 +62,7 @@ const ArchivedCardDialog = ({
       open={Boolean(selectedCard)}
       onOpenChange={onOpenChange}
       popupClassName="dialog-popup--card"
+      size="wide"
       title={selectedCard?.title ?? messages.history.archivedCard}
       viewportRef={setTooltipPortalContainer}
     >
