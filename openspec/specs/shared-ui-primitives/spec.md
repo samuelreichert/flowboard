@@ -1,9 +1,7 @@
 ## Purpose
 
 Define shared UI primitives for repeated Flowboard interface patterns so dialogs, selects, card metadata, editor asset bubbles, and empty states stay consistent while preserving existing workflows.
-
 ## Requirements
-
 ### Requirement: Nested standard dialogs preserve parent context
 
 The system SHALL preserve an open parent standard dialog while a child standard dialog is active and SHALL return focus to the originating parent control when the child closes.
@@ -115,3 +113,47 @@ The system SHALL provide reusable empty-state primitives for centered panel empt
 
 - **WHEN** a list, dropdown, detail area, or helper section has no available items
 - **THEN** the user sees a compact inline empty message in the same location as before
+
+### Requirement: Shared transient primitives preserve visual hierarchy
+The system SHALL render shared dialogs, menus, selects, popovers, and tooltips using the same theme-aware monochrome surface, border, elevation, hover, selected, and focus treatment.
+
+#### Scenario: User opens comparable transient controls
+- **WHEN** a user opens a column menu, dialog select, editor popover, tooltip, or standard dialog
+- **THEN** each control uses the shared transient-surface hierarchy appropriate to its elevation level
+- **AND** no popup appears visually flatter than the surface that invoked it
+
+#### Scenario: User moves between interaction states
+- **WHEN** a user hovers, selects, disables, or keyboard-focuses a shared transient control
+- **THEN** the state remains legible through the shared monochrome interaction treatment
+
+### Requirement: Shared compact controls preserve content hierarchy
+The system SHALL render shared compact menus and select controls at the control type size while preserving the existing 15px composing and rich-text editing contexts.
+
+#### Scenario: User opens a compact menu beside content
+- **WHEN** a user opens a column menu, dropdown, or select beside a card or editor
+- **THEN** compact control text uses the shared 13px control size
+- **AND** it does not visually overpower the invoking content
+
+#### Scenario: User enters composing or editing content
+- **WHEN** a user composes a card or edits rich text
+- **THEN** the editable text uses the shared 15px input size
+
+### Requirement: Shared primitives express bounded elevation roles
+The system SHALL provide shared visual roles for flat structural containers, raised work-item surfaces, and overlay surfaces. Component styles SHALL not introduce additional arbitrary shadow tiers for those roles.
+
+#### Scenario: User opens an overlay from a raised card
+- **WHEN** a menu, popover, or dialog opens from a board card or workspace control
+- **THEN** the overlay is visually above the card
+- **AND** the card remains visually above the flat workspace and lane structure
+
+#### Scenario: User compares structural containers and cards
+- **WHEN** the sidebar, workspace, board lane, and card are visible together
+- **THEN** structural containers remain flat
+- **AND** only the card uses the shared raised work-item treatment
+
+### Requirement: Icon-only controls are reusable circular actions
+The system SHALL provide a shared primitive or shared styling contract for icon-only actions that separates their square/circular target geometry from text-bearing button and chip styles.
+
+#### Scenario: A new icon-only action uses the shared contract
+- **WHEN** a component adds an icon-only action control
+- **THEN** it can use the shared circular geometry, visual states, and focus treatment without duplicating local shape or padding rules

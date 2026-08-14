@@ -3,16 +3,14 @@
 ## Purpose
 
 Defines the responsive app shell theme system, including semantic color tokens, priority colors, and shared control typography.
-
 ## Requirements
-
 ### Requirement: Theme colors use a maintainable OKLCH token baseline
 
-The system SHALL define app theme colors through a small semantic CSS custom property set backed by OKLCH color values where practical.
+The system SHALL define light and dark app themes through a small semantic CSS custom-property set backed by neutral OKLCH color values where practical. The set SHALL have distinct roles for canvas, base surface, raised surface, overlay, foreground, muted foreground, borders, interactive states, focus, solid-control foreground, and elevation.
 
 #### Scenario: Component styles consume semantic tokens
 
-- **WHEN** component CSS defines app surfaces, text, borders, hover states, focus rings, shadows, editor popups, tooltips, or status colors
+- **WHEN** component CSS defines app surfaces, text, borders, hover states, focus rings, shadows, editor popups, tooltips, priority treatments, or status colors
 - **THEN** the CSS uses semantic theme tokens rather than hardcoded one-off color literals
 
 #### Scenario: Theme tokens have one authoritative declaration
@@ -20,24 +18,26 @@ The system SHALL define app theme colors through a small semantic CSS custom pro
 - **WHEN** the app renders in light or dark theme
 - **THEN** theme tokens are defined by the root light token set and dark-theme override rather than duplicated in both root and app container scopes
 
-#### Scenario: Repeated white surfaces are reduced
+#### Scenario: Surface roles remain distinct
 
-- **WHEN** the theme token set represents white or near-white light-theme surfaces
-- **THEN** repeated identical values are collapsed into the smallest practical set of semantic roles without losing meaningful role separation
+- **WHEN** the theme token set represents the workspace, cards, and transient surfaces
+- **THEN** each role has a meaningful neutral separation through fill, border, and/or elevation
+- **AND** repeated identical values are collapsed only when the roles do not require visual separation
 
 ### Requirement: Priority colors follow semantic severity
 
-The system SHALL represent card priority colors consistently as low green, medium yellow, and high red in both light and dark themes.
+The system SHALL represent card priority through explicit localized labels and a monochrome severity hierarchy in both light and dark themes.
 
 #### Scenario: User views priority chips
 
 - **WHEN** cards display low, medium, and high priority chips
-- **THEN** low uses a green treatment, medium uses a yellow treatment, and high uses a red treatment
+- **THEN** every chip includes its priority label
+- **AND** low uses a subdued neutral treatment, medium uses a distinct neutral outline or fill, and high uses the strongest neutral treatment
 
 #### Scenario: Theme changes with priority chips visible
 
 - **WHEN** the active theme changes between light and dark
-- **THEN** priority chip colors preserve the low-green, medium-yellow, high-red mapping while remaining readable
+- **THEN** priority chips preserve their ordered monochrome hierarchy while remaining readable
 
 ### Requirement: Ordinary inputs share typography
 
@@ -154,17 +154,18 @@ The system SHALL allow the user to choose `system`, `light`, or `dark` as an app
 
 ### Requirement: Theme tokens control visual surfaces
 
-The system SHALL use theme-aware visual tokens for primary app surfaces, text, borders, focus rings, hover states, shadows, and status colors.
+The system SHALL use theme-aware monochrome tokens for primary app surfaces, text, borders, hover states, shadows, and non-destructive status presentation. The system SHALL use the shared ink-blue token for focus rings and selection.
 
 #### Scenario: Theme changes across existing controls
 
 - **WHEN** the active theme changes
-- **THEN** visible app surfaces and controls update without losing contrast or readability
+- **THEN** visible app surfaces and controls update without losing contrast, readability, or hierarchy
 
 #### Scenario: Dialog and popup surfaces follow theme
 
 - **WHEN** a dialog, menu, popover, select popup, or tooltip is opened
-- **THEN** the surface uses the active theme's background, text, border, shadow, hover, and focus treatments
+- **THEN** the surface uses the active theme's neutral background, text, border, shadow, hover, and focus treatments
+- **AND** it is visually elevated above the invoking surface
 
 ### Requirement: Secondary controls use hover and focus disclosure
 
@@ -198,3 +199,33 @@ The system SHALL render the app shell and board workspace from theme tokens rath
 
 - **WHEN** the user opens app-level appearance controls
 - **THEN** the system offers theme selection and does not offer board background image or color selection
+
+### Requirement: App shell uses restrained surface hierarchy
+The system SHALL distinguish navigation, workspace, work-item, and overlay layers with the active theme's semantic surface and elevation tokens. The sidebar SHALL remain a softer navigation rail beside a near-white light-theme workspace, and any workspace boundary SHALL be applied once at the shell level.
+
+#### Scenario: User views the light app shell
+- **WHEN** the app displays in light theme
+- **THEN** the sidebar is visually distinct as a muted neutral navigation rail without a persistent enclosing border
+- **AND** the workspace reads as the primary near-white content canvas
+- **AND** the workspace has one restrained boundary and soft shadow that establishes depth below cards
+- **AND** cards are more elevated than the shell boundary while board lanes remain flat
+- **AND** the sidebar and the app canvas surrounding the workspace use the same neutral background token
+
+#### Scenario: User changes to dark theme
+- **WHEN** the app displays in dark theme
+- **THEN** the sidebar, workspace, card, and overlay layers preserve their relative hierarchy
+- **AND** essential text, controls, focus indicators, and structural boundaries remain readable
+
+### Requirement: Comparable icon-only actions use circular geometry
+The system SHALL render comparable icon-only action controls with shared circular geometry, neutral resting and hover treatments, and the existing visible keyboard-focus treatment. Controls with text SHALL retain text-action geometry.
+
+#### Scenario: User compares icon-only actions on desktop
+- **WHEN** comparable icon-only actions appear in the sidebar, column headers, cards, or toolbar regions
+- **THEN** they use the shared circular visual geometry
+- **AND** their icons remain centered without inheriting text-button padding
+- **AND** keyboard focus is visible within the control boundary without extending beyond a compact header layout
+
+#### Scenario: User uses an icon-only action on touch layout
+- **WHEN** an icon-only action is displayed at the mobile breakpoint
+- **THEN** its interactive target is at least 44 by 44 CSS pixels
+- **AND** the circular visual treatment and accessible name remain available
