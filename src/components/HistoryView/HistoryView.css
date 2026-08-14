@@ -12,6 +12,21 @@
   margin-bottom: 14px;
 }
 
+.history-view > .remote-data-state__inline {
+  margin-bottom: 14px;
+}
+
+.history-view__load-more {
+  display: grid;
+  justify-items: center;
+  margin-top: 16px;
+}
+
+.history-view__load-more .remote-data-state__inline {
+  justify-self: stretch;
+  width: 100%;
+}
+
 .history-view__layout-toggle {
   --segmented-control-button-min-height: 30px;
   --segmented-control-button-padding: 5px 9px;
