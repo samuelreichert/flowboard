@@ -1,0 +1,48 @@
+.remote-data-state--error .empty-state__icon,
+.remote-data-state__inline--error .remote-data-state__inline-icon {
+  color: var(--color-danger);
+}
+
+.remote-data-state__spinner {
+  animation: remote-data-state-spin 900ms linear infinite;
+}
+
+.remote-data-state__inline {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.remote-data-state__inline-message {
+  flex: 1 1 auto;
+}
+
+.remote-data-state__inline-content {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.remote-data-state__inline-icon {
+  color: var(--color-primary);
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.remote-data-state__inline-icon svg {
+  height: 16px;
+  width: 16px;
+}
+
+@keyframes remote-data-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remote-data-state__spinner {
+    animation: none;
+  }
+}
