@@ -77,7 +77,7 @@
 
 .completion-overlay__card--two {
   animation: completion-card-two 2800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .completion-overlay__card--three {
@@ -112,14 +112,14 @@
 
 .completion-overlay__title {
   color: var(--color-text);
-  font-size: 24px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   line-height: 1.1;
 }
 
 .completion-overlay__description {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-control);
   font-weight: 600;
   line-height: 1.4;
 }
@@ -263,7 +263,7 @@
 
 @media (max-width: 760px) {
   .completion-overlay__title {
-    font-size: 21px;
+    font-size: var(--font-size-heading);
   }
 }
 

@@ -2,9 +2,7 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow:
-    0 10px 24px var(--color-shadow-soft),
-    0 1px 3px var(--color-shadow-soft);
+  box-shadow: var(--shadow-card);
   box-sizing: border-box;
   display: grid;
   gap: 8px;
@@ -14,8 +12,7 @@
   position: relative;
   transition:
     border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+    box-shadow 140ms ease;
   width: min(760px, calc(100% - 28px));
 }
 
@@ -23,7 +20,7 @@
 .card-composer:focus-within {
   border-color: var(--color-border-strong);
   box-shadow:
-    0 14px 34px var(--color-shadow),
+    var(--shadow-card-hover),
     0 0 0 3px var(--color-focus);
 }
 
@@ -47,7 +44,7 @@
   color: var(--color-text);
   display: block;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-size-input);
   line-height: 1.45;
   max-height: 160px;
   min-height: 22px;
@@ -127,7 +124,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
   gap: 5px;
   min-height: 28px;
@@ -170,6 +167,13 @@
   border-color: var(--color-border);
   color: var(--color-text);
   outline: 0;
+}
+
+.card-composer__chip:focus-visible,
+.card-composer__tag-trigger:focus-visible,
+.card-composer__add-column:focus-visible,
+.card-composer__tag-create-button:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-focus);
 }
 
 .card-composer__chip-value,
@@ -219,7 +223,7 @@
 
 .card-composer__error {
   color: var(--color-danger);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   line-height: 1.35;
   margin: 0;
@@ -233,9 +237,7 @@
   background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow:
-    0 12px 28px var(--color-shadow),
-    0 2px 6px var(--color-shadow-soft);
+  box-shadow: var(--shadow-overlay);
   box-sizing: border-box;
   color: var(--color-text);
   min-width: 180px;
@@ -256,7 +258,7 @@
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-control);
   font-weight: 560;
   gap: 10px;
   justify-content: space-between;
@@ -276,7 +278,7 @@
 
 .card-composer__empty-tags {
   color: var(--color-text-soft);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 580;
   padding: 8px;
 }
@@ -294,7 +296,7 @@
   box-sizing: border-box;
   color: var(--color-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-control);
   min-height: 34px;
   outline: 0;
   padding: 7px 8px;
@@ -302,7 +304,7 @@
 }
 
 .card-composer__tag-create input:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-focus);
 }
 
@@ -315,7 +317,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-control);
   font-weight: 620;
   gap: 7px;
   min-height: 32px;
@@ -332,7 +334,7 @@
 
 .card-composer__tag-error {
   color: var(--color-danger);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   line-height: 1.35;
   margin: 5px 0 0;

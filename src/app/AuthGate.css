@@ -38,7 +38,7 @@
 
 .auth-panel__description {
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
   margin: -6px 0 2px;
 }
@@ -98,7 +98,7 @@
   align-items: center;
   color: var(--color-text-muted);
   display: flex;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   gap: 10px;
   text-transform: uppercase;
 }
@@ -113,7 +113,7 @@
 
 .auth-panel__label {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-control);
   font-weight: 650;
 }
 
@@ -128,14 +128,14 @@
 }
 
 .auth-panel__input:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-focus);
   outline: 0;
 }
 
 .auth-panel__message {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-control);
   line-height: 1.5;
   margin: 14px 0 0;
 }
