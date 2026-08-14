@@ -28,7 +28,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
-  gap: 14px;
+  gap: 24px;
   height: 100%;
   min-height: 0;
   min-width: 0;
@@ -117,45 +117,37 @@
 }
 
 .column {
-  background-color: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  align-self: stretch;
   box-sizing: border-box;
   color: var(--color-text-muted);
   flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
   min-height: 124px;
   margin-bottom: var(--card-composer-dock-clearance);
-  padding: 10px;
+  padding: 0 0 8px;
+  position: relative;
   transition:
     background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
+    outline-color 140ms ease;
   width: clamp(288px, calc((100vw - 118px) / 4), 320px);
-}
-
-.column:hover,
-.column:focus-within {
-  border-color: var(--color-border-strong);
 }
 
 .add-column-placeholder {
   align-items: center;
   background-color: transparent;
   border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-sizing: border-box;
   color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
   flex: 0 0 clamp(288px, calc((100vw - 118px) / 4), 320px);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   gap: 8px;
   justify-content: center;
-  min-height: 124px;
-  margin-bottom: var(--card-composer-dock-clearance);
-  padding: 16px;
+  min-height: 44px;
+  padding: 10px 14px;
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
@@ -165,8 +157,8 @@
 
 .add-column-placeholder:hover {
   background-color: var(--color-hover);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 @media (max-width: 640px) {
@@ -175,7 +167,7 @@
   }
 
   .columns-list {
-    gap: 12px;
+    gap: 14px;
     padding: 2px 24px 18px 12px;
     scroll-padding-inline: 12px 24px;
     scrollbar-width: none;
@@ -208,4 +200,5 @@
     flex: 0 0 min(292px, calc(100vw - 42px));
     width: min(292px, calc(100vw - 42px));
   }
+
 }
