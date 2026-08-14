@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
@@ -45,8 +45,15 @@ import {
   updateBootstrapColumns,
   updateBootstrapTags,
   updateBootstrapWorkCycle,
-  upsertBootstrapCardSummary,
 } from './flowboardMutationCache';
+import {
+  CardMutationCoordinator,
+  type QueuedCardMutationOperation,
+} from './cardMutationCoordinator';
+import {
+  createCardMutationLifecycle,
+  type CardMutationLifecycleContext,
+} from './cardMutationLifecycle';
 import { queryKeys } from './queryKeys';
 import { COMPLETED_HISTORY_PAGE_LIMIT } from './useFlowboardQueries';
 
@@ -76,6 +83,10 @@ export type DeleteTagMutationVariables = {
 export type CardTagMutationVariables = {
   cardId: string;
   tagId: string;
+};
+
+type CardTagMutationRequest = CardTagMutationVariables & {
+  operation: QueuedCardMutationOperation;
 };
 
 type MutationContext = {
@@ -122,14 +133,29 @@ const updateCardDetailTagIds = (
 
 export const useFlowboardBoardMutations = ({
   accessToken,
+  cardMutationCoordinator,
   onMutationError,
   onMutationSuccess,
 }: {
   accessToken?: string;
+  cardMutationCoordinator?: CardMutationCoordinator;
   onMutationError?: () => void;
   onMutationSuccess?: () => void;
 }) => {
   const queryClient = useQueryClient();
+  const ownedCoordinatorRef = useRef<CardMutationCoordinator | null>(null);
+
+  if (!ownedCoordinatorRef.current) {
+    ownedCoordinatorRef.current = new CardMutationCoordinator();
+  }
+
+  const coordinator = cardMutationCoordinator ?? ownedCoordinatorRef.current;
+  const cardMutationLifecycle = createCardMutationLifecycle({
+    coordinator,
+    onMutationError,
+    onMutationSuccess,
+    queryClient,
+  });
 
   const getBootstrap = () =>
     queryClient.getQueryData<BoardBootstrapResponse>(queryKeys.board.bootstrap);
@@ -512,155 +538,39 @@ export const useFlowboardBoardMutations = ({
   const assignTagMutation = useMutation<
     CardTagMutationResponse,
     Error,
-    CardTagMutationVariables,
-    MutationContext
+    CardTagMutationRequest,
+    CardMutationLifecycleContext
   >({
-    mutationFn: ({ cardId, tagId }) =>
-      assignActiveCardTag(cardId, tagId, accessToken),
-    onError: (_error, _variables, context) => {
-      onMutationError?.();
-      restoreContext(context);
-    },
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.board.card(variables.cardId),
-      });
-      const previousBootstrap = getBootstrap();
-      const previousCardDetails = [
-        {
-          cardId: variables.cardId,
-          detail: queryClient.getQueryData<ActiveCardDetailResponse>(
-            queryKeys.board.card(variables.cardId)
-          ),
-        },
-      ];
-
-      queryClient.setQueryData(queryKeys.board.bootstrap, (current) => {
-        const bootstrap = current as BoardBootstrapResponse | undefined;
-
-        return bootstrap
-          ? {
-              ...bootstrap,
-              cards: bootstrap.cards.map((card) =>
-                card.id === variables.cardId &&
-                !card.tagIds.includes(variables.tagId)
-                  ? { ...card, tagIds: [...card.tagIds, variables.tagId] }
-                  : card
-              ),
-            }
-          : bootstrap;
-      });
-      queryClient.setQueryData(
-        queryKeys.board.card(variables.cardId),
-        (current) => {
-          const detail = current as ActiveCardDetailResponse | undefined;
-
-          return detail && !detail.tagIds.includes(variables.tagId)
-            ? { ...detail, tagIds: [...detail.tagIds, variables.tagId] }
-            : detail;
-        }
-      );
-
-      return { previousBootstrap, previousCardDetails };
-    },
-    onSuccess: (result) => {
-      onMutationSuccess?.();
-      queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
-        upsertBootstrapCardSummary(
-          current as BoardBootstrapResponse | undefined,
-          result.card,
-          result.boardVersion
-        )
-      );
-      queryClient.setQueryData(
-        queryKeys.board.card(result.card.id),
-        (current) =>
-          updateCardDetailTagIds(
-            current as ActiveCardDetailResponse | undefined,
-            result.card.tagIds
-          )
-      );
-    },
+    mutationFn: ({ cardId, operation, tagId }) =>
+      cardMutationLifecycle.execute(operation, () =>
+        assignActiveCardTag(cardId, tagId, accessToken)
+      ),
+    onError: (_error, _variables, context) =>
+      cardMutationLifecycle.onError(context),
+    onMutate: ({ operation }) => cardMutationLifecycle.onMutate(operation),
+    onSettled: (_data, _error, _variables, context) =>
+      cardMutationLifecycle.onSettled(context),
+    onSuccess: (result, _variables, context) =>
+      cardMutationLifecycle.onSuccess(result, context),
   });
 
   const unassignTagMutation = useMutation<
     CardTagMutationResponse,
     Error,
-    CardTagMutationVariables,
-    MutationContext
+    CardTagMutationRequest,
+    CardMutationLifecycleContext
   >({
-    mutationFn: ({ cardId, tagId }) =>
-      unassignActiveCardTag(cardId, tagId, accessToken),
-    onError: (_error, _variables, context) => {
-      onMutationError?.();
-      restoreContext(context);
-    },
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.board.bootstrap });
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.board.card(variables.cardId),
-      });
-      const previousBootstrap = getBootstrap();
-      const previousCardDetails = [
-        {
-          cardId: variables.cardId,
-          detail: queryClient.getQueryData<ActiveCardDetailResponse>(
-            queryKeys.board.card(variables.cardId)
-          ),
-        },
-      ];
-
-      queryClient.setQueryData(queryKeys.board.bootstrap, (current) => {
-        const bootstrap = current as BoardBootstrapResponse | undefined;
-
-        return bootstrap
-          ? {
-              ...bootstrap,
-              cards: bootstrap.cards.map((card) =>
-                card.id === variables.cardId
-                  ? {
-                      ...card,
-                      tagIds: card.tagIds.filter(
-                        (tagId) => tagId !== variables.tagId
-                      ),
-                    }
-                  : card
-              ),
-            }
-          : bootstrap;
-      });
-      queryClient.setQueryData(
-        queryKeys.board.card(variables.cardId),
-        (current) =>
-          updateCardDetailTagIds(
-            current as ActiveCardDetailResponse | undefined,
-            (current as ActiveCardDetailResponse | undefined)?.tagIds.filter(
-              (tagId) => tagId !== variables.tagId
-            ) ?? []
-          )
-      );
-
-      return { previousBootstrap, previousCardDetails };
-    },
-    onSuccess: (result) => {
-      onMutationSuccess?.();
-      queryClient.setQueryData(queryKeys.board.bootstrap, (current) =>
-        upsertBootstrapCardSummary(
-          current as BoardBootstrapResponse | undefined,
-          result.card,
-          result.boardVersion
-        )
-      );
-      queryClient.setQueryData(
-        queryKeys.board.card(result.card.id),
-        (current) =>
-          updateCardDetailTagIds(
-            current as ActiveCardDetailResponse | undefined,
-            result.card.tagIds
-          )
-      );
-    },
+    mutationFn: ({ cardId, operation, tagId }) =>
+      cardMutationLifecycle.execute(operation, () =>
+        unassignActiveCardTag(cardId, tagId, accessToken)
+      ),
+    onError: (_error, _variables, context) =>
+      cardMutationLifecycle.onError(context),
+    onMutate: ({ operation }) => cardMutationLifecycle.onMutate(operation),
+    onSettled: (_data, _error, _variables, context) =>
+      cardMutationLifecycle.onSettled(context),
+    onSuccess: (result, _variables, context) =>
+      cardMutationLifecycle.onSuccess(result, context),
   });
 
   const updateBoardSettingsMutation = useMutation<
@@ -814,8 +724,7 @@ export const useFlowboardBoardMutations = ({
         queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT),
         (current) => {
           const history = current as
-            | InfiniteData<CompletedHistoryResponse, string | null>
-            | undefined;
+            InfiniteData<CompletedHistoryResponse, string | null> | undefined;
 
           if (!history || history.pages.length === 0) {
             return history;
@@ -909,7 +818,15 @@ export const useFlowboardBoardMutations = ({
 
   return useMemo(
     () => ({
-      assignCardTag: assignTagMutation.mutate,
+      assignCardTag: (variables: CardTagMutationVariables) =>
+        assignTagMutation.mutate({
+          ...variables,
+          operation: coordinator.createOperation({
+            cardId: variables.cardId,
+            tagId: variables.tagId,
+            type: 'assign-tag',
+          }),
+        }),
       clearBoard: clearBoardMutation.mutate,
       completeWorkCycle: completeWorkCycleMutation.mutate,
       createColumn: createColumnMutation.mutate,
@@ -917,7 +834,15 @@ export const useFlowboardBoardMutations = ({
       deleteColumn: deleteColumnMutation.mutate,
       deleteTag: deleteTagMutation.mutate,
       moveColumn: moveColumnMutation.mutate,
-      unassignCardTag: unassignTagMutation.mutate,
+      unassignCardTag: (variables: CardTagMutationVariables) =>
+        unassignTagMutation.mutate({
+          ...variables,
+          operation: coordinator.createOperation({
+            cardId: variables.cardId,
+            tagId: variables.tagId,
+            type: 'unassign-tag',
+          }),
+        }),
       updateBoardSettings: updateBoardSettingsMutation.mutate,
       updateColumn: updateColumnMutation.mutate,
       updateTag: updateTagMutation.mutate,
@@ -937,6 +862,7 @@ export const useFlowboardBoardMutations = ({
       updateColumnMutation.mutate,
       updateTagMutation.mutate,
       updateWorkCycleSettingsMutation.mutate,
+      coordinator,
     ]
   );
 };

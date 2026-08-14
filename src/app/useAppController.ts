@@ -14,6 +14,7 @@ import {
   clearFlowboardQueryCache,
   shouldClearFlowboardQueryCache,
 } from './queryClient';
+import { CardMutationCoordinator } from './cardMutationCoordinator';
 import { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import { useFlowboardCardMutations } from './useFlowboardCardMutations';
 
@@ -41,6 +42,15 @@ const useAppController = () => {
   } = state;
   const messages = getMessages(resolvedLanguage);
   const authenticatedUserIdRef = useRef<string | null>(null);
+  const cardMutationCoordinatorRef = useRef<CardMutationCoordinator | null>(
+    null
+  );
+
+  if (!cardMutationCoordinatorRef.current) {
+    cardMutationCoordinatorRef.current = new CardMutationCoordinator();
+  }
+
+  const cardMutationCoordinator = cardMutationCoordinatorRef.current;
   const { authState, requestMagicLink, requestSocialAuth, signOut } =
     useAuthSession(messages.app.auth);
   const cardMutations = useFlowboardCardMutations({
@@ -48,6 +58,7 @@ const useAppController = () => {
       authState.status === 'signedIn'
         ? authState.session.access_token
         : undefined,
+    cardMutationCoordinator,
     onMutationError: () => notifyPersistenceFailure(messages.app),
   });
   const boardMutations = useFlowboardBoardMutations({
@@ -55,6 +66,7 @@ const useAppController = () => {
       authState.status === 'signedIn'
         ? authState.session.access_token
         : undefined,
+    cardMutationCoordinator,
     onMutationError: () => notifyPersistenceFailure(messages.app),
   });
   const { authenticatedBoardLoading } = useAuthenticatedBoardSync(
@@ -107,11 +119,19 @@ const useAppController = () => {
         authenticatedUserId
       )
     ) {
+      cardMutationCoordinator.reset();
       clearFlowboardQueryCache();
     }
 
     authenticatedUserIdRef.current = authenticatedUserId;
-  }, [authState]);
+  }, [authState, cardMutationCoordinator]);
+
+  useEffect(
+    () => () => {
+      cardMutationCoordinator.reset();
+    },
+    [cardMutationCoordinator]
+  );
 
   const openManageColumns = () => {
     dispatch({ open: true, type: 'manageColumnsOpenChanged' });
