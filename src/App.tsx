@@ -42,12 +42,15 @@ type RouteControllerProps = {
 const AuthEntryRoute = ({ controller }: RouteControllerProps) => {
   const location = useLocation();
   const nextDestination = getNextSearchDestination(location.search);
+  const hasCallbackFailure =
+    location.pathname === APP_ROUTES.authCallback &&
+    controller.authState.message !== null;
 
   if (!isSupabaseConfigured) {
     return <Navigate replace to={APP_ROUTES.board} />;
   }
 
-  if (controller.authState.status === 'signedIn') {
+  if (controller.authState.status === 'signedIn' && !hasCallbackFailure) {
     return <AuthRedirect destination={nextDestination} />;
   }
 
@@ -58,7 +61,7 @@ const AuthEntryRoute = ({ controller }: RouteControllerProps) => {
       nextDestination={nextDestination}
       onMagicLinkRequest={controller.requestMagicLink}
       onSocialAuthRequest={controller.requestSocialAuth}
-      status={controller.authState.status}
+      status={hasCallbackFailure ? 'signedOut' : controller.authState.status}
     />
   );
 };
