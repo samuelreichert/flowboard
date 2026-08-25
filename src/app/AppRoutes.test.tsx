@@ -75,7 +75,9 @@ test('directly loads tags, settings, history, and unknown routes', async () => {
 
   window.history.replaceState(null, '', '/history');
   const historyRender = render(<App />);
-  expect(screen.getByRole('heading', { name: /history/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: /history/i })
+  ).toBeInTheDocument();
   historyRender.unmount();
 
   window.history.replaceState(null, '', '/nope');
@@ -128,10 +130,11 @@ test('directly opens and closes an archived card route', async () => {
   expect(
     await screen.findByRole('dialog', { name: /archived card/i })
   ).toBeInTheDocument();
+  await screen.findByRole('button', { name: /copy markdown/i });
   await user.click(
     screen.getByRole('button', { name: /close archived card/i })
   );
-  expect(window.location.pathname).toBe('/history');
+  await waitFor(() => expect(window.location.pathname).toBe('/history'));
 });
 
 test('shows missing state for an unresolved archived card route', async () => {

@@ -15,6 +15,7 @@ type DialogShellProps = {
   descriptionClassName?: string;
   finalFocus?: RefObject<HTMLElement | null>;
   headerActions?: ReactNode;
+  onCloseClick?: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   popupClassName?: string;
@@ -32,6 +33,7 @@ const DialogShell = ({
   descriptionClassName,
   finalFocus,
   headerActions,
+  onCloseClick,
   onOpenChange,
   open,
   popupClassName,
@@ -64,13 +66,24 @@ const DialogShell = ({
             </div>
             <div className="dialog-header__actions">
               {headerActions}
-              <Dialog.Close
-                aria-label={closeLabel}
-                className="icon-button dialog-close"
-                render={<Button />}
-              >
-                <X size={17} />
-              </Dialog.Close>
+              {onCloseClick ? (
+                <button
+                  aria-label={closeLabel}
+                  className="icon-button dialog-close"
+                  onClick={onCloseClick}
+                  type="button"
+                >
+                  <X size={17} />
+                </button>
+              ) : (
+                <Dialog.Close
+                  aria-label={closeLabel}
+                  className="icon-button dialog-close"
+                  render={<Button />}
+                >
+                  <X size={17} />
+                </Dialog.Close>
+              )}
             </div>
           </div>
           {children}

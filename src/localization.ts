@@ -242,6 +242,7 @@ const enMessages = {
     copied: 'Copied',
     done: 'Done',
     loadMore: 'Load more',
+    retry: 'Retry',
     save: 'Save',
     saving: 'Saving...',
   },
@@ -310,6 +311,11 @@ const enMessages = {
     archivedCardNotFoundBody:
       'This history link does not match a completed work card.',
     archivedCardNoContent: 'This archived card has no content.',
+    archivedCardLoadingBody: 'Fetching the archived card details...',
+    archivedCardLoadingTitle: 'Loading archived card',
+    archivedCardUnavailableBody:
+      'This archived card could not be loaded. Try again.',
+    archivedCardUnavailableTitle: 'Archived card unavailable',
     closeArchivedCard: 'Close archived card',
     completedHistory: 'Completed work history',
     completedWithoutCards: 'Completed without archived cards.',
@@ -318,8 +324,15 @@ const enMessages = {
     grid: 'Grid',
     gridView: 'Grid view',
     historyLayout: 'History layout',
+    historyLoadingBody: 'Fetching your completed work...',
+    historyLoadingTitle: 'Loading history',
+    historyRefreshFailed: 'History could not be refreshed.',
+    historyUnavailableBody:
+      'Completed work could not be loaded. Check your connection and try again.',
+    historyUnavailableTitle: 'History unavailable',
     list: 'List',
     listView: 'List view',
+    loadMoreFailed: 'More history could not be loaded.',
     noCompletedWorkBody:
       'Complete work from the board to start building your history.',
     noCompletedWorkTitle: 'No completed work yet',
@@ -564,6 +577,7 @@ const ptBrMessages: Messages = {
     copied: 'Copiado',
     done: 'Concluído',
     loadMore: 'Carregar mais',
+    retry: 'Tentar novamente',
     save: 'Salvar',
     saving: 'Salvando...',
   },
@@ -633,6 +647,11 @@ const ptBrMessages: Messages = {
     archivedCardNotFoundBody:
       'Este link do histórico não corresponde a um cartão concluído.',
     archivedCardNoContent: 'Este cartão arquivado não tem conteúdo.',
+    archivedCardLoadingBody: 'Buscando os detalhes do cartão arquivado...',
+    archivedCardLoadingTitle: 'Carregando cartão arquivado',
+    archivedCardUnavailableBody:
+      'Não foi possível carregar este cartão arquivado. Tente novamente.',
+    archivedCardUnavailableTitle: 'Cartão arquivado indisponível',
     closeArchivedCard: 'Fechar cartão arquivado',
     completedHistory: 'Histórico de trabalho concluído',
     completedWithoutCards: 'Concluído sem cartões arquivados.',
@@ -641,8 +660,15 @@ const ptBrMessages: Messages = {
     grid: 'Grade',
     gridView: 'Visualização em grade',
     historyLayout: 'Layout do histórico',
+    historyLoadingBody: 'Buscando seu trabalho concluído...',
+    historyLoadingTitle: 'Carregando histórico',
+    historyRefreshFailed: 'Não foi possível atualizar o histórico.',
+    historyUnavailableBody:
+      'Não foi possível carregar o trabalho concluído. Verifique sua conexão e tente novamente.',
+    historyUnavailableTitle: 'Histórico indisponível',
     list: 'Lista',
     listView: 'Visualização em lista',
+    loadMoreFailed: 'Não foi possível carregar mais itens do histórico.',
     noCompletedWorkBody:
       'Conclua trabalhos no quadro para começar a construir seu histórico.',
     noCompletedWorkTitle: 'Ainda não há trabalho concluído',

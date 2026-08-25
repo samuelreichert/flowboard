@@ -6,6 +6,7 @@ import type {
   BoardTag,
   CardPriority,
 } from '../types';
+import { createApiRequestError } from './apiRequestError';
 
 const API_BASE_URL = import.meta.env.VITE_FLOWBOARD_API_URL?.trim() ?? '';
 
@@ -322,7 +323,10 @@ const parseClearBoardMutationResponse = async (response: Response) => {
 
 const parseCompletedHistoryResponse = async (response: Response) => {
   if (!response.ok) {
-    throw new Error('Unable to load completed work history.');
+    throw await createApiRequestError(
+      response,
+      'Unable to load completed work history.'
+    );
   }
 
   return (await response.json()) as CompletedHistoryResponse;
@@ -330,7 +334,10 @@ const parseCompletedHistoryResponse = async (response: Response) => {
 
 const parseArchivedCardDetailResponse = async (response: Response) => {
   if (!response.ok) {
-    throw new Error('Unable to load archived card detail.');
+    throw await createApiRequestError(
+      response,
+      'Unable to load archived card detail.'
+    );
   }
 
   return (await response.json()) as ArchivedCardDetailResponse;

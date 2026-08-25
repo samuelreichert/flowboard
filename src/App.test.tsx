@@ -44,7 +44,9 @@ test('resolves root and sidebar navigation through canonical routes', async () =
 
   await user.click(screen.getByRole('button', { name: /^history$/i }));
   expect(window.location.pathname).toBe('/history');
-  expect(screen.getByRole('heading', { name: /history/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: /history/i })
+  ).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /^board$/i }));
   expect(window.location.pathname).toBe('/board');
