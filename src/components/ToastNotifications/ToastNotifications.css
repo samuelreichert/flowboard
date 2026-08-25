@@ -13,9 +13,7 @@
   background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
-  box-shadow:
-    0 16px 36px var(--color-shadow),
-    0 3px 8px var(--color-shadow-soft);
+  box-shadow: var(--shadow-overlay);
   color: var(--color-text);
   pointer-events: auto;
   transition:
@@ -75,7 +73,7 @@
 
 .toast-notification__title {
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-control);
   font-weight: 680;
   line-height: 1.35;
   margin: 0;
@@ -83,7 +81,7 @@
 
 .toast-notification__description {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   line-height: 1.45;
   margin: 0;
 }
@@ -109,7 +107,7 @@
 }
 
 .toast-notification__close:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-focus-strong);
   outline-offset: 2px;
 }
 

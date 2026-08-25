@@ -31,6 +31,9 @@ jobs:
           fetch-depth: 0
 
       - uses: millionco/react-doctor@v2
+        with:
+          # Node 24.18.0 bundles the npm 11.16.0 version required by package.json.
+          node-version: 24.18.0
         # Common configuration knobs — uncomment any to override the default.
         # Full reference: https://www.react.doctor/ci
         # with:

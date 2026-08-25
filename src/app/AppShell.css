@@ -8,6 +8,8 @@
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
+  gap: 6px;
+  padding: 6px;
   transition:
     background-color 180ms ease,
     color 180ms ease,
@@ -21,7 +23,7 @@
 .app__title,
 .dialog-title {
   color: var(--color-text);
-  font-size: 22px;
+  font-size: var(--font-size-heading);
   font-weight: 680;
   line-height: 1.2;
   margin: 0;
@@ -29,7 +31,7 @@
 
 .app__eyebrow {
   color: var(--color-text-soft);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 560;
   letter-spacing: 0;
   margin: 0 0 3px;
@@ -40,6 +42,8 @@
   .app--sidebar-collapsed,
   .app--sidebar-expanded {
     grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
   }
 
   .app-sidebar--desktop {

@@ -37,8 +37,8 @@
 
 .column__title {
   color: var(--color-text-muted);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-structural-title);
+  font-weight: var(--font-weight-structural-title) !important;
   line-height: 1.35;
   margin: 0;
   overflow-wrap: anywhere;
@@ -46,22 +46,24 @@
 
 .column__count {
   color: var(--color-text-soft);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 580;
 }
 
 .column--drag-over {
-  background-color: var(--color-primary-subtle);
+  background-color: var(--color-accent-subtle);
+  outline: 1px dashed var(--color-accent);
+  outline-offset: 4px;
 }
 
 .column__empty-drop-indicator {
   align-items: center;
-  background-color: var(--color-primary-subtle);
-  border: 1px dashed var(--color-primary);
+  background-color: var(--color-accent-subtle);
+  border: 1px dashed var(--color-accent);
   border-radius: var(--radius-md);
-  color: var(--color-primary);
+  color: var(--color-accent);
   display: flex;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 580;
   justify-content: center;
   margin-top: 4px;

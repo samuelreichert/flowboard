@@ -1,10 +1,24 @@
-@import '@fontsource/geist-sans/400.css';
-@import '@fontsource/geist-sans/500.css';
-@import '@fontsource/geist-sans/600.css';
-@import '@fontsource/geist-sans/700.css';
-@import '@fontsource/geist-mono/400.css';
-@import '@fontsource/geist-mono/500.css';
-@import '@fontsource/geist-mono/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/500.css';
+
+:root {
+  --font-sans: 'Noto Sans', ui-sans-serif, sans-serif;
+  --font-mono:
+    'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --font-size-caption: 12px;
+  --font-size-control: 13px;
+  --font-size-body: 14px;
+  --font-size-input: 15px;
+  --font-size-structural-title: 15px;
+  --font-size-title: 16px;
+  --font-size-title-large: 18px;
+  --font-size-heading: 22px;
+  --font-size-display: 24px;
+  --font-size-hero: 26px;
+  --font-size-avatar: 44px;
+  --font-weight-structural-title: 500;
+}
 
 * {
   box-sizing: border-box;
@@ -13,13 +27,15 @@
 }
 
 html {
-  background-color: oklch(0.24 0 0);
+  background-color: var(--color-app-bg, oklch(0.985 0 0));
   min-height: 100%;
 }
 
 body {
-  color: oklch(0.24 0.006 260);
-  font-family: 'Geist Sans', ui-sans-serif, sans-serif;
+  color: var(--color-text, oklch(0.2 0 0));
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  font-weight: 400;
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
@@ -38,4 +54,16 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+/* Keep UI text at Noto Sans Regular while avoiding heavier display weights. */
+body * {
+  font-weight: 400 !important;
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-weight: 400 !important;
 }

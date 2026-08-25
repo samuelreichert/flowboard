@@ -3,9 +3,7 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow:
-    0 1px 2px var(--color-shadow-soft),
-    0 2px 5px var(--color-shadow-soft);
+  box-shadow: var(--shadow-card);
   color: var(--color-text);
   cursor: pointer;
   display: grid;
@@ -13,22 +11,18 @@
   position: relative;
   transition:
     border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+    box-shadow 140ms ease;
   width: 100%;
 }
 
 .card:hover {
   border-color: var(--color-border-strong);
-  box-shadow:
-    0 3px 7px var(--color-shadow-soft),
-    0 7px 13px var(--color-shadow-soft);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .card--dragging {
   background-color: var(--color-surface-raised);
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
   box-shadow:
     0 0 0 2px var(--color-focus),
     0 5px 12px var(--color-shadow-soft);
@@ -38,7 +32,7 @@
 
 .card__title {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -61,7 +55,7 @@
 }
 
 .card__body:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-focus-strong);
   outline-offset: 2px;
 }
 
@@ -89,7 +83,7 @@
   border-radius: var(--radius-pill);
   box-sizing: border-box;
   display: inline-flex;
-  font-size: 10px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   height: 21px;
   line-height: 1;
@@ -127,7 +121,7 @@
 }
 
 .card__drop-indicator {
-  background-color: var(--color-primary);
+  background-color: var(--color-accent);
   border-radius: var(--radius-pill);
   box-shadow: 0 0 0 2px var(--color-surface);
   height: 3px;
@@ -140,7 +134,7 @@
 
 .card__drop-indicator::before,
 .card__drop-indicator::after {
-  background-color: var(--color-primary);
+  background-color: var(--color-accent);
   border: 2px solid var(--color-surface);
   border-radius: var(--radius-round);
   content: '';

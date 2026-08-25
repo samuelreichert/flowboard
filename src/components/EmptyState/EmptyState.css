@@ -14,13 +14,13 @@
 
 .empty-state__title {
   color: var(--color-text);
-  font-size: 17px;
+  font-size: var(--font-size-title);
   font-weight: 680;
   margin: 0 0 6px;
 }
 
 .empty-state__body {
-  font-size: 13px;
+  font-size: var(--font-size-body);
   line-height: 1.45;
   margin: 0;
   max-width: 280px;
@@ -32,14 +32,14 @@
 
 .inline-empty-state {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   line-height: 1.45;
   margin: 0;
 }
 
 .inline-empty-state--soft {
   color: var(--color-text-soft);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .inline-empty-state--list {
@@ -48,7 +48,7 @@
 
 .inline-empty-state--dropdown {
   color: var(--color-text-soft);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   margin: 8px;
 }
 
@@ -56,6 +56,6 @@
   background-color: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   padding: 11px;
 }

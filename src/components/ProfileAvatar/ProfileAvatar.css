@@ -1,6 +1,6 @@
 .profile-avatar {
   align-items: center;
-  background-color: oklch(0.58 0.01 190);
+  background-color: var(--color-primary);
   border-radius: var(--radius-round);
   color: var(--color-on-solid);
   display: inline-flex;
@@ -17,19 +17,19 @@
 }
 
 .profile-avatar--sm {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   height: 28px;
   width: 28px;
 }
 
 .profile-avatar--md {
-  font-size: 15px;
+  font-size: var(--font-size-title);
   height: 40px;
   width: 40px;
 }
 
 .profile-avatar--lg {
-  font-size: 44px;
+  font-size: var(--font-size-avatar);
   height: 128px;
   width: 128px;
 }

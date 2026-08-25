@@ -1,5 +1,8 @@
 .app-workspace {
   background-color: var(--color-workspace-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-workspace);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
@@ -59,6 +62,9 @@
 
 @media (max-width: 760px) {
   .app-workspace {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
     padding: 14px 0 0;
   }
 

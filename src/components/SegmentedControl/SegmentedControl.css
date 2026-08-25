@@ -2,7 +2,7 @@
   --segmented-control-button-gap: 6px;
   --segmented-control-button-min-height: 34px;
   --segmented-control-button-padding: 6px 9px;
-  --segmented-control-font-size: 12px;
+  --segmented-control-font-size: var(--font-size-control);
   --segmented-control-font-weight: 650;
   --segmented-control-gap: 2px;
   --segmented-control-padding: 2px;
