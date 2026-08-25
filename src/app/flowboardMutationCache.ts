@@ -33,7 +33,7 @@ const withBoardVersion = (
   boardVersion?: number
 ) => ({
   ...bootstrap.board,
-  version: boardVersion ?? bootstrap.board.version,
+  version: Math.max(bootstrap.board.version, boardVersion ?? 0),
 });
 
 export const upsertBootstrapCard = (

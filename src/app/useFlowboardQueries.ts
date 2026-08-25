@@ -12,6 +12,7 @@ import {
   fetchCompletedHistory,
   type CompletedHistoryResponse,
 } from '../storage/authenticatedApi';
+import { shouldRetryApiRequest } from '../storage/apiRequestError';
 import { queryKeys } from './queryKeys';
 
 export const COMPLETED_HISTORY_PAGE_LIMIT = 20;
@@ -72,6 +73,7 @@ export const useCompletedHistoryQuery = ({
     queryFn: ({ pageParam }) =>
       fetchCompletedHistory({ accessToken, cursor: pageParam, limit }),
     queryKey: queryKeys.board.history(limit),
+    retry: shouldRetryApiRequest,
   });
 
 export const useArchivedCardDetailQuery = ({
@@ -93,4 +95,5 @@ export const useArchivedCardDetailQuery = ({
       cycleId && cardId
         ? queryKeys.board.archivedCard(cycleId, cardId)
         : queryKeys.board.archivedCard('pending-cycle', 'pending-card'),
+    retry: shouldRetryApiRequest,
   });

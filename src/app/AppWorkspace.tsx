@@ -4,9 +4,11 @@ import { lazy, Suspense, useState, type RefObject } from 'react';
 
 import { useLocalization } from '../LocalizationProvider';
 import Columns from '../components/Columns';
+import { RemoteDataPanel } from '../components/RemoteDataState';
 import type { BoardColumn, BoardTag } from '../types';
 import CompletionOverlay from './CompletionOverlay';
 import type { AppView } from './appTypes';
+import { deriveRemoteDataState } from './remoteDataState';
 import type { useFlowboardBoardMutations } from './useFlowboardBoardMutations';
 import type { useFlowboardCardMutations } from './useFlowboardCardMutations';
 import { useCompletedHistoryQuery } from './useFlowboardQueries';
@@ -69,8 +71,14 @@ const AppWorkspace = ({
     accessToken: cardDetailAccessToken,
     enabled: currentView === 'history',
   });
-  const completedWorkCycles =
-    historyQuery.data?.pages.flatMap((page) => page.cycles) ?? [];
+  const historyState = deriveRemoteDataState({
+    data: historyQuery.data,
+    isEmpty: (data) => data.pages.every((page) => page.cycles.length === 0),
+    isError: historyQuery.isError,
+  });
+  const completedWorkCycles = historyQuery.data?.pages.flatMap(
+    (page) => page.cycles
+  );
   const [composerPreferredColumnId, setComposerPreferredColumnId] =
     useState('');
   const workspaceTitle =
@@ -158,18 +166,36 @@ const AppWorkspace = ({
             <section
               aria-label={messages.history.completedHistory}
               className="history-view"
-            />
+            >
+              <RemoteDataPanel
+                description={messages.history.historyLoadingBody}
+                title={messages.history.historyLoadingTitle}
+                variant="loading"
+              />
+            </section>
           }
         >
           <HistoryView
             accessToken={cardDetailAccessToken}
-            boardLoading={boardLoading}
             completedWorkCycles={completedWorkCycles}
             hasMoreHistory={Boolean(historyQuery.hasNextPage)}
-            historyLoading={historyQuery.isLoading}
+            historyLoadMoreError={historyQuery.isFetchNextPageError}
             historyLoadingMore={historyQuery.isFetchingNextPage}
+            historyRefreshError={historyQuery.isRefetchError}
+            historyRefreshing={
+              Boolean(historyQuery.data) &&
+              historyQuery.isFetching &&
+              !historyQuery.isFetchingNextPage
+            }
+            historyState={historyState}
             onArchivedCardClose={onArchivedCardClose}
             onLoadMoreHistory={() => {
+              void historyQuery.fetchNextPage();
+            }}
+            onRetryHistory={() => {
+              void historyQuery.refetch();
+            }}
+            onRetryLoadMoreHistory={() => {
               void historyQuery.fetchNextPage();
             }}
             routeCard={archivedCardRoute}

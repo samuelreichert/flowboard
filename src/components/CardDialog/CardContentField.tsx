@@ -9,12 +9,14 @@ const CardContentEditor = lazy(() => import('../CardContentEditor'));
 type CardContentFieldProps = {
   card: BoardCard;
   content: string;
+  onContentBlur: () => void;
   onContentChange: (value: string) => void;
 };
 
 const CardContentField = ({
   card,
   content,
+  onContentBlur,
   onContentChange,
 }: CardContentFieldProps) => {
   const { messages } = useLocalization();
@@ -38,6 +40,7 @@ const CardContentField = ({
         <CardContentEditor
           id={`card-content-editor-${contentId}`}
           labelId={`card-content-label-${contentId}`}
+          onBlur={onContentBlur}
           onChange={onContentChange}
           value={content}
         />

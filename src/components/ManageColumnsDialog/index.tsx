@@ -280,8 +280,9 @@ const ManageColumnsDialog = ({
                           </Menu.Trigger>
                           <Menu.Portal container={menuPortalContainer}>
                             <Menu.Positioner
+                              align="end"
                               className="column-manager__menu-positioner"
-                              sideOffset={4}
+                              sideOffset={6}
                             >
                               <Menu.Popup className="menu-popup">
                                 {actions.map((action) => (

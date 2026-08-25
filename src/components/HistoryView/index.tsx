@@ -3,16 +3,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useLocalization } from '../../LocalizationProvider';
+import type { RemoteDataState } from '../../app/remoteDataState';
 import { useArchivedCardDetailQuery } from '../../app/useFlowboardQueries';
 import { createArchivedCardPath } from '../../app/routes';
 import type {
-  ArchivedCardDetailResponse,
   CompletedHistoryCardSummary,
   CompletedHistoryCycleSummary,
 } from '../../storage/authenticatedApi';
-import type { ArchivedBoardCard, BoardTag } from '../../types';
+import { isApiRequestErrorWithStatus } from '../../storage/apiRequestError';
+import type { BoardTag } from '../../types';
 import { EmptyState, InlineEmptyState } from '../EmptyState';
 import '../IconButton/IconButton.css';
+import { InlineRemoteDataState, RemoteDataPanel } from '../RemoteDataState';
 import SegmentedControl from '../SegmentedControl';
 import type { SegmentedControlOption } from '../SegmentedControl';
 import ArchivedCardDialog from './ArchivedCardDialog';
@@ -24,34 +26,34 @@ import './HistoryView.css';
 
 type HistoryViewProps = {
   accessToken?: string;
-  boardLoading: boolean;
-  completedWorkCycles: CompletedHistoryCycleSummary[];
+  completedWorkCycles: CompletedHistoryCycleSummary[] | undefined;
   hasMoreHistory: boolean;
-  historyLoading: boolean;
+  historyLoadMoreError: boolean;
   historyLoadingMore: boolean;
+  historyRefreshError: boolean;
+  historyRefreshing: boolean;
+  historyState: RemoteDataState;
   onArchivedCardClose: () => void;
   onLoadMoreHistory: () => void;
+  onRetryHistory: () => void;
+  onRetryLoadMoreHistory: () => void;
   routeCard: { cardId: string; cycleId: string } | null;
   tags: BoardTag[];
 };
 
-const toDialogCard = (
-  summary: CompletedHistoryCardSummary,
-  detail?: ArchivedCardDetailResponse
-): ArchivedBoardCard => ({
-  ...summary,
-  content: detail?.content ?? '',
-});
-
 const HistoryView = ({
   accessToken,
-  boardLoading,
   completedWorkCycles,
   hasMoreHistory,
-  historyLoading,
+  historyLoadMoreError,
   historyLoadingMore,
+  historyRefreshError,
+  historyRefreshing,
+  historyState,
   onArchivedCardClose,
   onLoadMoreHistory,
+  onRetryHistory,
+  onRetryLoadMoreHistory,
   routeCard,
   tags,
 }: HistoryViewProps) => {
@@ -75,7 +77,7 @@ const HistoryView = ({
     },
   ];
   const sortedCycles = useMemo(
-    () => sortHistoryCycles(completedWorkCycles),
+    () => sortHistoryCycles(completedWorkCycles ?? []),
     [completedWorkCycles]
   );
   const routeTarget = useMemo(() => {
@@ -90,21 +92,21 @@ const HistoryView = ({
   }, [routeCard, sortedCycles]);
   const archivedCardDetailQuery = useArchivedCardDetailQuery({
     accessToken,
-    cardId: routeTarget?.card.id ?? null,
-    cycleId: routeTarget?.cycle.id ?? null,
-    enabled: Boolean(routeTarget),
+    cardId: routeCard?.cardId ?? null,
+    cycleId: routeCard?.cycleId ?? null,
+    enabled: Boolean(routeCard),
   });
+  const archivedCardDetailState: RemoteDataState =
+    archivedCardDetailQuery.data !== undefined
+      ? 'content'
+      : archivedCardDetailQuery.isError
+        ? 'error'
+        : 'loading';
   const routeCardMissing = Boolean(
-    routeCard &&
-    (!routeTarget || archivedCardDetailQuery.isError) &&
-    !boardLoading &&
-    !historyLoading &&
-    !archivedCardDetailQuery.isLoading
+    routeCard && isApiRequestErrorWithStatus(archivedCardDetailQuery.error, 404)
   );
-  const selectedCard =
-    routeTarget && !archivedCardDetailQuery.isError
-      ? toDialogCard(routeTarget.card, archivedCardDetailQuery.data)
-      : null;
+  const selectedCard: CompletedHistoryCardSummary | null =
+    archivedCardDetailQuery.data ?? routeTarget?.card ?? null;
   const selectedTagNames = selectedCard
     ? getVisibleTagNames(selectedCard, tags)
     : [];
@@ -142,7 +144,62 @@ const HistoryView = ({
     }
   };
 
-  if (sortedCycles.length === 0) {
+  const archivedCardDialog = (
+    <ArchivedCardDialog
+      copyStatus={copyStatus}
+      detailContent={archivedCardDetailQuery.data?.content}
+      detailState={archivedCardDetailState}
+      onCopyMarkdown={copySelectedCardMarkdown}
+      onOpenChange={(open) => {
+        if (!open && routeCard) {
+          onArchivedCardClose();
+        }
+      }}
+      onRetry={() => {
+        void archivedCardDetailQuery.refetch();
+      }}
+      open={Boolean(routeCard && !routeCardMissing)}
+      selectedCard={selectedCard}
+      selectedTagNames={selectedTagNames}
+    />
+  );
+
+  if (historyState === 'loading') {
+    return (
+      <section
+        aria-busy="true"
+        aria-label={messages.history.completedHistory}
+        className="history-view"
+      >
+        <RemoteDataPanel
+          description={messages.history.historyLoadingBody}
+          title={messages.history.historyLoadingTitle}
+          variant="loading"
+        />
+        {archivedCardDialog}
+      </section>
+    );
+  }
+
+  if (historyState === 'error') {
+    return (
+      <section
+        aria-label={messages.history.completedHistory}
+        className="history-view"
+      >
+        <RemoteDataPanel
+          description={messages.history.historyUnavailableBody}
+          onRetry={onRetryHistory}
+          retryLabel={messages.common.retry}
+          title={messages.history.historyUnavailableTitle}
+          variant="error"
+        />
+        {archivedCardDialog}
+      </section>
+    );
+  }
+
+  if (historyState === 'empty') {
     return (
       <section
         className="history-view"
@@ -160,12 +217,14 @@ const HistoryView = ({
             {messages.history.noCompletedWorkBody}
           </EmptyState>
         )}
+        {archivedCardDialog}
       </section>
     );
   }
 
   return (
     <section
+      aria-busy={historyRefreshing || historyLoadingMore || undefined}
       className="history-view"
       aria-label={messages.history.completedHistory}
     >
@@ -178,6 +237,15 @@ const HistoryView = ({
           value={historyLayout}
         />
       </div>
+      {historyRefreshError && !historyLoadMoreError && (
+        <InlineRemoteDataState
+          onRetry={onRetryHistory}
+          retryLabel={messages.common.retry}
+          variant="error"
+        >
+          {messages.history.historyRefreshFailed}
+        </InlineRemoteDataState>
+      )}
       {routeCardMissing && (
         <InlineEmptyState variant="surface">
           {messages.history.archivedCardNotFound}
@@ -191,32 +259,29 @@ const HistoryView = ({
         }
         tags={tags}
       />
-      {hasMoreHistory && (
+      {(hasMoreHistory || historyLoadMoreError) && (
         <div className="history-view__load-more">
-          <button
-            className="button button--subtle"
-            disabled={historyLoadingMore}
-            onClick={onLoadMoreHistory}
-            type="button"
-          >
-            {messages.common.loadMore}
-          </button>
+          {historyLoadMoreError ? (
+            <InlineRemoteDataState
+              onRetry={onRetryLoadMoreHistory}
+              retryLabel={messages.common.retry}
+              variant="error"
+            >
+              {messages.history.loadMoreFailed}
+            </InlineRemoteDataState>
+          ) : (
+            <button
+              className="button button--subtle"
+              disabled={historyLoadingMore}
+              onClick={onLoadMoreHistory}
+              type="button"
+            >
+              {messages.common.loadMore}
+            </button>
+          )}
         </div>
       )}
-      <ArchivedCardDialog
-        copyStatus={copyStatus}
-        onCopyMarkdown={copySelectedCardMarkdown}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (routeCard) {
-              onArchivedCardClose();
-              return;
-            }
-          }
-        }}
-        selectedCard={selectedCard}
-        selectedTagNames={selectedTagNames}
-      />
+      {archivedCardDialog}
     </section>
   );
 };

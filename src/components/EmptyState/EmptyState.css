@@ -26,6 +26,10 @@
   max-width: 280px;
 }
 
+.empty-state__actions {
+  margin-top: 14px;
+}
+
 .inline-empty-state {
   color: var(--color-text-muted);
   font-size: var(--font-size-body);

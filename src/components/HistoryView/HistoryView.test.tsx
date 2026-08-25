@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -9,6 +10,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, vi } from 'vitest';
 
 import App from '../../App';
+import { flowboardQueryClient } from '../../app/queryClient';
+import { queryKeys } from '../../app/queryKeys';
+import { COMPLETED_HISTORY_PAGE_LIMIT } from '../../app/useFlowboardQueries';
 import { fetchBoardState } from '../../storage';
 import './index';
 import {
@@ -19,6 +23,7 @@ import {
   closeCardDialog,
   createBoardColumns,
   createBoardStateWithHistory,
+  createTestBoardState,
   expectCardDialogTitle,
   getBoardCardButton,
   openBoardSettings,
@@ -34,6 +39,51 @@ import {
 } from '../../test/appTestUtils';
 
 beforeEach(resetAppTestEnvironment);
+
+const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
+  new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
+
+const createDeferredResponse = () => {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((nextResolve) => {
+    resolve = nextResolve;
+  });
+
+  return { promise, resolve };
+};
+
+const createHistoryResponse = (
+  state = createBoardStateWithHistory(),
+  nextCursor: string | null = null
+) => ({
+  cycles: state.completedWorkCycles.map((cycle) => ({
+    ...cycle,
+    cards: cycle.cards.map(({ content: _content, ...card }) => card),
+  })),
+  pageInfo: {
+    hasMore: Boolean(nextCursor),
+    nextCursor,
+  },
+});
+
+const interceptFlowboardFetch = (
+  handler: (
+    input: RequestInfo | URL,
+    init?: RequestInit
+  ) => Promise<Response> | Response | undefined
+) => {
+  const fallbackFetch = vi.mocked(fetch);
+  const fetchMock = vi.fn(
+    (input: RequestInfo | URL, init?: RequestInit) =>
+      handler(input, init) ?? fallbackFetch(input, init)
+  );
+
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+};
 
 test('completes work after confirmation and moves done cards to history', async () => {
   const user = userEvent.setup();
@@ -350,4 +400,298 @@ test('switches completed work history between grid and list layouts', async () =
   );
   expect(screen.getByText('Archived release')).toBeInTheDocument();
   expect(screen.getByText(/^Created \d/i)).toBeInTheDocument();
+});
+
+test('shows loading instead of empty history before the first request resolves', async () => {
+  const user = userEvent.setup();
+  const historyResponse = createDeferredResponse();
+
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname === '/api/board/work-cycles/history') {
+      return historyResponse.promise;
+    }
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+
+  expect(
+    await screen.findByRole('heading', { name: 'Loading history' })
+  ).toBeInTheDocument();
+  expect(screen.queryByText('No completed work yet')).not.toBeInTheDocument();
+
+  await act(async () => {
+    historyResponse.resolve(
+      jsonResponse(createHistoryResponse(createTestBoardState()))
+    );
+    await historyResponse.promise;
+  });
+
+  expect(await screen.findByText('No completed work yet')).toBeInTheDocument();
+});
+
+test('shows a retryable initial history error without empty copy', async () => {
+  const user = userEvent.setup();
+  let historyRequestCount = 0;
+
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname !== '/api/board/work-cycles/history') {
+      return;
+    }
+
+    historyRequestCount += 1;
+    return historyRequestCount === 1
+      ? jsonResponse(
+          { error: { code: 'unauthorized', message: 'Unavailable' } },
+          { status: 403 }
+        )
+      : jsonResponse(createHistoryResponse(createTestBoardState()));
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+
+  expect(
+    await screen.findByRole('heading', { name: 'History unavailable' })
+  ).toBeInTheDocument();
+  expect(screen.queryByText('No completed work yet')).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Retry' }));
+  expect(await screen.findByText('No completed work yet')).toBeInTheDocument();
+  expect(historyRequestCount).toBe(2);
+});
+
+test('preserves cached history and retries a failed background refresh', async () => {
+  const user = userEvent.setup();
+  seedBoardState(createBoardStateWithHistory());
+  let historyRequestCount = 0;
+
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname !== '/api/board/work-cycles/history') {
+      return;
+    }
+
+    historyRequestCount += 1;
+    if (historyRequestCount === 2) {
+      return jsonResponse(
+        { error: { code: 'unauthorized', message: 'Unavailable' } },
+        { status: 403 }
+      );
+    }
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(await screen.findByText('Archived card')).toBeInTheDocument();
+
+  await act(async () => {
+    await flowboardQueryClient.invalidateQueries({
+      queryKey: queryKeys.board.history(COMPLETED_HISTORY_PAGE_LIMIT),
+    });
+  });
+
+  expect(screen.getByText('Archived card')).toBeInTheDocument();
+  expect(
+    await screen.findByText('History could not be refreshed.')
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Retry' }));
+  await waitFor(() =>
+    expect(
+      screen.queryByText('History could not be refreshed.')
+    ).not.toBeInTheDocument()
+  );
+  expect(screen.getByText('Archived card')).toBeInTheDocument();
+});
+
+test('preserves history and retries a failed next page', async () => {
+  const user = userEvent.setup();
+  const firstState = createBoardStateWithHistory();
+  const secondState = createBoardStateWithHistory();
+
+  secondState.completedWorkCycles = secondState.completedWorkCycles.map(
+    (cycle) => ({
+      ...cycle,
+      id: 'cycle-2',
+      cards: cycle.cards.map((card) => ({
+        ...card,
+        id: 'archived-card-2',
+        title: 'Second archived card',
+      })),
+    })
+  );
+  let historyRequestCount = 0;
+
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname !== '/api/board/work-cycles/history') {
+      return;
+    }
+
+    historyRequestCount += 1;
+    if (historyRequestCount === 1) {
+      return jsonResponse(createHistoryResponse(firstState, 'cursor-2'));
+    }
+
+    if (historyRequestCount === 2) {
+      return jsonResponse(
+        { error: { code: 'unauthorized', message: 'Unavailable' } },
+        { status: 403 }
+      );
+    }
+
+    return jsonResponse(createHistoryResponse(secondState));
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  expect(await screen.findByText('Archived card')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Load more' }));
+
+  expect(screen.getByText('Archived card')).toBeInTheDocument();
+  expect(
+    await screen.findByText('More history could not be loaded.')
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Retry' }));
+  expect(await screen.findByText('Second archived card')).toBeInTheDocument();
+  expect(screen.getByText('Archived card')).toBeInTheDocument();
+});
+
+test('shows archived detail loading without treating content as empty', async () => {
+  const user = userEvent.setup();
+  const state = createBoardStateWithHistory();
+  const detailResponse = createDeferredResponse();
+
+  seedBoardState(state);
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname === '/api/board/work-cycles/cycle-1/cards/archived-card') {
+      return detailResponse.promise;
+    }
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  await user.click(await screen.findByText('Archived card'));
+
+  const dialog = await screen.findByRole('dialog', { name: 'Archived card' });
+  expect(
+    within(dialog).getByText('Fetching the archived card details...')
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByText('This archived card has no content.')
+  ).not.toBeInTheDocument();
+
+  await act(async () => {
+    detailResponse.resolve(jsonResponse(state.completedWorkCycles[0].cards[0]));
+    await detailResponse.promise;
+  });
+  expect(await within(dialog).findByText('Archived notes')).toBeInTheDocument();
+});
+
+test('retries archived detail failures without describing the card as missing', async () => {
+  const user = userEvent.setup();
+  const state = createBoardStateWithHistory();
+  let detailRequestCount = 0;
+
+  seedBoardState(state);
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname !== '/api/board/work-cycles/cycle-1/cards/archived-card') {
+      return;
+    }
+
+    detailRequestCount += 1;
+    return detailRequestCount === 1
+      ? jsonResponse(
+          { error: { code: 'unauthorized', message: 'Unavailable' } },
+          { status: 403 }
+        )
+      : jsonResponse(state.completedWorkCycles[0].cards[0]);
+  });
+
+  render(<App />);
+  await user.click(screen.getByRole('button', { name: /^history$/i }));
+  await user.click(await screen.findByText('Archived card'));
+
+  const dialog = await screen.findByRole('dialog', { name: 'Archived card' });
+  expect(
+    await within(dialog).findByText(
+      'This archived card could not be loaded. Try again.'
+    )
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText('Archived card not found.')
+  ).not.toBeInTheDocument();
+
+  await user.click(within(dialog).getByRole('button', { name: 'Retry' }));
+  expect(await within(dialog).findByText('Archived notes')).toBeInTheDocument();
+  expect(detailRequestCount).toBe(2);
+});
+
+test('loads a direct archived route without a summary in the first page', async () => {
+  const state = createBoardStateWithHistory();
+
+  seedBoardState(state);
+  window.history.replaceState(
+    null,
+    '',
+    '/history/cycles/cycle-1/cards/archived-card'
+  );
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname === '/api/board/work-cycles/history') {
+      return jsonResponse({
+        cycles: [],
+        pageInfo: { hasMore: true, nextCursor: 'older-page' },
+      });
+    }
+  });
+
+  render(<App />);
+
+  const dialog = await screen.findByRole('dialog', { name: 'Archived card' });
+  expect(await within(dialog).findByText('Archived notes')).toBeInTheDocument();
+});
+
+test('closes a direct archived route while detail is still loading', async () => {
+  const user = userEvent.setup();
+  const state = createBoardStateWithHistory();
+  const detailResponse = createDeferredResponse();
+
+  seedBoardState(state);
+  window.history.replaceState(
+    null,
+    '',
+    '/history/cycles/cycle-1/cards/archived-card'
+  );
+  interceptFlowboardFetch((input) => {
+    const url = new URL(String(input), 'http://localhost');
+
+    if (url.pathname === '/api/board/work-cycles/cycle-1/cards/archived-card') {
+      return detailResponse.promise;
+    }
+  });
+
+  render(<App />);
+
+  expect(
+    await screen.findByRole('dialog', { name: 'Archived card' })
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Fetching the archived card details...')
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Close archived card' }));
+  await waitFor(() => expect(window.location.pathname).toBe('/history'));
 });

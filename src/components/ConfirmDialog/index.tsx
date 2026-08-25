@@ -29,7 +29,7 @@ const ConfirmDialog = ({
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="dialog-backdrop" />
         <AlertDialog.Viewport className="dialog-viewport">
-          <AlertDialog.Popup className="dialog-popup">
+          <AlertDialog.Popup className="dialog-popup dialog-popup--compact">
             <AlertDialog.Title className="dialog-title">
               {title}
             </AlertDialog.Title>

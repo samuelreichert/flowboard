@@ -23,7 +23,12 @@
   overflow-y: visible;
   padding: 8px;
   position: relative;
+  scrollbar-width: none;
   z-index: 2;
+}
+
+.editor-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .editor-toolbar__button,
@@ -218,7 +223,7 @@
   font-size: var(--font-size-input);
   font-weight: 300;
   line-height: 1.55;
-  min-height: 300px;
+  min-height: 260px;
   outline: 0;
   padding: 16px;
 }

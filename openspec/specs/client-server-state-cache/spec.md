@@ -186,6 +186,28 @@ update, move, and delete flows.
 - **AND** removes or invalidates that card's active detail cache
 - **AND** does not submit a legacy full-board save for that card deletion
 
+### Requirement: Coalesced rich content uses existing active-card mutations
+
+The system SHALL hand each flushed rich-content document to the existing authenticated active-card update mutation without changing its API contract, optimistic cache behavior, or persistence feedback.
+
+#### Scenario: Pending content is flushed
+
+- **WHEN** the rich-content autosave producer flushes a pending document
+- **THEN** the client submits one existing active-card update mutation containing the latest pending content
+- **AND** does not submit a legacy full-board save or use a new content endpoint
+
+#### Scenario: Flushed content mutation succeeds
+
+- **WHEN** a flushed rich-content mutation succeeds
+- **THEN** the client applies the returned card and board version through the existing active-card success path
+
+#### Scenario: Flushed content mutation fails
+
+- **WHEN** a flushed rich-content mutation fails
+- **THEN** the client applies the existing active-card rollback behavior
+- **AND** displays the existing persistent not-durably-saved feedback
+- **AND** does not report the pending document as successfully saved
+
 ### Requirement: Client rolls back failed active-card mutations
 
 The system SHALL preserve user-visible consistency when an active-card mutation
@@ -278,7 +300,9 @@ resource mutation fails.
 ### Requirement: Client reads completed history through query cache
 
 The system SHALL load completed work-cycle history through TanStack Query
-instead of loading a full board snapshot.
+instead of loading a full board snapshot and SHALL derive its primary
+presentation from resolved query data rather than a normalized empty
+collection.
 
 #### Scenario: User opens History
 
@@ -288,6 +312,33 @@ instead of loading a full board snapshot.
 - **AND** renders completed work-cycle groups from the history summary cache
 - **AND** does not request `/api/boards/default` solely to display History
 
+#### Scenario: Initial history query is unresolved
+
+- **WHEN** the history query has no resolved data and its initial request is
+  pending
+- **THEN** the client exposes an initial loading state
+- **AND** does not normalize the unresolved resource into a successful empty
+  collection
+
+#### Scenario: Initial history query fails
+
+- **WHEN** the history query has no resolved data and reaches an error state
+- **THEN** the client exposes a retryable initial error state
+- **AND** a retry action refetches the history query
+
+#### Scenario: History query resolves empty
+
+- **WHEN** the history query successfully resolves with zero completed cycles
+- **THEN** the client exposes a confirmed empty state
+
+#### Scenario: Cached history refetches
+
+- **WHEN** resolved history query data exists and a background refetch is
+  pending or fails
+- **THEN** the client preserves the resolved data as the primary state
+- **AND** exposes background progress or failure separately from the primary
+  state
+
 #### Scenario: User loads more completed history
 
 - **WHEN** the completed history summary response indicates more cycles are
@@ -296,10 +347,20 @@ instead of loading a full board snapshot.
   cursor
 - **AND** merges the next page without duplicating existing cycles
 
+#### Scenario: Next history page fails
+
+- **WHEN** a next-page history request fails after one or more pages are
+  resolved
+- **THEN** the client preserves all resolved pages
+- **AND** exposes a next-page error that can retry the same pagination
+  operation
+
 ### Requirement: Client hydrates archived card details on demand
 
 The system SHALL load rich archived-card content through an archived-card detail
-query only when an archived card is opened.
+query when an archived card is opened or directly addressed by route
+identifiers, and SHALL distinguish pending, not-found, and transient failure
+states.
 
 #### Scenario: User opens archived card
 
@@ -308,15 +369,20 @@ query only when an archived card is opened.
   the cycle identifier and archived card identifier
 - **AND** the archived-card dialog can render summary metadata while rich
   content is loading
+- **AND** unresolved rich content is represented as loading rather than empty
+  content
 - **AND** the dialog fills rich content from the archived-card detail query when
   it resolves
 
 #### Scenario: User opens direct archived card route
 
 - **WHEN** the user opens `/history/cycles/:cycleId/cards/:cardId` directly
-- **THEN** the client resolves the archived card summary from the completed
-  history query
-- **AND** loads rich archived content from the archived-card detail query
+- **THEN** the client requests archived-card detail with a stable key containing
+  the route cycle and card identifiers
+- **AND** the detail request does not depend on the requested summary being
+  present in the currently loaded history page
+- **AND** the client renders the complete archived card returned by the detail
+  query
 
 #### Scenario: Archived card detail is missing
 
@@ -324,6 +390,15 @@ query only when an archived card is opened.
   cycle or card
 - **THEN** the client uses the existing missing archived-card route behavior
   without revealing whether the card belongs to another user
+- **AND** the client does not automatically classify other failure statuses as
+  missing
+
+#### Scenario: Archived card detail fails transiently
+
+- **WHEN** the archived-card detail query fails for a reason other than not
+  found
+- **THEN** the client exposes a retryable archived-card detail error
+- **AND** retry refetches the detail query using the same stable key
 
 ### Requirement: Client mutates work-cycle completion through TanStack Query
 
@@ -451,4 +526,65 @@ complete-board network persistence.
   cache changes
 - **THEN** the storage layer does not mirror that update through a full-board
   remote persistence request
+### Requirement: Client serializes mutations for the same active card
 
+The system SHALL run authenticated mutations that primarily target one active
+card through a shared serial execution boundary keyed by card identifier while
+allowing mutations for different cards to execute concurrently.
+
+#### Scenario: Multiple mutation types target one card
+
+- **WHEN** create, update, move, delete, tag-assignment, or tag-unassignment
+  operations are submitted for the same card before earlier operations settle
+- **THEN** the client starts at most one request for that card at a time
+- **AND** it starts the remaining requests in submission order
+
+#### Scenario: Mutations target different cards
+
+- **WHEN** mutations for two different cards are ready to execute
+- **THEN** neither card waits for the other card's serial queue
+- **AND** both requests may remain in flight concurrently
+
+#### Scenario: Earlier same-card mutation fails
+
+- **WHEN** an in-flight card mutation fails while later mutations for that card
+  are queued
+- **THEN** the client exposes the existing persistence failure state
+- **AND** the next queued request is allowed to start
+
+### Requirement: Client reconciles ordered card mutation results
+
+The system SHALL derive the visible cached state of an actively mutating card
+from its latest confirmed state plus all later pending optimistic operations in
+submission order.
+
+#### Scenario: Older success settles after a newer optimistic edit
+
+- **WHEN** a card mutation succeeds while a later optimistic mutation for the
+  same card is pending
+- **THEN** the client merges the successful operation into confirmed state
+- **AND** reapplies the later optimistic operation so the older result does not
+  replace newer title, content, priority, tag, or placement state
+
+#### Scenario: Older mutation fails after a newer optimistic edit
+
+- **WHEN** a card mutation fails while a later optimistic mutation for the same
+  card is pending
+- **THEN** the client removes only the failed operation from the optimistic
+  sequence
+- **AND** rebuilds the affected card from confirmed state plus the remaining
+  pending operations
+
+#### Scenario: One card rolls back while another card changes
+
+- **WHEN** a mutation for one card fails after another card has been changed
+- **THEN** rollback updates only the failed card's summary, detail, and placement
+- **AND** it preserves the other card's optimistic or confirmed cache state
+
+#### Scenario: Different-card results contain different board versions
+
+- **WHEN** concurrent mutations for different cards settle with board versions
+  in an order different from their numeric order
+- **THEN** the cached board version remains the greatest version already
+  observed
+- **AND** an older result cannot decrease it

@@ -90,10 +90,6 @@
   justify-self: start;
 }
 
-.dialog-popup--column-management {
-  max-width: min(620px, calc(100vw - 48px));
-}
-
 @media (max-width: 640px) {
   .column-manager__item {
     align-items: stretch;

@@ -10,6 +10,7 @@ import { beforeEach, vi } from 'vitest';
 
 import App from '../../App';
 import { fetchTagStorage } from '../../storage';
+import * as toastNotifications from '../ToastNotifications/toastNotifications';
 import '../CardContentEditor';
 import {
   CREATED_AT,
@@ -34,6 +35,16 @@ import {
 
 beforeEach(resetAppTestEnvironment);
 
+const getCardPatchCalls = () =>
+  vi
+    .mocked(fetch)
+    .mock.calls.filter(
+      ([url, init]) =>
+        String(url).includes('/api/board/cards/') &&
+        !String(url).endsWith('/move') &&
+        init?.method === 'PATCH'
+    );
+
 test('shows and edits card details in the modal', async () => {
   const user = userEvent.setup();
   render(<App />);
@@ -51,7 +62,10 @@ test('shows and edits card details in the modal', async () => {
     screen.queryByRole('button', { name: /cancel/i })
   ).not.toBeInTheDocument();
   expect(
-    await screen.findByRole('button', { name: /delete card/i })
+    screen.queryByRole('menuitem', { name: /delete card/i })
+  ).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: /card actions/i })
   ).toBeInTheDocument();
 
   await user.click(
@@ -75,7 +89,7 @@ test('shows and edits card details in the modal', async () => {
   expect(readColumns()[0].cards[0].content).toContain('Ready to ship');
 });
 
-test('keeps card-level actions reachable with long card content', async () => {
+test('keeps card actions reachable without a sticky footer', async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -91,13 +105,44 @@ test('keeps card-level actions reachable with long card content', async () => {
 
   await user.click(screen.getByText('Long read'));
 
-  const deleteButton = screen.getByRole('button', { name: /delete card/i });
-  expect(deleteButton.closest('.dialog-actions--sticky')).not.toBeNull();
+  const cardDialog = screen.getByRole('dialog', { name: /card/i });
+  expect(cardDialog).toHaveClass('dialog-popup--wide');
+  expect(
+    cardDialog.querySelector('.card-dialog__metadata')
+  ).toBeInTheDocument();
+  expect(
+    cardDialog.querySelector('.dialog-actions--sticky')
+  ).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /card actions/i }));
+  const deleteCard = await screen.findByRole('menuitem', {
+    name: /delete card/i,
+  });
+  expect(deleteCard).toHaveClass('menu-item--danger');
 
   await user.click(screen.getByRole('button', { name: /close card/i }));
   expect(
     screen.queryByRole('dialog', { name: /card/i })
   ).not.toBeInTheDocument();
+});
+
+test('shows autosave errors in the card dialog body', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Review');
+  await user.click(screen.getByText('Review'));
+  await user.click(screen.getByRole('button', { name: /edit card title/i }));
+
+  const title = screen.getByLabelText('Card title');
+  await user.clear(title);
+  await user.tab();
+
+  const error = await screen.findByRole('alert');
+  expect(error).toHaveTextContent('Enter a card title.');
+  expect(error).toHaveClass('card-dialog__error');
+  expect(error.closest('.card-dialog__form')).not.toBeNull();
 });
 
 test('opens card details from the card title, metadata, and background', async () => {
@@ -158,7 +203,10 @@ test('deletes only the selected duplicate-title card from the modal', async () =
   await addCard(user, 'Todo', 'Review');
 
   await user.click(screen.getAllByText('Review')[0]);
-  await user.click(screen.getByRole('button', { name: /delete card/i }));
+  await user.click(screen.getByRole('button', { name: /card actions/i }));
+  await user.click(
+    await screen.findByRole('menuitem', { name: /delete card/i })
+  );
   const confirmDialog = screen.getByRole('alertdialog', {
     name: /delete this card/i,
   });
@@ -172,7 +220,10 @@ test('deletes only the selected duplicate-title card from the modal', async () =
   ).not.toBeInTheDocument();
   expect(readColumns()[0].cards).toHaveLength(2);
 
-  await user.click(screen.getByRole('button', { name: /delete card/i }));
+  await user.click(screen.getByRole('button', { name: /card actions/i }));
+  await user.click(
+    await screen.findByRole('menuitem', { name: /delete card/i })
+  );
   await user.click(
     within(
       screen.getByRole('alertdialog', { name: /delete this card/i })
@@ -272,7 +323,8 @@ test('creates, assigns, and removes card tags from the card dropdown', async () 
   expect(readColumns()[0].cards[0].tagIds).toEqual([]);
   expect(
     fetchMock.mock.calls.some(
-      ([url, init]) => String(url).includes('/api/boards/') && init?.method === 'PUT'
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
 });
@@ -327,18 +379,8 @@ test('updates card title without sending rich content or legacy board saves', as
   await user.type(screen.getByLabelText('Card title'), 'Renamed');
   await user.click(screen.getByRole('button', { name: /close card/i }));
 
-  await waitFor(() =>
-    expect(
-      fetchMock.mock.calls.some(
-        ([url, init]) =>
-          String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
-      )
-    ).toBe(true)
-  );
-  const titlePatch = fetchMock.mock.calls.find(
-    ([url, init]) =>
-      String(url).includes('/api/board/cards/') && init?.method === 'PATCH'
-  )?.[1];
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+  const titlePatch = getCardPatchCalls()[0]?.[1];
 
   expect(JSON.parse(String(titlePatch?.body))).toEqual({ title: 'Renamed' });
   expect(
@@ -347,4 +389,82 @@ test('updates card title without sending rich content or legacy board saves', as
         String(url).includes('/api/boards/') && init?.method === 'PUT'
     )
   ).toBe(false);
+});
+
+test('coalesces rich-content changes and flushes the latest document on close', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Write', 'Initial content');
+  await user.click(screen.getByText('Write'));
+
+  const content = await screen.findByLabelText('Content');
+  const fetchMock = vi.mocked(fetch);
+
+  fetchMock.mockClear();
+  content.focus();
+  pasteText(content, ' first');
+  pasteText(content, ' second');
+  expect(getCardPatchCalls()).toHaveLength(0);
+
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+
+  const contentPatch = JSON.parse(
+    String(getCardPatchCalls()[0]?.[1]?.body)
+  ) as { content: string };
+
+  expect(contentPatch).toEqual({
+    content: expect.stringContaining('first second'),
+  });
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        String(url).includes('/api/boards/') && init?.method === 'PUT'
+    )
+  ).toBe(false);
+});
+
+test('keeps persistence failure visible when a flushed content save fails', async () => {
+  const user = userEvent.setup();
+  const notifyPersistenceFailure = vi.spyOn(
+    toastNotifications,
+    'notifyPersistenceFailure'
+  );
+  render(<App />);
+
+  await addColumn(user, 'Todo');
+  await addCard(user, 'Todo', 'Offline draft', 'Initial content');
+  await user.click(screen.getByText('Offline draft'));
+
+  const content = await screen.findByLabelText('Content');
+  const fetchMock = vi.mocked(fetch);
+  const defaultFetch = fetchMock.getMockImplementation();
+
+  fetchMock.mockClear();
+  fetchMock.mockImplementation(async (input, init) => {
+    if (
+      String(input).includes('/api/board/cards/') &&
+      !String(input).endsWith('/move') &&
+      init?.method === 'PATCH'
+    ) {
+      return new Response(JSON.stringify({ error: 'Unavailable' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 503,
+      });
+    }
+
+    if (!defaultFetch) {
+      throw new Error('Missing default fetch implementation.');
+    }
+
+    return defaultFetch(input, init);
+  });
+  content.focus();
+  pasteText(content, ' not saved');
+  await user.click(screen.getByRole('button', { name: /close card/i }));
+
+  await waitFor(() => expect(getCardPatchCalls()).toHaveLength(1));
+  await waitFor(() => expect(notifyPersistenceFailure).toHaveBeenCalled());
 });
