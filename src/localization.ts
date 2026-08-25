@@ -100,6 +100,7 @@ const enMessages = {
       signIn: 'Sign in',
       socialOptionsLabel: 'Social sign-in options',
       continueWith: (provider: string) => `Continue with ${provider}`,
+      callbackFailure: 'Unable to complete sign-in right now.',
       magicLinkFailure: 'Unable to send a sign-in link right now.',
       magicLinkSuccess: 'Check your email for a sign-in link.',
       socialFailure: (provider: string) =>
@@ -437,6 +438,7 @@ const ptBrMessages: Messages = {
       signIn: 'Entrar',
       socialOptionsLabel: 'Opções de login social',
       continueWith: (provider) => `Continuar com ${provider}`,
+      callbackFailure: 'Não foi possível concluir o login agora.',
       magicLinkFailure: 'Não foi possível enviar um link de acesso agora.',
       magicLinkSuccess: 'Confira seu e-mail para acessar pelo link.',
       socialFailure: (provider) =>

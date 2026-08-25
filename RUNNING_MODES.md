@@ -37,6 +37,10 @@ this matrix first so future humans and AI agents know which mode to use.
 - Production board data must use Prisma Postgres, normally Supabase Postgres.
 - Supabase is enabled in the browser only when both `VITE_SUPABASE_URL` and
   `VITE_SUPABASE_PUBLISHABLE_KEY` are present.
+- Every Supabase-enabled browser mode uses PKCE with URL session detection and
+  persistent sessions. Allowed Supabase redirect URLs must include the full
+  `/auth/callback` path; the callback exchanges a short-lived code and then
+  navigates only to a validated internal `next` destination.
 - Without Supabase browser config, `npm run dev` uses the local no-auth Prisma
   path by calling the same bootstrap, card-detail, completed-history,
   archived-card detail, resource-mutation, and clear-board command

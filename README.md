@@ -206,7 +206,21 @@ reference and attempts to remove the previous object from the configured bucket.
 
 Flowboard uses one sign-in screen for new and returning users. Email magic links
 remain available as the fallback, and social sign-in starts Supabase OAuth for
-configured providers.
+configured providers. The browser client uses PKCE for both flows: Supabase
+returns a short-lived `code` to `/auth/callback`, and the same browser exchanges
+that code using its locally stored verifier before Flowboard opens the preserved
+safe `next` destination. Access and refresh tokens must never be placed in the
+callback URL.
+
+For email magic links, keep Supabase's hosted default `{{ .ConfirmationURL }}`
+link unless the project also implements a dedicated token-hash confirmation
+endpoint. Flowboard's `/auth/callback` expects the PKCE authorization-code
+redirect and does not call `verifyOtp` for a raw `token_hash`. A customized
+Magic Link or Confirm signup template must therefore either use
+`{{ .ConfirmationURL }}` or route through a separately implemented confirmation
+endpoint that verifies `{{ .TokenHash }}` before entering the app. Test email
+links in the same browser profile that requested them so the stored PKCE
+verifier is available.
 
 Public provider flags:
 
@@ -220,19 +234,25 @@ Apple stays disabled until `VITE_SUPABASE_APPLE_OAUTH_ENABLED=true` because
 Apple setup usually needs an Apple Developer account, service identifier,
 provider secret, and stable HTTPS redirect URLs.
 
-In Supabase Dashboard, configure Auth URL settings before testing OAuth:
+In Supabase Dashboard, configure Auth URL settings before testing OAuth or
+magic links. The Redirect URLs allow-list must include the complete callback
+destinations produced by Flowboard, not only their origins:
 
 ```text
-http://127.0.0.1:5173
-http://localhost:5173
+http://127.0.0.1:5173/auth/callback
+http://localhost:5173/auth/callback
 ```
 
 Add future deployed URLs before testing OAuth on Vercel or production:
 
 ```text
-https://your-project.vercel.app
-https://your-production-domain.com
+https://your-project.vercel.app/auth/callback
+https://your-production-domain.com/auth/callback
 ```
+
+Use exact production callback URLs. If preview deployments need authentication,
+add a narrowly scoped Supabase preview wildcard separately and use an isolated
+Preview Supabase project. Keep the Site URL set to the canonical app origin.
 
 Google OAuth setup:
 
@@ -254,12 +274,18 @@ Apple OAuth setup:
 
 Manual verification checklist:
 
-- Email: request a magic link and confirm the app recognizes the returned
-  Supabase session.
+- Email: request a magic link, open it in the requesting browser profile, and
+  confirm `/auth/callback?code=...` is exchanged and the intended safe internal
+  destination opens.
 - Google: click "Continue with Google", complete provider consent, return to
-  Flowboard, and confirm the authenticated board loads.
+  Flowboard through `/auth/callback?code=...`, and confirm the authenticated
+  board loads at the intended safe internal destination.
 - Apple: when enabled, click "Continue with Apple", complete provider consent,
-  return to Flowboard, and confirm the authenticated board loads.
+  return through the same PKCE callback, and confirm the authenticated board
+  loads.
+- Callback failure: use an expired or already-consumed test link and confirm
+  Flowboard shows a generic failure without rendering provider details, codes,
+  or tokens.
 - Board data: after any successful sign-in method, create or edit a card and
   confirm authenticated persistence works after refresh.
 
@@ -318,6 +344,23 @@ Set these Vercel environment variables for each environment:
 Leave `VITE_FLOWBOARD_API_URL` unset for this same-origin deployment. The CSP
 allows the standard `*.supabase.co` API origin; update it if you use a custom
 Supabase domain.
+
+For the first release containing the callback telemetry guard, perform this
+operational review in the linked Vercel project:
+
+- In both Analytics and Speed Insights, select Production and each relevant
+  Preview environment for the period before the guarded release, then filter
+  page or path data for `/auth/callback`.
+- Do not copy any discovered query strings, fragments, codes, or tokens into an
+  issue, log, or chat. Record only the affected environment and time range.
+- If historical callback entries retained credential-bearing URL data, contact
+  Vercel Support or the applicable privacy channel to request scoped deletion.
+  The public product documentation describes dashboard review and future-event
+  redaction but does not document per-event deletion controls.
+- After the guarded Preview is deployed, inspect browser network requests and
+  confirm parameterized callback events are absent from both collectors while
+  ordinary sanitized page and performance events still arrive without CSP
+  violations.
 
 For a production release, run the explicit Prisma migration step first, verify
 its status, then deploy the already-validated commit through Vercel. Use a

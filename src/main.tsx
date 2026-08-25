@@ -1,11 +1,10 @@
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 
 import './index.css';
 import App from './App';
+import FlowboardTelemetry from './observability/FlowboardTelemetry';
 
 const root = document.getElementById('root');
 
@@ -16,8 +15,7 @@ if (!root) {
 createRoot(root).render(
   <React.StrictMode>
     <App />
-    <Analytics />
-    <SpeedInsights />
+    <FlowboardTelemetry />
   </React.StrictMode>
 );
 
@@ -32,6 +30,8 @@ if (import.meta.env.PROD) {
   void navigator.serviceWorker
     .getRegistrations()
     .then((registrations) =>
-      Promise.all(registrations.map((registration) => registration.unregister()))
+      Promise.all(
+        registrations.map((registration) => registration.unregister())
+      )
     );
 }

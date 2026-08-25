@@ -39,6 +39,23 @@ beforeEach(() => {
   resetAuthEnv();
 });
 
+test('configures the browser client for persistent PKCE code exchange', async () => {
+  await loadSupabaseAuth();
+
+  expect(mocks.createClient).toHaveBeenCalledWith(
+    'https://flowboard.supabase.co',
+    'publishable-key',
+    {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        persistSession: true,
+      },
+    }
+  );
+});
+
 test('defines Google and Apple social auth providers with configuration status', async () => {
   const { socialAuthProviders } = await loadSupabaseAuth();
 
@@ -64,11 +81,14 @@ test('starts Google OAuth through Supabase with an auth callback destination', a
   );
 
   expect(googleProvider).toBeDefined();
-  await signInWithSocialProvider(googleProvider!, '/board/cards/card-1');
+  await signInWithSocialProvider(
+    googleProvider!,
+    '/board/cards/card-1?focus=title#editor'
+  );
 
   expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
     options: {
-      redirectTo: `${window.location.origin}/auth/callback?next=%2Fboard%2Fcards%2Fcard-1`,
+      redirectTo: `${window.location.origin}/auth/callback?next=%2Fboard%2Fcards%2Fcard-1%3Ffocus%3Dtitle%23editor`,
     },
     provider: 'google',
   });
